@@ -16,8 +16,9 @@ export interface FilaRol { codigo: string; nombre: string; esExtension: boolean;
 export interface FilaPermiso { codigo: string; descripcion: string }
 
 export interface RepositorioUsuarios {
-  listarUsuarios(tx: Transaccion, organizacionId: string): Promise<FilaUsuario[]>;
-  listarRoles(tx: Transaccion): Promise<FilaRol[]>;
+  listarUsuarios(tx: Transaccion, organizacionId: string, soloFincas?: readonly string[]): Promise<FilaUsuario[]>;
+  fincasDeUsuario(tx: Transaccion, usuarioId: string): Promise<string[]>;
+  listarRoles(tx: Transaccion, soloVisibles?: boolean): Promise<FilaRol[]>;
   listarPermisos(tx: Transaccion): Promise<FilaPermiso[]>;
   crearUsuario(tx: Transaccion, u: { organizacionId: string; correo: string; nombre: string; hash: string; autoriza: boolean }): Promise<string>;
   usuarioDeOrganizacion(tx: Transaccion, organizacionId: string, usuarioId: string): Promise<{ id: string; activo: boolean; roles: string[]; activada: boolean; correo: string } | null>;

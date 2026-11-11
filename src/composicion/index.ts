@@ -132,7 +132,7 @@ export function servicios(): Servicios {
 export { iniciarSesion, obtenerContexto, cerrarSesion } from "@/modules/identidad/application/sesiones";
 export { registrarVenta, listarVentas, obtenerOpcionesVenta } from "@/modules/comercial/application/registrarVenta";
 export { crearVersionTarifa, crearTarifa, listarTarifas, historialTarifa } from "@/modules/configuracion/application/tarifas";
-export { crearCliente, listarClientes, crearPedido, listarPedidos } from "@/modules/comercial/application/clientesPedidos";
+export { crearCliente, registrarComprador, listarClientes, crearPedido, listarPedidos } from "@/modules/comercial/application/clientesPedidos";
 export { obtenerPanel, type ResumenPanel } from "@/modules/panel/application/obtenerPanel";
 export { crearFinca, crearLote, listarFincasYLotes } from "@/modules/produccion/application/fincasLotes";
 export { consultarSaldos } from "@/modules/inventario/application/movimientos";

@@ -26,15 +26,19 @@ function validar<T extends z.ZodTypeAny>(esquema: T, entrada: unknown, mensaje: 
   throw new ErrorValidacion(mensaje, campos);
 }
 const uuid = z.string().uuid();
+/** Roles que un propietario puede asignar a su equipo; el resto (administrador, propietario) los asigna el administrador. */
+export const ROLES_DE_EQUIPO = ["capataz", "trabajador"];
 const contrasena = esquemaContrasena();
 const auditar = (deps: DependenciasUsuarios, ctx: ContextoUsuario, tx: Parameters<Auditor["registrar"]>[1], accion: string, usuarioId: string, despues: unknown) =>
   deps.auditor.registrar({ organizacionId: ctx.organizacionId, usuarioId: ctx.usuarioId, accion, entidad: "usuario", entidadId: usuarioId, resultado: "ok", despues, ip: ctx.ip }, tx);
 
 export async function listarUsuarios(deps: DependenciasUsuarios, ctx: ContextoUsuario) {
   await autorizar(deps.auditor, ctx, "usuario:ver", { accion: "usuario.listar", entidad: "usuario" });
+  // El administrador ve todas las cuentas; el propietario, solo el equipo (capataces y trabajadores) de sus fincas.
+  const global = ctx.permisos.has("usuario:administrar");
   return deps.uow.consultar(async (tx) => ({
-    usuarios: await deps.repo.listarUsuarios(tx, ctx.organizacionId),
-    roles: await deps.repo.listarRoles(tx),
+    usuarios: await deps.repo.listarUsuarios(tx, ctx.organizacionId, global ? undefined : ctx.fincaIds),
+    roles: (await deps.repo.listarRoles(tx, true)).filter((r) => global || ROLES_DE_EQUIPO.includes(r.codigo)),
     permisos: await deps.repo.listarPermisos(tx),
   }));
 }

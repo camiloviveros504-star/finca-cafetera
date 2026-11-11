@@ -3,22 +3,30 @@ import { clienteDe } from "@/shared/infraestructura/baseDatos";
 import type { FilaPermiso, FilaRol, FilaUsuario, RepositorioUsuarios } from "../domain/usuarios";
 
 export class RepositorioUsuariosPg implements RepositorioUsuarios {
-  async listarUsuarios(tx: Transaccion, o: string): Promise<FilaUsuario[]> {
+  async fincasDeUsuario(tx: Transaccion, usuarioId: string): Promise<string[]> {
+    return (await clienteDe(tx).query("SELECT finca_id FROM usuario_finca WHERE usuario_id = $1", [usuarioId])).rows.map((x) => x.finca_id as string);
+  }
+  async listarUsuarios(tx: Transaccion, o: string, soloFincas?: readonly string[]): Promise<FilaUsuario[]> {
     const r = await clienteDe(tx).query(
       `SELECT u.id, u.correo, u.nombre, u.activo, (u.autorizo_tratamiento_en IS NOT NULL) AS autorizo, (u.activada_en IS NULL) AS pendiente,
               EXISTS (SELECT 1 FROM invitacion_usuario i WHERE i.usuario_id = u.id AND i.usada_en IS NULL AND i.expira_en > now()) AS invitacion_vigente,
               coalesce((SELECT array_agg(r.codigo ORDER BY r.codigo) FROM usuario_rol ur JOIN rol r ON r.id = ur.rol_id WHERE ur.usuario_id = u.id), '{}') AS roles,
               coalesce((SELECT json_agg(json_build_object('id', f.id, 'nombre', f.nombre) ORDER BY f.nombre) FROM usuario_finca uf JOIN finca f ON f.id = uf.finca_id WHERE uf.usuario_id = u.id), '[]'::json) AS fincas,
               coalesce((SELECT array_agg(p.codigo ORDER BY p.codigo) FROM usuario_permiso_extra x JOIN permiso p ON p.id = x.permiso_id WHERE x.usuario_id = u.id), '{}') AS extras
-         FROM usuario u WHERE u.organizacion_id = $1 ORDER BY u.nombre`,
-      [o],
+         FROM usuario u WHERE u.organizacion_id = $1
+          AND ($2::uuid[] IS NULL OR (
+                EXISTS (SELECT 1 FROM usuario_finca x WHERE x.usuario_id = u.id AND x.finca_id = ANY($2::uuid[]))
+            AND NOT EXISTS (SELECT 1 FROM usuario_rol xr JOIN rol rr ON rr.id = xr.rol_id WHERE xr.usuario_id = u.id AND rr.codigo = 'administrador')))
+        ORDER BY u.nombre`,
+      [o, soloFincas ? [...soloFincas] : null],
     );
     return r.rows.map((x) => ({ id: x.id, correo: x.correo, nombre: x.nombre, activo: x.activo, roles: x.roles, fincas: x.fincas, permisosExtra: x.extras, autorizoTratamiento: x.autorizo, pendiente: x.pendiente, invitacionVigente: x.invitacion_vigente }));
   }
-  async listarRoles(tx: Transaccion): Promise<FilaRol[]> {
+  async listarRoles(tx: Transaccion, soloVisibles = false): Promise<FilaRol[]> {
     const r = await clienteDe(tx).query(
       `SELECT r.codigo, r.nombre, r.es_extension, coalesce(array_agg(p.codigo ORDER BY p.codigo) FILTER (WHERE p.id IS NOT NULL), '{}') AS permisos
-         FROM rol r LEFT JOIN rol_permiso rp ON rp.rol_id = r.id LEFT JOIN permiso p ON p.id = rp.permiso_id GROUP BY r.id ORDER BY r.es_extension, r.nombre`,
+         FROM rol r LEFT JOIN rol_permiso rp ON rp.rol_id = r.id LEFT JOIN permiso p ON p.id = rp.permiso_id WHERE ($1::boolean = false OR r.visible) GROUP BY r.id ORDER BY r.es_extension, r.nombre`,
+      [soloVisibles],
     );
     return r.rows.map((x) => ({ codigo: x.codigo, nombre: x.nombre, esExtension: x.es_extension, permisos: x.permisos }));
   }

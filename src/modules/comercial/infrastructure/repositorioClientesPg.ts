@@ -5,24 +5,33 @@ import type { ClienteRegistrado, FilaPedido, NuevoCliente, RepositorioClientesPe
 export class RepositorioClientesPg implements RepositorioClientesPedidos {
   async crearCliente(tx: Transaccion, c: NuevoCliente): Promise<string> {
     const r = await clienteDe(tx).query(
-      `INSERT INTO cliente (organizacion_id, nombre, documento, telefono, correo, direccion, autorizo_tratamiento_en)
-       VALUES ($1,$2,$3,$4,$5,$6, now()) RETURNING id`,
-      [c.organizacionId, c.nombre, c.documento ?? null, c.telefono ?? null, c.correo ?? null, c.direccion ?? null],
+      `INSERT INTO cliente (organizacion_id, nombre, documento, telefono, correo, direccion, autorizo_tratamiento_en, finca_id)
+       VALUES ($1,$2,$3,$4,$5,$6, now(), $7) RETURNING id`,
+      [c.organizacionId, c.nombre, c.documento ?? null, c.telefono ?? null, c.correo ?? null, c.direccion ?? null, c.fincaId ?? null],
     );
     return r.rows[0].id as string;
   }
 
-  async listarClientes(tx: Transaccion, organizacionId: string, busqueda: string | null, limite: number, desplazamiento: number) {
+  async buscarOCrearComprador(tx: Transaccion, organizacionId: string, fincaId: string, nombre: string): Promise<string> {
+    const c = clienteDe(tx);
+    const existe = await c.query("SELECT id FROM cliente WHERE organizacion_id = $1 AND finca_id = $2 AND lower(nombre) = lower($3) AND activo", [organizacionId, fincaId, nombre]);
+    if (existe.rows[0]) return existe.rows[0].id as string;
+    // Solo se guarda el nombre comercial: sin datos personales no hay autorización que registrar.
+    const r = await c.query("INSERT INTO cliente (organizacion_id, nombre, finca_id) VALUES ($1,$2,$3) RETURNING id", [organizacionId, nombre, fincaId]);
+    return r.rows[0].id as string;
+  }
+
+  async listarClientes(tx: Transaccion, organizacionId: string, fincaIds: readonly string[], busqueda: string | null, limite: number, desplazamiento: number) {
     const c = clienteDe(tx);
     const patron = busqueda ? `%${busqueda.replace(/[%_\\]/g, "\\$&")}%` : null;
     const [filas, total] = await Promise.all([
       c.query(
         `SELECT id, nombre, documento, telefono, correo, direccion, autorizo_tratamiento_en
-           FROM cliente WHERE organizacion_id = $1 AND activo AND ($2::text IS NULL OR nombre ILIKE $2)
+           FROM cliente WHERE organizacion_id = $1 AND activo AND ($2::text IS NULL OR nombre ILIKE $2) AND (finca_id IS NULL OR finca_id = ANY($5::uuid[]))
           ORDER BY lower(nombre) LIMIT $3 OFFSET $4`,
-        [organizacionId, patron, limite, desplazamiento],
+        [organizacionId, patron, limite, desplazamiento, fincaIds],
       ),
-      c.query("SELECT count(*)::int AS n FROM cliente WHERE organizacion_id = $1 AND activo AND ($2::text IS NULL OR nombre ILIKE $2)", [organizacionId, patron]),
+      c.query("SELECT count(*)::int AS n FROM cliente WHERE organizacion_id = $1 AND activo AND ($2::text IS NULL OR nombre ILIKE $2) AND (finca_id IS NULL OR finca_id = ANY($3::uuid[]))", [organizacionId, patron, fincaIds]),
     ]);
     return {
       filas: filas.rows.map(

@@ -67,7 +67,13 @@ export class RepositorioIdentidadPg implements RepositorioIdentidad {
          SELECT p.codigo FROM usuario_permiso_extra e JOIN permiso p ON p.id = e.permiso_id WHERE e.usuario_id = $1`,
         [f.id],
       ),
-      this.pool.query("SELECT finca_id FROM usuario_finca WHERE usuario_id = $1", [f.id]),
+      this.pool.query(
+        `SELECT finca_id FROM usuario_finca WHERE usuario_id = $1
+         UNION
+         SELECT fi.id FROM finca fi WHERE fi.organizacion_id = $2 AND fi.activa
+           AND EXISTS (SELECT 1 FROM usuario_rol ur JOIN rol r ON r.id = ur.rol_id WHERE ur.usuario_id = $1 AND r.codigo = 'administrador')`,
+        [f.id, f.organizacion_id],
+      ),
     ]);
     return {
       contexto: {

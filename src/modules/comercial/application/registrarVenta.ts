@@ -38,6 +38,10 @@ export const esquemaVenta = z.object({
   claveIdempotencia: z.string().min(8).max(100),
   nota: z.string().max(500).optional(),
   /** Descuento autorizado (%): requiere permiso `venta:descontar` y no puede superar el máximo configurado. */
+  /** Datos opcionales de la venta (calidad y destino). */
+  variedad: z.string().trim().max(80).optional(),
+  taza: z.string().trim().max(120).optional(),
+  destino: z.string().trim().max(120).optional(),
   descuentoPct: z.string().regex(/^\d{1,3}(\.\d{1,2})?$/, "Descuento inválido").optional(),
   items: z
     .array(
@@ -46,6 +50,8 @@ export const esquemaVenta = z.object({
         cantidad: cantidadTexto,
         loteId: z.string().uuid().optional(),
         bodegaId: z.string().uuid().optional(),
+        /** Precio por kg pactado en esta venta. Si se omite se usa la tarifa vigente del producto. */
+        precioKg: z.string().regex(/^\d{1,9}(\.\d{1,2})?$/, "Precio inválido (máximo 2 decimales)").optional(),
       }),
     )
     .min(1, "Agregue al menos un producto")
@@ -107,6 +113,9 @@ export async function registrarVenta(
         clave: entrada.claveIdempotencia,
         creadoPor: ctx.usuarioId,
         nota: entrada.nota,
+        variedad: entrada.variedad,
+        taza: entrada.taza,
+        destino: entrada.destino,
       });
 
       if (descuentoBp > 0n) {
@@ -116,17 +125,17 @@ export async function registrarVenta(
         }
       }
       const hoy = fechaColombia();
-      const precios = new Map<string, { valor: string; tarifaVersionId: string }>();
+      // El precio lo fija quien vende (precio pactado con el comprador); si no lo indica se usa la tarifa vigente del producto.
+      const precios = new Map<string, { valor: string; tarifaVersionId: string | null }>();
       for (const productoId of new Set(entrada.items.map((i) => i.productoId))) {
-        precios.set(
-          productoId,
-          await obtenerPrecioVigente({ repo: deps.configuracion }, tx, {
-            organizacionId: ctx.organizacionId,
-            fincaId: entrada.fincaId,
-            productoId,
-            fecha: hoy,
-          }),
-        );
+        const pactados = new Set(entrada.items.filter((i) => i.productoId === productoId && i.precioKg !== undefined).map((i) => i.precioKg));
+        if (pactados.size > 1) throw new ErrorValidacion("Un mismo tipo de café no puede llevar dos precios en la misma venta", { items: "Precio repetido" });
+        const pactado = [...pactados][0];
+        if (pactado !== undefined) {
+          precios.set(productoId, { valor: pactado, tarifaVersionId: null });
+          continue;
+        }
+        precios.set(productoId, await obtenerPrecioVigente({ repo: deps.configuracion }, tx, { organizacionId: ctx.organizacionId, fincaId: entrada.fincaId, productoId, fecha: hoy }));
       }
 
       const salidas = await descontarParaVenta({ repo: deps.inventario }, tx, ctx, {

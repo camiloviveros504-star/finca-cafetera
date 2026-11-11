@@ -42,7 +42,7 @@ export interface NuevoDetalle {
   bodegaId: string;
   cantidad: string;
   precioUnitario: string;
-  tarifaVersionId: string;
+  tarifaVersionId: string | null;
   descuento: string;
   subtotal: string;
   movimientoId: string;
@@ -52,6 +52,8 @@ export interface OpcionesVenta {
   fincas: { id: string; nombre: string }[];
   clientes: { id: string; nombre: string }[];
   productos: { id: string; codigo: string; nombre: string }[];
+  /** Café disponible por finca y tipo, para mostrar cuánto se puede vender. */
+  existencias: { fincaId: string; productoId: string; kg: string }[];
 }
 
 export interface RepositorioVentas {
@@ -61,7 +63,7 @@ export interface RepositorioVentas {
   /** Inserta el encabezado primero: la clave única serializa los reintentos concurrentes. Lanza ErrorClaveDuplicada. */
   insertarEncabezado(
     tx: Transaccion,
-    v: { id: string; organizacionId: string; fincaId: string; clienteId: string; clave: string; creadoPor: string; nota?: string },
+    v: { id: string; organizacionId: string; fincaId: string; clienteId: string; clave: string; creadoPor: string; nota?: string; variedad?: string; taza?: string; destino?: string },
   ): Promise<void>;
   insertarDetalle(tx: Transaccion, d: NuevoDetalle): Promise<void>;
   fijarTotal(tx: Transaccion, ventaId: string, total: string, descuentoTotal: string): Promise<void>;
@@ -92,6 +94,7 @@ export interface NuevoCliente {
   telefono?: string;
   correo?: string;
   direccion?: string;
+  fincaId?: string;
 }
 
 export interface FilaPedido {
@@ -105,9 +108,12 @@ export interface FilaPedido {
 
 export interface RepositorioClientesPedidos {
   crearCliente(tx: Transaccion, c: NuevoCliente): Promise<string>;
+  /** Comprador con solo nombre (sin datos personales): se reutiliza si ya existe en esa finca. */
+  buscarOCrearComprador(tx: Transaccion, organizacionId: string, fincaId: string, nombre: string): Promise<string>;
   listarClientes(
     tx: Transaccion,
     organizacionId: string,
+    fincaIds: readonly string[],
     busqueda: string | null,
     limite: number,
     desplazamiento: number,

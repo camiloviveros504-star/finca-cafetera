@@ -14,9 +14,10 @@ import { autorizar } from "@/shared/aplicacion/autorizar";
 import type { Auditor, UnidadDeTrabajo } from "@/shared/aplicacion/puertos";
 import type { ContextoUsuario } from "@/shared/dominio/contexto";
 import { problemaDeContrasena } from "@/shared/dominio/contrasena";
-import { ErrorBloqueado, ErrorNoEncontrado, ErrorRegla, ErrorValidacion } from "@/shared/dominio/errores";
+import { ErrorBloqueado, ErrorNoEncontrado, ErrorProhibido, ErrorRegla, ErrorValidacion } from "@/shared/dominio/errores";
 import type { RepositorioUsuarios } from "../domain/usuarios";
 import { MAX_FALLOS_POR_IP, VENTANA_BLOQUEO_MS } from "./sesiones";
+import { ROLES_DE_EQUIPO } from "./usuarios";
 
 export const DURACION_INVITACION_MS = 72 * 60 * 60 * 1000;
 
@@ -46,9 +47,23 @@ function validar<T extends z.ZodTypeAny>(esquema: T, entrada: unknown, mensaje: 
   throw new ErrorValidacion(mensaje, campos);
 }
 
+/**
+ * El administrador gestiona cualquier cuenta. El propietario solo puede invitar a su equipo (capataces y trabajadores) y
+ * únicamente a fincas que él mismo tiene asignadas: nunca crea administradores ni propietarios ni entra a fincas ajenas.
+ */
+async function autorizarGestionDeCuentas(deps: DependenciasInvitaciones, ctx: ContextoUsuario, accion: string, roles: readonly string[], fincaIds: readonly string[]) {
+  if (ctx.permisos.has("usuario:administrar")) return;
+  await autorizar(deps.auditor, ctx, "usuario:invitar_equipo", { accion, entidad: "usuario" });
+  const fueraDeAlcance = roles.some((r) => !ROLES_DE_EQUIPO.includes(r)) || fincaIds.some((f) => !ctx.fincaIds.includes(f)) || fincaIds.length === 0;
+  if (fueraDeAlcance) {
+    await deps.auditor.registrar({ organizacionId: ctx.organizacionId, usuarioId: ctx.usuarioId, accion, entidad: "usuario", resultado: "denegado", despues: { motivo: "fuera_de_alcance_del_propietario" }, ip: ctx.ip });
+    throw new ErrorProhibido();
+  }
+}
+
 export async function invitarUsuario(deps: DependenciasInvitaciones, ctx: ContextoUsuario, cruda: unknown) {
   const e = validar(esquemaInvitar, cruda, "Revise los datos del usuario");
-  await autorizar(deps.auditor, ctx, "usuario:administrar", { accion: "usuario.invitar", entidad: "usuario" });
+  await autorizarGestionDeCuentas(deps, ctx, "usuario.invitar", e.roles, e.fincaIds);
   const ahora = (deps.ahora ?? (() => new Date()))();
   const hashInutilizable = await deps.cifrar(tokenAleatorio(48)); // nadie conoce esta contraseña: no se puede iniciar sesión hasta activar
   return deps.uow.ejecutar(async (tx) => {
@@ -72,11 +87,16 @@ export async function invitarUsuario(deps: DependenciasInvitaciones, ctx: Contex
 /** Genera un enlace nuevo (alta pendiente o restablecimiento) y revoca los anteriores de esa cuenta. */
 export async function emitirEnlace(deps: DependenciasInvitaciones, ctx: ContextoUsuario, cruda: unknown) {
   const e = validar(z.object({ usuarioId: uuid }), cruda, "Revise los datos");
-  await autorizar(deps.auditor, ctx, "usuario:administrar", { accion: "usuario.enlace", entidad: "usuario" });
+  if (!ctx.permisos.has("usuario:administrar")) await autorizar(deps.auditor, ctx, "usuario:invitar_equipo", { accion: "usuario.enlace", entidad: "usuario" });
   const ahora = (deps.ahora ?? (() => new Date()))();
   return deps.uow.ejecutar(async (tx) => {
     const u = await deps.repo.usuarioDeOrganizacion(tx, ctx.organizacionId, e.usuarioId);
     if (!u) throw new ErrorNoEncontrado("Usuario");
+    if (!ctx.permisos.has("usuario:administrar")) {
+      // El propietario solo gestiona enlaces de su equipo: roles de equipo y fincas suyas.
+      const fincas = await deps.repo.fincasDeUsuario(tx, u.id);
+      if (u.roles.some((r) => !ROLES_DE_EQUIPO.includes(r)) || fincas.length === 0 || fincas.some((f) => !ctx.fincaIds.includes(f))) throw new ErrorNoEncontrado("Usuario");
+    }
     const tipo = u.activada ? "restablecimiento" : "alta";
     await deps.repo.revocarInvitaciones(tx, u.id);
     const token = tokenAleatorio(32);

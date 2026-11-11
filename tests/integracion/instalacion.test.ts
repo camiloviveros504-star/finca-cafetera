@@ -59,7 +59,7 @@ describe("primer arranque (sin datos de ejemplo)", () => {
     expect((await q("SELECT count(*)::int AS n FROM organizacion")).n).toBe(1);
     expect((await q("SELECT es_demo FROM organizacion")).es_demo).toBe(false);
     expect((await q("SELECT count(*)::int AS n FROM bodega")).n).toBe(1);
-    expect((await q("SELECT count(*)::int AS n FROM producto WHERE NOT es_demo")).n).toBe(4);
+    expect((await q("SELECT count(*)::int AS n FROM producto WHERE NOT es_demo")).n).toBe(7);
     expect((await q("SELECT count(*)::int AS n FROM proceso_etapa")).n).toBe(5);
     // Nada de precios, tarifas, equivalencias, clientes ni trabajadores inventados.
     for (const t of ["tarifa", "tarifa_version", "conversion_unidad", "cliente", "trabajador", "movimiento_inventario", "venta"]) {

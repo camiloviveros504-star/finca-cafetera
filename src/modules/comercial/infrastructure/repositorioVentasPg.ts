@@ -9,12 +9,18 @@ const SQL_VENTA = `SELECT v.id, v.numero_comprobante, v.finca_id, v.cliente_id, 
 export class RepositorioVentasPg implements RepositorioVentas {
   async opcionesVenta(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]) {
     const c = clienteDe(tx);
-    const [fincas, clientes, productos] = await Promise.all([
+    const [fincas, clientes, productos, existencias] = await Promise.all([
       c.query("SELECT id, nombre FROM finca WHERE organizacion_id = $1 AND id = ANY($2::uuid[]) AND activa ORDER BY nombre", [organizacionId, fincaIds]),
-      c.query("SELECT id, nombre FROM cliente WHERE organizacion_id = $1 AND activo ORDER BY nombre", [organizacionId]),
-      c.query("SELECT id, codigo, nombre FROM producto WHERE organizacion_id = $1 AND activo AND vendible ORDER BY codigo", [organizacionId]),
+      c.query("SELECT id, nombre FROM cliente WHERE organizacion_id = $1 AND activo AND (finca_id IS NULL OR finca_id = ANY($2::uuid[])) ORDER BY nombre", [organizacionId, fincaIds]),
+      c.query("SELECT id, codigo, nombre FROM producto WHERE organizacion_id = $1 AND activo AND vendible ORDER BY array_position(ARRAY['CER','PHU','PSE','PAS','PLU','EXC','TOS'], codigo), codigo", [organizacionId]),
+      c.query("SELECT finca_id, producto_id, sum(cantidad) AS kg FROM saldo_inventario WHERE organizacion_id = $1 AND finca_id = ANY($2::uuid[]) AND cantidad > 0 GROUP BY finca_id, producto_id", [organizacionId, fincaIds]),
     ]);
-    return { fincas: fincas.rows, clientes: clientes.rows, productos: productos.rows };
+    return {
+      fincas: fincas.rows,
+      clientes: clientes.rows,
+      productos: productos.rows,
+      existencias: existencias.rows.map((x) => ({ fincaId: x.finca_id as string, productoId: x.producto_id as string, kg: x.kg as string })),
+    };
   }
 
   private async completar(tx: Transaccion, fila: Record<string, unknown>): Promise<VentaRegistrada> {
@@ -66,13 +72,13 @@ export class RepositorioVentasPg implements RepositorioVentas {
 
   async insertarEncabezado(
     tx: Transaccion,
-    v: { id: string; organizacionId: string; fincaId: string; clienteId: string; clave: string; creadoPor: string; nota?: string },
+    v: { id: string; organizacionId: string; fincaId: string; clienteId: string; clave: string; creadoPor: string; nota?: string; variedad?: string; taza?: string; destino?: string },
   ): Promise<void> {
     try {
       await clienteDe(tx).query(
-        `INSERT INTO venta (id, organizacion_id, finca_id, cliente_id, total, clave_idempotencia, creado_por, nota)
-         VALUES ($1,$2,$3,$4,0,$5,$6,$7)`,
-        [v.id, v.organizacionId, v.fincaId, v.clienteId, v.clave, v.creadoPor, v.nota ?? null],
+        `INSERT INTO venta (id, organizacion_id, finca_id, cliente_id, total, clave_idempotencia, creado_por, nota, variedad, taza, destino)
+         VALUES ($1,$2,$3,$4,0,$5,$6,$7,$8,$9,$10)`,
+        [v.id, v.organizacionId, v.fincaId, v.clienteId, v.clave, v.creadoPor, v.nota ?? null, v.variedad ?? null, v.taza ?? null, v.destino ?? null],
       );
     } catch (error) {
       if ((error as { code?: string }).code === "23505") throw new ErrorClaveDuplicada();

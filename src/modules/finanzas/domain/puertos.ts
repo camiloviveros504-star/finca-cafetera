@@ -40,6 +40,7 @@ export interface CompraParaMovimiento {
 
 export interface FilaGasto {
   id: string;
+  ventaId: string | null;
   fecha: string;
   fincaNombre: string;
   loteCodigo: string | null;
@@ -104,7 +105,8 @@ export interface RepositorioFinanzas {
   loteEsDeFinca(tx: Transaccion, organizacionId: string, loteId: string, fincaId: string): Promise<boolean>;
   listarCompras(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]): Promise<FilaCompra[]>;
   buscarGastoPorClave(tx: Transaccion, organizacionId: string, clave: string): Promise<string | null>;
-  insertarGasto(tx: Transaccion, g: { organizacionId: string; fincaId: string; loteId?: string; tipo: string; clasificacion: string; fecha: string; descripcion: string; monto: string; metodo?: string; clave: string; registradoPor: string }): Promise<string>;
+  ventaEsDeFinca(tx: Transaccion, organizacionId: string, ventaId: string, fincaId: string): Promise<boolean>;
+  insertarGasto(tx: Transaccion, g: { organizacionId: string; fincaId: string; ventaId?: string; loteId?: string; tipo: string; clasificacion: string; fecha: string; descripcion: string; monto: string; metodo?: string; clave: string; registradoPor: string }): Promise<string>;
   listarGastos(tx: Transaccion, organizacionId: string, fincaIds: readonly string[], desde: string, hasta: string): Promise<FilaGasto[]>;
   resumen(tx: Transaccion, organizacionId: string, fincaIds: readonly string[], desde: string, hasta: string): Promise<ResumenFinanciero>;
   conciliacion(tx: Transaccion, organizacionId: string, fincaIds: readonly string[], desde: string, hasta: string): Promise<Conciliacion>;

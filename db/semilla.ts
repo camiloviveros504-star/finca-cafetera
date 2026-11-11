@@ -33,6 +33,9 @@ export async function sembrar(c: Client): Promise<void> {
       ["financiero@demo.local", "Responsable financiero DEMO", "responsable_financiero", [f1.id, f2.id]],
       ["bodega@demo.local", "Responsable de bodega DEMO", "responsable_bodega", [f1.id]],
       ["auditor@demo.local", "Auditor DEMO", "auditor", [f1.id, f2.id]],
+      ["propietario@demo.local", "Propietario DEMO", "propietario", [f1.id]],
+      ["capataz@demo.local", "Capataz DEMO", "capataz", [f1.id]],
+      ["trabajador@demo.local", "Trabajador DEMO", "trabajador", [f1.id]],
     ];
     const idUsuario: Record<string, string> = {};
     for (const [correo, nombre, rol, fincas] of usuarios) {
@@ -77,6 +80,9 @@ export async function sembrar(c: Client): Promise<void> {
       ["PHU", "Pergamino húmedo DEMO", false],
       ["PSE", "Pergamino seco DEMO", true],
       ["EXC", "Excelso DEMO", true],
+      ["PAS", "Pasilla DEMO", true],
+      ["PLU", "Plumilla DEMO", true],
+      ["TOS", "Café tostado DEMO", true],
     ] as const) {
       prod[codigo] = (
         await uno(c, "INSERT INTO producto (organizacion_id, codigo, nombre, categoria, unidad_id, vendible, es_demo) VALUES ($1,$2,$3,'cafe',$4,$5,true) RETURNING id", [org.id, codigo, nombre, unidades.kg, vendible])
@@ -145,6 +151,7 @@ export async function sembrar(c: Client): Promise<void> {
       ["1000000001", "Recolector", "DEMO Uno", "kg", "recolector@demo.local"],
       ["1000000002", "Recolectora", "DEMO Dos", "arroba", null],
       ["1000000003", "Obrero", "DEMO Tres", "jornada", null],
+      ["1000000004", "Peón", "DEMO Cuatro", "kg", "trabajador@demo.local"],
     ] as const) {
       const w = await uno(c, "INSERT INTO trabajador (organizacion_id, usuario_id, numero_documento, nombres, apellidos, autorizo_tratamiento_en, finalidad_tratamiento) VALUES ($1,$2,$3,$4,$5, now(), 'Registro de producción y pago (DEMO)') RETURNING id", [org.id, correo ? idUsuario[correo] : null, doc, nombres, apellidos]);
       await c.query("INSERT INTO vinculacion (organizacion_id, trabajador_id, finca_id, modalidad, vigencia) VALUES ($1,$2,$3,$4,'[2026-01-01,)')", [org.id, w.id, f1.id, modalidad]);
