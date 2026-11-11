@@ -1,0 +1,28 @@
+flowchart TB
+  admin["<b>Administrador</b><br/>[Persona]<br/>Configura fincas, usuarios, tarifas;<br/>consulta todo y autoriza correcciones"]
+  prod["<b>Encargado de producción</b><br/>[Persona]<br/>Administra lotes y registra cosechas"]
+  com["<b>Responsable comercial</b><br/>[Persona]<br/>Gestiona clientes, pedidos y ventas"]
+  ext["<b>Roles de extensión</b><br/>[Personas, trabajo futuro]<br/>Supervisor, recolector, bodega,<br/>financiero, auditor"]
+
+  sis["<b>Sistema de gestión de finca cafetera</b><br/>[Sistema de software]<br/>Lotes, cosechas, inventario por movimientos,<br/>ventas y trazabilidad lote → venta"]
+
+  admin -- "Administra y consulta<br/>[HTTPS]" --> sis
+  prod -- "Registra cosechas, también sin señal<br/>[HTTPS]" --> sis
+  com -- "Registra ventas y pagos<br/>[HTTPS]" --> sis
+  ext -. "Usa según su rol<br/>[HTTPS]" .-> sis
+
+  classDef persona fill:#EFE6D2,stroke:#3B2416,color:#3B2416;
+  classDef sistema fill:#2F5D3A,stroke:#1d3b25,color:#ffffff;
+  classDef futuro fill:#ffffff,stroke:#3B2416,stroke-dasharray:4 3,color:#3B2416;
+  class admin,prod,com persona;
+  class ext futuro;
+  class sis sistema;
+
+  subgraph leyenda["Leyenda"]
+    direction LR
+    l1["Persona"]:::persona
+    l2["Sistema que se construye"]:::sistema
+    l3["Trabajo futuro (extensión)"]:::futuro
+    l1 -- "Flecha continua: relación implementada; texto = acción [protocolo]" --> l2
+    l2 -. "Flecha punteada: relación de extensión" .-> l3
+  end

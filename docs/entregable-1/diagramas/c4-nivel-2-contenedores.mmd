@@ -1,0 +1,35 @@
+flowchart TB
+  usr["<b>Usuario</b><br/>[Persona]<br/>Administrador, encargado de producción<br/>o responsable comercial"]
+
+  subgraph sis["Sistema de gestión de finca cafetera"]
+    direction TB
+    nav["<b>Navegador / PWA</b><br/>[Contenedor: HTML, JS, Service Worker, IndexedDB]<br/>Interfaz responsive; cola local de cosechas<br/>con UUID de idempotencia"]
+    cdn["<b>Activos estáticos</b><br/>[Contenedor: /public/images, CDN de Vercel]<br/>11 imágenes WebP en dos tamaños"]
+    app["<b>Aplicación Next.js (un solo proceso)</b><br/>[Contenedor: Next.js App Router, TypeScript, funciones serverless en Vercel o Node en Docker]<br/>Presentación → Aplicación → Dominio ← Infraestructura<br/>Autoriza, valida, audita y ejecuta transacciones"]
+    bd[("<b>Base de datos PostgreSQL</b><br/>[Contenedor: PostgreSQL, Render Free o Docker local]<br/>Datos de negocio, saldos, movimientos,<br/>tarifas y auditoría append-only")]
+  end
+
+  usr -- "Usa la interfaz<br/>[HTTPS]" --> nav
+  nav -- "Carga imágenes<br/>[HTTPS, GET]" --> cdn
+  nav -- "Páginas, Server Actions y Route Handlers<br/>[HTTPS/TLS, cookie httpOnly de sesión, token CSRF]" --> app
+  nav -- "Encola cosechas sin conexión y las reenvía<br/>[IndexedDB local → HTTPS con clave de idempotencia]" --> nav
+  app -- "Lee y escribe en transacciones explícitas<br/>[SQL sobre TCP con SSL; pool limitado por instancia]" --> bd
+
+  classDef persona fill:#EFE6D2,stroke:#3B2416,color:#3B2416;
+  classDef cont fill:#2F5D3A,stroke:#1d3b25,color:#ffffff;
+  classDef datos fill:#3B2416,stroke:#1f120a,color:#ffffff;
+  classDef est fill:#D9A441,stroke:#3B2416,color:#3B2416;
+  class usr persona;
+  class nav,app cont;
+  class bd datos;
+  class cdn est;
+
+  subgraph leyenda["Leyenda"]
+    direction LR
+    a1["Persona"]:::persona
+    a2["Contenedor de ejecución"]:::cont
+    a3["Almacén de datos"]:::datos
+    a4["Activos estáticos"]:::est
+    a1 --- a2 --- a3 --- a4
+    n["Cada flecha indica: acción [protocolo]. Un contenedor = un proceso o almacén desplegable. La aplicación es un único proceso, igual que en el código."]
+  end

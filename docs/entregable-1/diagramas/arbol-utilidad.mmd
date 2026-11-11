@@ -1,0 +1,32 @@
+flowchart LR
+  U((Utilidad<br/>del sistema))
+  U --> D1[Consistencia]
+  U --> D2[Trazabilidad]
+  U --> D3[Seguridad]
+  U --> CO[Conectividad limitada]
+  U --> RE[Rendimiento]
+  U --> MO[Modificabilidad y mantenibilidad]
+  U --> OP[Recuperabilidad]
+  U --> US[Usabilidad]
+  D1 --> Q1["QA-01 Ventas concurrentes (A,A)"]
+  D1 --> Q2["QA-02 Idempotencia (A,M)"]
+  D2 --> Q3["QA-03 Consulta de origen (A,M)"]
+  D2 --> Q4["QA-04 Integridad cosecha-lote (A,B)"]
+  D3 --> Q5["QA-05 Autorización en servidor (A,M)"]
+  D3 --> Q6["QA-06 Fuerza bruta (M,B)"]
+  D3 --> Q7["QA-07 Aislamiento entre fincas (A,M)"]
+  CO --> Q8["QA-08 Operación sin conexión (M,A)"]
+  RE --> Q9["QA-09 Carga del home (M,M)"]
+  RE --> Q10["QA-10 Respuesta bajo carga (M,M)"]
+  RE --> Q11["QA-11 Punto de quiebre (B,M)"]
+  MO --> Q12["QA-12 Cambio de tarifas (M,B)"]
+  MO --> Q13["QA-13 Capas sin atajos (M,M)"]
+  OP --> Q14["QA-14 Recreación de la BD (M,B)"]
+  US --> Q15["QA-15 Registro en campo (M,B)"]
+  US --> Q16["QA-16 Adaptación a dispositivos (M,B)"]
+  classDef aa fill:#B3261E,color:#fff,stroke:#3B2416;
+  classDef am fill:#D9A441,color:#3B2416,stroke:#3B2416;
+  classDef otros fill:#EFE6D2,color:#3B2416,stroke:#3B2416;
+  class Q1 aa;
+  class Q2,Q3,Q5,Q7,Q4,Q8 am;
+  class Q6,Q9,Q10,Q11,Q12,Q13,Q14,Q15,Q16 otros;
