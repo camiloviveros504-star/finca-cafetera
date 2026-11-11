@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: finca
+          POSTGRES_PASSWORD: finca_local
+          POSTGRES_DB: finca
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U finca -d finca"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://finca:finca_local@localhost:5433/finca
+      TEST_DATABASE_ADMIN_URL: postgresql://finca:finca_local@localhost:5433/postgres
+      SESSION_SECRET: ci-no-es-un-secreto-0000000000000000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Lint
+        run: npx eslint src tests db --max-warnings 0
+      - name: Tipos
+        run: npx tsc --noEmit
+      - name: Regla de dependencias entre capas (QA-13)
+        run: npm run capas
+      - name: Migraciones sobre PostgreSQL real
+        run: npm run db:migrar
+      - name: Pruebas unitarias, de integración y de concurrencia
+        run: npx vitest run
+      - name: Build
+        run: npm run build

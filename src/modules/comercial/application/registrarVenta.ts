@@ -195,3 +195,8 @@ export async function listarVentas(
   const desplazamiento = (Math.max(pagina, 1) - 1) * limite;
   return deps.uow.consultar((tx) => deps.ventas.listar(tx, ctx.organizacionId, ctx.fincaIds, limite, desplazamiento));
 }
+
+export async function obtenerOpcionesVenta(deps: DependenciasComercial, ctx: ContextoUsuario) {
+  await autorizar(deps.auditor, ctx, "venta:crear", { accion: "venta.opciones", entidad: "venta" });
+  return deps.uow.consultar((tx) => deps.ventas.opcionesVenta(tx, ctx.organizacionId, ctx.fincaIds));
+}

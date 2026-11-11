@@ -7,6 +7,16 @@ const SQL_VENTA = `SELECT v.id, v.numero_comprobante, v.finca_id, v.cliente_id, 
                      FROM venta v JOIN cliente c ON c.id = v.cliente_id`;
 
 export class RepositorioVentasPg implements RepositorioVentas {
+  async opcionesVenta(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]) {
+    const c = clienteDe(tx);
+    const [fincas, clientes, productos] = await Promise.all([
+      c.query("SELECT id, nombre FROM finca WHERE organizacion_id = $1 AND id = ANY($2::uuid[]) AND activa ORDER BY nombre", [organizacionId, fincaIds]),
+      c.query("SELECT id, nombre FROM cliente WHERE organizacion_id = $1 AND activo ORDER BY nombre", [organizacionId]),
+      c.query("SELECT id, codigo, nombre FROM producto WHERE organizacion_id = $1 AND activo AND vendible ORDER BY codigo", [organizacionId]),
+    ]);
+    return { fincas: fincas.rows, clientes: clientes.rows, productos: productos.rows };
+  }
+
   private async completar(tx: Transaccion, fila: Record<string, unknown>): Promise<VentaRegistrada> {
     const det = await clienteDe(tx).query(
       `SELECT d.id, d.producto_id, p.nombre AS producto, d.lote_id, l.codigo AS lote, d.cantidad,

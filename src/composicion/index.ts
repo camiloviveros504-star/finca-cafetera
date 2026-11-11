@@ -52,7 +52,7 @@ export function servicios(): Servicios {
 }
 
 export { iniciarSesion, obtenerContexto, cerrarSesion } from "@/modules/identidad/application/sesiones";
-export { registrarVenta, listarVentas } from "@/modules/comercial/application/registrarVenta";
+export { registrarVenta, listarVentas, obtenerOpcionesVenta } from "@/modules/comercial/application/registrarVenta";
 export { consultarSaldos } from "@/modules/inventario/application/movimientos";
 export { registrarCosecha, listarCosechas, obtenerOpcionesRegistro } from "@/modules/produccion/application/cosechas";
 export { consultarTrazabilidadVenta } from "@/modules/trazabilidad/application/consultarTrazabilidad";

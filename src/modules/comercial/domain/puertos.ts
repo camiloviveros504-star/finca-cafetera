@@ -47,7 +47,14 @@ export interface NuevoDetalle {
   movimientoId: string;
 }
 
+export interface OpcionesVenta {
+  fincas: { id: string; nombre: string }[];
+  clientes: { id: string; nombre: string }[];
+  productos: { id: string; codigo: string; nombre: string }[];
+}
+
 export interface RepositorioVentas {
+  opcionesVenta(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]): Promise<OpcionesVenta>;
   buscarPorClave(tx: Transaccion, organizacionId: string, clave: string): Promise<VentaRegistrada | null>;
   clienteExiste(tx: Transaccion, organizacionId: string, clienteId: string): Promise<boolean>;
   /** Inserta el encabezado primero: la clave única serializa los reintentos concurrentes. Lanza ErrorClaveDuplicada. */
