@@ -32,6 +32,8 @@ export interface ItemPlan {
 
 export interface LoteConPlan extends FilaLoteCultivo {
   etapa: EtapaCultivo;
+  /** De dónde viene el cultivo actual: sin sembrar, café nuevo (siembra) o zoca (corte del café existente). */
+  origen: "sin_sembrar" | "nuevo" | "zoca";
   arbolesSugeridos: number | null;
   densidadReferencia: number;
   plan: ItemPlan[];
@@ -73,7 +75,8 @@ export async function consultarCultivo(deps: DependenciasCultivo, ctx: ContextoU
     return lotes.map((l) => {
       const etapa = etapaDeEdad(l.estado, l.edadMeses);
       const densidad = densidades.get(l.fincaId) ?? DENSIDAD_POR_DEFECTO;
-      return { ...l, etapa, densidadReferencia: densidad, arbolesSugeridos: l.areaHa ? Math.round(Number(l.areaHa) * densidad) : null, plan: construirPlan(etapa, l.edadMeses ?? 0, l.numeroArboles, recs) };
+      const origen = etapa === "sin_sembrar" ? "sin_sembrar" : l.fechaUltimaZoca ? "zoca" : "nuevo";
+      return { ...l, etapa, origen, densidadReferencia: densidad, arbolesSugeridos: l.areaHa ? Math.round(Number(l.areaHa) * densidad) : null, plan: construirPlan(etapa, l.edadMeses ?? 0, l.numeroArboles, recs) };
     });
   });
 }

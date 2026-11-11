@@ -6,8 +6,9 @@ import { exigirContexto } from "../../_servidor/sesion";
 
 export const metadata = { title: "Inicio · Gestión de Finca Cafetera" };
 
-const PANEL_PROPIO = ["administrador", "encargado_produccion", "responsable_comercial"];
+const PANEL_PROPIO = ["administrador", "propietario", "capataz", "encargado_produccion", "responsable_comercial"];
 const DESTINO_POR_ROL: [string, string][] = [
+  ["trabajador", "/trabajadores"],
   ["recolector", "/trabajo"],
   ["supervisor_campo", "/trabajo"],
   ["responsable_financiero", "/finanzas"],

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ErrorProhibido, listarFincasYLotes, obtenerAjustes, servicios } from "@/composicion";
 import { EncabezadoModulo } from "../../../_componentes/EncabezadoModulo";
 import { FormularioGenerico } from "../../../_componentes/FormularioGenerico";
@@ -24,7 +23,6 @@ export default async function ConfiguracionGeneral() {
   return (
     <section className="space-y-6">
       <EncabezadoModulo titulo="Configuración general" detalle="Unidades, equivalencias, catálogos, temporadas y parámetros." />
-      <p className="text-sm"><Link className="font-semibold underline" href="/configuracion">Ir a tarifas y precios</Link></p>
 
       <h2 className="text-xl font-extrabold">Equivalencias de unidades</h2>
       <p className="text-sm">Cada cambio crea una vigencia nueva y cierra la anterior; lo ya registrado conserva el factor que se aplicó.</p>
