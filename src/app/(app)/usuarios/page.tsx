@@ -6,6 +6,13 @@ import { accionAsignar, accionEmitirEnlace, accionEstadoUsuario, accionInvitar, 
 
 export const metadata = { title: "Usuarios y permisos · Gestión de Finca Cafetera" };
 
+const DESCRIPCION: Record<string, string> = {
+  administrador: "Administra la plataforma: cuentas, fincas y datos globales.",
+  propietario: "Dueño o administrador de una finca: controla lotes, insumos, equipo, recolección, ventas y gastos de la suya.",
+  capataz: "Maneja al personal en fincas grandes: registra recolección, labores y aplicaciones. No ve ventas ni pagos.",
+  trabajador: "Consulta sus propios kilos recolectados, jornales y lo que le deben.",
+};
+
 function Estado({ activo, pendiente }: { activo: boolean; pendiente: boolean }) {
   const [texto, clase] = pendiente ? ["Pendiente de activación", "bg-ambar/25 text-tinta"] : activo ? ["Activo", "bg-bosque/15 text-bosque"] : ["Desactivado", "bg-alerta/10 text-alerta"];
   return <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${clase}`}>{texto}</span>;
@@ -21,15 +28,17 @@ export default async function Usuarios() {
     throw error;
   }
   const administra = ctx.permisos.has("usuario:administrar");
+  // El dueño de una finca invita a su capataz y a sus trabajadores, solo a sus propias fincas.
+  const invita = administra || ctx.permisos.has("usuario:invitar_equipo");
   const fincas = await listarFincasYLotes(servicios().fincasLotes, ctx).then((d) => d.fincas).catch(() => []);
   const sinCuenta = administra ? (await listarTrabajadores(servicios().talento, ctx).catch(() => [])).filter((w) => !w.usuarioId) : [];
-  const opcionesRol = datos.roles.map((r) => ({ valor: r.codigo, texto: `${r.nombre}${r.esExtension ? " (extensión)" : ""}` }));
+  const opcionesRol = datos.roles.map((r) => ({ valor: r.codigo, texto: DESCRIPCION[r.codigo] ? `${r.nombre} — ${DESCRIPCION[r.codigo]}` : `${r.nombre}${r.esExtension ? " (extensión)" : ""}` }));
   const opcionesFinca = fincas.map((f) => ({ valor: f.id, texto: f.nombre }));
   return (
     <section className="space-y-6">
-      <EncabezadoModulo titulo="Usuarios, roles y permisos" detalle="El administrador crea las cuentas y define los roles. Cada persona fija su propia contraseña." />
+      <EncabezadoModulo titulo={ctx.permisos.has("finca:administrar") ? "Cuentas y roles de la plataforma" : "Mi equipo con acceso al sistema"} detalle={ctx.permisos.has("finca:administrar") ? "Cree las cuentas de los dueños de finca y de quien las necesite. Cada persona fija su propia contraseña." : "Cree la cuenta de su capataz o de un trabajador para que vea sus kilos. Cada persona fija su propia contraseña."} />
 
-      {administra && (
+      {invita && (
         <div className="rounded-xl border border-tinta/15 bg-white p-5">
           <h2 className="text-lg font-extrabold">Registrar un usuario</h2>
           <ol className="mb-4 mt-2 list-decimal space-y-0.5 pl-5 text-sm text-tinta/80">
@@ -61,7 +70,7 @@ export default async function Usuarios() {
             <p className="mt-1">Roles: {u.roles.join(", ").replaceAll("_", " ") || "—"} · Fincas: {u.fincas.map((f) => f.nombre).join(", ") || "—"}</p>
             {u.permisosExtra.length > 0 && <p>Permisos adicionales: {u.permisosExtra.join(", ")}</p>}
             {u.pendiente && !u.invitacionVigente && <p className="mt-1 font-semibold text-alerta">El enlace venció: genere uno nuevo.</p>}
-            {administra && (
+            {invita && (
               <details className="mt-2">
                 <summary className="min-h-11 cursor-pointer font-semibold">Administrar</summary>
                 <div className="mt-2 space-y-4">
@@ -69,15 +78,15 @@ export default async function Usuarios() {
                     <p className="mb-1 font-semibold">{u.pendiente ? "Enlace de activación" : "Restablecer contraseña"}</p>
                     <FormularioGenerico compacto accion={accionEmitirEnlace} boton={u.pendiente ? "Generar enlace nuevo" : "Generar enlace de restablecimiento"} ocultos={{ usuarioId: u.id }} campos={[]} />
                   </div>
-                  <FormularioGenerico accion={accionAsignar} boton="Guardar roles y fincas" ocultos={{ usuarioId: u.id }} campos={[
+                  {administra && <FormularioGenerico accion={accionAsignar} boton="Guardar roles y fincas" ocultos={{ usuarioId: u.id }} campos={[
                     { nombre: "roles", etiqueta: "Roles", tipo: "multiple", opciones: opcionesRol, valorInicial: u.roles.join(",") },
                     { nombre: "fincaIds", etiqueta: "Fincas", tipo: "multiple", opciones: opcionesFinca, valorInicial: u.fincas.map((f) => f.id).join(",") },
-                  ]} />
-                  {!u.pendiente && <FormularioGenerico compacto accion={accionEstadoUsuario} boton={u.activo ? "Desactivar cuenta" : "Reactivar cuenta"} ocultos={{ usuarioId: u.id, activo: u.activo ? "no" : "si" }} campos={[]} />}
-                  <FormularioGenerico compacto accion={accionPermisoExtra} boton="Aplicar permiso" ocultos={{ usuarioId: u.id }} campos={[
+                  ]} />}
+                  {administra && !u.pendiente && <FormularioGenerico compacto accion={accionEstadoUsuario} boton={u.activo ? "Desactivar cuenta" : "Reactivar cuenta"} ocultos={{ usuarioId: u.id, activo: u.activo ? "no" : "si" }} campos={[]} />}
+                  {administra && <FormularioGenerico compacto accion={accionPermisoExtra} boton="Aplicar permiso" ocultos={{ usuarioId: u.id }} campos={[
                     { nombre: "permiso", etiqueta: "Permiso adicional", tipo: "select", opciones: datos.permisos.map((p) => ({ valor: p.codigo, texto: p.codigo })) },
                     { nombre: "accion", etiqueta: "Acción", tipo: "select", opciones: [{ valor: "otorgar", texto: "Otorgar" }, { valor: "revocar", texto: "Revocar" }] },
-                  ]} />
+                  ]} />}
                 </div>
               </details>
             )}
@@ -90,6 +99,7 @@ export default async function Usuarios() {
         {datos.roles.map((r) => (
           <li key={r.codigo} className="rounded-xl border border-tinta/15 bg-white p-3 text-sm">
             <p className="font-bold">{r.nombre}{r.esExtension ? " · extensión" : ""}</p>
+            {DESCRIPCION[r.codigo] && <p>{DESCRIPCION[r.codigo]}</p>}
             <p className="opacity-80">{r.permisos.join(" · ")}</p>
           </li>
         ))}
