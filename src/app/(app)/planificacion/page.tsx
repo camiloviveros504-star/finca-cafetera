@@ -1,3 +1,4 @@
+import { BotonEliminar } from "../../_componentes/BotonEliminar";
 import { ErrorProhibido, listarActividades, listarFincasYLotes, listarProyecciones, servicios } from "@/composicion";
 import { EncabezadoModulo } from "../../_componentes/EncabezadoModulo";
 import { FormularioGenerico } from "../../_componentes/FormularioGenerico";
@@ -68,6 +69,7 @@ export default async function Planificacion() {
                 <FormularioGenerico compacto accion={accionCerrarActividad} boton="Cancelar" ocultos={{ actividadId: a.id, estado: "cancelada" }} campos={[{ nombre: "resultado", etiqueta: "Motivo" }]} />
               </div>
             )}
+            {admin && <div className="mt-2"><BotonEliminar tipo="actividad" id={a.id} nombre={a.titulo} /></div>}
           </li>
         ))}
         {actividades.length === 0 && <li>Sin actividades programadas.</li>}

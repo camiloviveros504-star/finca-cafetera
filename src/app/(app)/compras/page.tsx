@@ -1,3 +1,4 @@
+import { BotonEliminar } from "../../_componentes/BotonEliminar";
 import { ErrorProhibido, listarAgroquimicos, listarCompras, listarFincasYLotes, listarProveedores, servicios } from "@/composicion";
 import { EncabezadoModulo } from "../../_componentes/EncabezadoModulo";
 import { FormularioGenerico } from "../../_componentes/FormularioGenerico";
@@ -57,6 +58,20 @@ export default async function Compras() {
           </details>
         )}
       </div>
+
+      {p("proveedor:administrar") && proveedores.length > 0 && (
+        <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
+          <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Mis proveedores ({proveedores.length})</summary>
+          <ul className="mt-3 space-y-2 text-sm">
+            {proveedores.map((x) => (
+              <li key={x.id} className="flex flex-wrap items-center justify-between gap-2">
+                <span><strong>{x.nombre}</strong>{x.telefono ? ` · ${x.telefono}` : ""}{Number(x.porPagar) > 0 ? ` · se le debe ${moneda(x.porPagar)}` : ""}</span>
+                <BotonEliminar tipo="proveedor" id={x.id} nombre={x.nombre} />
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
 
       <ul className="space-y-3">
         {compras.map((c) => (

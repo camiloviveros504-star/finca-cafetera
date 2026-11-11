@@ -1,3 +1,4 @@
+import { BotonEliminar } from "../../_componentes/BotonEliminar";
 import { ErrorProhibido, listarAgroquimicos, listarAmbientales, listarFincasYLotes, listarInspecciones, servicios } from "@/composicion";
 import { EncabezadoModulo } from "../../_componentes/EncabezadoModulo";
 import { FormularioGenerico } from "../../_componentes/FormularioGenerico";
@@ -94,6 +95,16 @@ export default async function Sanidad() {
               </li>
             ))}
             {agro.stock.length === 0 && <li>Sin existencias registradas.</li>}
+          </ul>
+          <h2 className="text-xl font-extrabold">Catálogo de insumos</h2>
+          <ul className="grid gap-2 md:grid-cols-2">
+            {agro.catalogo.map((a) => (
+              <li key={a.id} className="rounded-xl border-2 border-tinta/20 bg-white p-3 text-sm">
+                <strong>{a.nombre}</strong> · {a.tipo} · se maneja por {a.unidad}{a.gramosPorUnidad ? ` de ${cantidad(a.gramosPorUnidad)} g` : ""}{a.carenciaDias !== null ? ` · carencia ${a.carenciaDias} días` : ""}
+                {p("agroquimico:administrar") && <div className="mt-1"><BotonEliminar tipo="insumo" id={a.id} nombre={a.nombre} /></div>}
+              </li>
+            ))}
+            {agro.catalogo.length === 0 && <li>Aún no hay insumos. Cree el primero en “Insumos: crear y registrar entradas”.</li>}
           </ul>
           <h2 className="text-xl font-extrabold">Abonadas y fumigaciones</h2>
           <ul className="space-y-1 text-sm">

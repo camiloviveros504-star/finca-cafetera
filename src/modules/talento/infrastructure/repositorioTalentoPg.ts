@@ -79,7 +79,7 @@ export class RepositorioTalentoPg implements RepositorioTalento {
               coalesce((SELECT sum(a.monto - a.descontado) FROM anticipo a WHERE a.trabajador_id = t.id), 0) AS anticipos,
               coalesce((SELECT sum(l.neto - l.pagado) FROM liquidacion l WHERE l.trabajador_id = t.id), 0) AS saldo
          FROM trabajador t
-        WHERE t.organizacion_id = $1
+        WHERE t.organizacion_id = $1 AND t.activo
           AND ($3::uuid IS NULL OR t.usuario_id = $3)
           AND (NOT EXISTS (SELECT 1 FROM vinculacion v WHERE v.trabajador_id = t.id)
                OR EXISTS (SELECT 1 FROM vinculacion v WHERE v.trabajador_id = t.id AND v.finca_id = ANY($2::uuid[])))

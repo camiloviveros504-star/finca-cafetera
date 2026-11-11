@@ -116,7 +116,7 @@ export class RepositorioAgricolaPg implements RepositorioAgricola {
       `SELECT s.id, s.finca_id, f.nombre AS finca, a.id AS agro_id, a.nombre, a.unidad, s.lote_comercial, s.vencimiento::text AS vencimiento, s.cantidad, a.gramos_por_unidad,
               coalesce(s.vencimiento < $3::date, false) AS vencido, coalesce(s.vencimiento >= $3::date AND s.vencimiento <= $3::date + 30, false) AS por_vencer
          FROM agroquimico_stock s JOIN agroquimico a ON a.id = s.agroquimico_id JOIN finca f ON f.id = s.finca_id
-        WHERE s.organizacion_id = $1 AND s.finca_id = ANY($2::uuid[]) ORDER BY s.vencimiento, a.nombre`,
+        WHERE s.organizacion_id = $1 AND a.activo AND s.finca_id = ANY($2::uuid[]) ORDER BY s.vencimiento, a.nombre`,
       [o, fincaIds, hoy],
     );
     return r.rows.map((x) => ({ id: x.id, fincaId: x.finca_id, fincaNombre: x.finca, agroquimicoId: x.agro_id, nombre: x.nombre, unidad: x.unidad, loteComercial: x.lote_comercial, vencimiento: x.vencimiento, cantidad: x.cantidad, vencido: x.vencido, porVencer: x.por_vencer, gramosPorUnidad: x.gramos_por_unidad }));

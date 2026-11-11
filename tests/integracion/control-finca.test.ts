@@ -11,6 +11,12 @@ import {
   registrarJornada,
   registrarRecoleccion,
   consultarSaldos,
+  eliminarRegistro,
+  listarTrabajadores,
+  listarProveedores,
+  registrarComprador,
+  listarClientes,
+  registrarVenta,
   eliminarLote,
   ErrorNoEncontrado,
   ErrorProhibido,
@@ -170,4 +176,59 @@ describe("recolección y labores por trabajador", () => {
     // El trabajador solo ve lo suyo: nunca los registros de Pedro.
     expect((await listarTrabajos(e.servicios.talento, obrero)).every((x) => x.trabajadorId !== pedro)).toBe(true);
   });
+});
+
+describe("eliminar lo que no sirve: se borra si no tiene historial y se archiva si ya se usó", () => {
+  it("proveedor sin compras se borra; con compras se archiva y deja de verse sin perder la compra", async () => {
+    const dueno = await e.contexto("propietario@demo.local");
+    const { id: libre } = await crearProveedor(e.servicios.finanzas, dueno, { nombre: "Proveedor sin uso" });
+    const { id: usado } = await crearProveedor(e.servicios.finanzas, dueno, { nombre: "Proveedor con compra" });
+    await registrarCompra(e.servicios.finanzas, dueno, { fincaId: e.ids.finca1, proveedorId: usado, fecha: hoy, claveIdempotencia: k(), lineas: [{ descripcion: "Machete", cantidad: "1", unidad: "unidad", costoUnitario: "30000" }] });
+
+    expect(await eliminarRegistro(e.servicios.eliminacion, dueno, { tipo: "proveedor", id: libre })).toEqual({ resultado: "eliminado" });
+    expect(await eliminarRegistro(e.servicios.eliminacion, dueno, { tipo: "proveedor", id: usado })).toEqual({ resultado: "archivado" });
+    expect((await listarProveedores(e.servicios.finanzas, dueno)).some((x) => x.id === libre || x.id === usado)).toBe(false);
+    expect((await listarCompras(e.servicios.finanzas, dueno)).some((c) => c.proveedorNombre === "Proveedor con compra")).toBe(true); // la compra sigue
+  });
+
+  it("trabajador sin registros se borra; con registros se archiva; el capataz y la finca ajena no pueden", async () => {
+    const dueno = await e.contexto("propietario@demo.local");
+    const { id: nuevo } = await crearTrabajador(e.servicios.talento, dueno, { tipoDocumento: "CC", numeroDocumento: "8000001", nombres: "Sin", apellidos: "Historial", fincaId: e.ids.finca1, autorizaTratamiento: true });
+    const { id: activo } = await crearTrabajador(e.servicios.talento, dueno, { tipoDocumento: "CC", numeroDocumento: "8000002", nombres: "Con", apellidos: "Historial", fincaId: e.ids.finca1, autorizaTratamiento: true });
+    await registrarJornada(e.servicios.talento, dueno, { fincaId: e.ids.finca1, fecha: hoy, labor: "plateo", claveIdempotencia: k(), lineas: [{ trabajadorId: activo, cantidad: "1", unidad: "jornada", valorUnitario: "50000" }] });
+
+    const capataz = await e.contexto("capataz@demo.local");
+    await expect(eliminarRegistro(e.servicios.eliminacion, capataz, { tipo: "trabajador", id: nuevo })).rejects.toThrow(ErrorProhibido);
+
+    expect(await eliminarRegistro(e.servicios.eliminacion, dueno, { tipo: "trabajador", id: nuevo })).toEqual({ resultado: "eliminado" });
+    expect(await eliminarRegistro(e.servicios.eliminacion, dueno, { tipo: "trabajador", id: activo })).toEqual({ resultado: "archivado" });
+    const visibles = (await listarTrabajadores(e.servicios.talento, dueno)).map((x) => x.id);
+    expect(visibles).not.toContain(nuevo);
+    expect(visibles).not.toContain(activo);
+
+    // Un trabajador de la finca 2 no lo toca el dueño de la finca 1.
+    const admin = await e.contexto("admin@demo.local");
+    const { id: ajeno } = await crearTrabajador(e.servicios.talento, admin, { tipoDocumento: "CC", numeroDocumento: "8000003", nombres: "De", apellidos: "Otra Finca", fincaId: e.ids.finca2, autorizaTratamiento: true });
+    await expect(eliminarRegistro(e.servicios.eliminacion, dueno, { tipo: "trabajador", id: ajeno })).rejects.toThrow(ErrorProhibido);
+    await expect(eliminarRegistro(e.servicios.eliminacion, dueno, { tipo: "trabajador", id: randomUUID() })).rejects.toThrow(ErrorNoEncontrado);
+    await expect(eliminarRegistro(e.servicios.eliminacion, dueno, { tipo: "usuarios", id: ajeno })).rejects.toThrow(ErrorNoEncontrado); // solo tipos permitidos
+  });
+
+  it("comprador con ventas se archiva; insumo con inventario se archiva; sin uso se borra", async () => {
+    const dueno = await e.contexto("propietario@demo.local");
+    const { id: comprador } = await registrarComprador(e.servicios.clientes, dueno, { fincaId: e.ids.finca1, nombre: "Comprador de prueba" });
+    const { id: sinUso } = await registrarComprador(e.servicios.clientes, dueno, { fincaId: e.ids.finca1, nombre: "Comprador sin ventas" });
+    await recibirCafeParaVender(dueno);
+    await registrarVenta(e.servicios.comercial, dueno, { fincaId: e.ids.finca1, clienteId: comprador, claveIdempotencia: k(), items: [{ productoId: e.ids.CER, cantidad: "5", precioKg: "4000" }] });
+    expect(await eliminarRegistro(e.servicios.eliminacion, dueno, { tipo: "cliente", id: sinUso })).toEqual({ resultado: "eliminado" });
+    expect(await eliminarRegistro(e.servicios.eliminacion, dueno, { tipo: "cliente", id: comprador })).toEqual({ resultado: "archivado" });
+    expect((await listarClientes(e.servicios.clientes, dueno, 1)).filas.some((c) => c.id === comprador)).toBe(false);
+
+    const { id: insumoLibre } = await crearAgroquimico(e.servicios.agricola, dueno, { nombre: "Insumo sin uso", unidad: "litro", tipo: "fumigante", fincaId: e.ids.finca1 });
+    expect(await eliminarRegistro(e.servicios.eliminacion, dueno, { tipo: "insumo", id: insumoLibre })).toEqual({ resultado: "eliminado" });
+  });
+
+  async function recibirCafeParaVender(dueno: Awaited<ReturnType<Entorno["contexto"]>>) {
+    await registrarRecoleccion(e.servicios, dueno, { fincaId: e.ids.finca1, loteId: e.ids.lote1_01, productoId: e.ids.CER, fecha: hoy, claveIdempotencia: k(), kgTotal: "50", lineas: [] });
+  }
 });

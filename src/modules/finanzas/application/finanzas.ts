@@ -43,13 +43,16 @@ const esquemaProveedor = z.object({
   telefono: z.preprocess(vacio, z.string().trim().max(20).optional()),
   correo: z.preprocess(vacio, z.string().trim().email("Correo inválido").optional()),
   autorizaTratamiento: z.boolean().default(false),
+  fincaId: z.preprocess(vacio, uuid.optional()),
 });
 
 export async function crearProveedor(deps: DependenciasFinanzas, ctx: ContextoUsuario, cruda: unknown) {
   const e = validar(esquemaProveedor, cruda, "Revise los datos del proveedor");
-  await autorizar(deps.auditor, ctx, "proveedor:administrar", { accion: "proveedor.crear", entidad: "proveedor" });
+  // Cada finca maneja sus proveedores: sin finca indicada, quien no administra la plataforma los crea en su primera finca.
+  const fincaId = e.fincaId ?? (ctx.permisos.has("finca:administrar") ? undefined : ctx.fincaIds[0]);
+  await autorizar(deps.auditor, ctx, "proveedor:administrar", { accion: "proveedor.crear", entidad: "proveedor", fincaId });
   return deps.uow.ejecutar(async (tx) => {
-    const id = await deps.repo.crearProveedor(tx, { organizacionId: ctx.organizacionId, ...e });
+    const id = await deps.repo.crearProveedor(tx, { organizacionId: ctx.organizacionId, ...e, fincaId });
     await auditar(deps, ctx, tx, "proveedor.crear", "proveedor", id, { nombre: e.nombre });
     return { id };
   });
@@ -57,7 +60,7 @@ export async function crearProveedor(deps: DependenciasFinanzas, ctx: ContextoUs
 
 export async function listarProveedores(deps: DependenciasFinanzas, ctx: ContextoUsuario) {
   await autorizar(deps.auditor, ctx, "proveedor:ver", { accion: "proveedor.listar", entidad: "proveedor" });
-  return deps.uow.consultar((tx) => deps.repo.listarProveedores(tx, ctx.organizacionId));
+  return deps.uow.consultar((tx) => deps.repo.listarProveedores(tx, ctx.organizacionId, ctx.fincaIds));
 }
 
 // ───────────── Compras: pedido → recepción → cuenta por pagar → pagos ─────────────

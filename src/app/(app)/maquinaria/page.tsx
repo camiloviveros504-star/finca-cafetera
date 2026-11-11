@@ -1,3 +1,4 @@
+import { BotonEliminar } from "../../_componentes/BotonEliminar";
 import { ErrorProhibido, listarEquipos, listarFincasYLotes, servicios } from "@/composicion";
 import { EncabezadoModulo } from "../../_componentes/EncabezadoModulo";
 import { FormularioGenerico } from "../../_componentes/FormularioGenerico";
@@ -67,11 +68,12 @@ export default async function Maquinaria() {
       </div>
 
       <ul className="grid gap-3 md:grid-cols-2">
-        {datos.equipos.map((e) => (
+        {datos.equipos.filter((e) => e.estado !== "baja").map((e) => (
           <li key={e.id} className={`rounded-xl border-2 bg-white p-3 text-sm ${e.mantenimientoVencido ? "border-alerta" : "border-tinta/20"}`}>
             <p className="font-extrabold">{e.codigo} · {e.nombre} <span className="font-normal">({e.tipo} · {e.fincaNombre})</span></p>
             <p>Estado: {e.estado.replace("_", " ")} · {cantidad(e.horasUso)} h de uso · {cantidad(e.combustibleLitros)} L</p>
             <p>Mantenimientos: {moneda(e.costoMantenimiento)} · último {e.ultimoMantenimiento ?? "—"} · próximo {e.proximoMantenimiento ?? "—"}{e.mantenimientoVencido ? " · VENCIDO" : ""}</p>
+            {ctx.permisos.has("equipo:administrar") && <div className="mt-2"><BotonEliminar tipo="equipo" id={e.id} nombre={e.nombre} /></div>}
           </li>
         ))}
         {datos.equipos.length === 0 && <li>No hay equipos registrados.</li>}

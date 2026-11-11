@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BotonEliminar } from "../../_componentes/BotonEliminar";
 import { ErrorProhibido, listarClientes, servicios } from "@/composicion";
 import { exigirContexto } from "../../_servidor/sesion";
 import { FormularioCliente } from "./FormularioCliente";
@@ -19,7 +20,7 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
   const paginas = Math.max(Math.ceil(datos.total / 25), 1);
   return (
     <section className="space-y-6">
-      <h1 className="text-2xl font-extrabold">Clientes</h1>
+      <h1 className="text-2xl font-extrabold">Compradores y clientes</h1>
       <form className="flex gap-2" role="search">
         <label className="sr-only" htmlFor="q">Buscar por nombre</label>
         <input id="q" name="q" defaultValue={q} placeholder="Buscar por nombre" className="min-h-11 flex-1 rounded-lg border-2 border-tinta/40 bg-white px-3 text-base" />
@@ -27,7 +28,7 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
       </form>
       {ctx.permisos.has("cliente:administrar") && (
         <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
-          <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nuevo cliente</summary>
+          <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nuevo comprador</summary>
           <div className="mt-3"><FormularioCliente /></div>
         </details>
       )}
@@ -39,7 +40,8 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
             <li key={c.id} className="rounded-xl border-2 border-tinta/20 bg-white p-3">
               <p className="font-bold">{c.nombre}</p>
               <p className="text-sm">{[c.documento, c.telefono, c.correo].filter(Boolean).join(" · ") || "Sin datos de contacto"}</p>
-              <p className="text-xs">{c.autorizoEn ? "Tratamiento de datos autorizado" : "Sin autorización registrada"}</p>
+              <p className="text-xs">{c.autorizoEn ? "Tratamiento de datos autorizado" : "Solo nombre comercial"}</p>
+              {ctx.permisos.has("cliente:administrar") && <div className="mt-1"><BotonEliminar tipo="cliente" id={c.id} nombre={c.nombre} /></div>}
               {ctx.permisos.has("datos_personales:gestionar") && <Link href={`/clientes/${c.id}`} className="mt-1 inline-flex min-h-11 items-center text-sm font-bold text-bosque underline">Datos personales (Ley 1581)</Link>}
             </li>
           ))}

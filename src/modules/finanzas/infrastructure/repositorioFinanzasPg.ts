@@ -10,8 +10,8 @@ export class RepositorioFinanzasPg implements RepositorioFinanzas {
   async crearProveedor(tx: Transaccion, p: Parameters<RepositorioFinanzas["crearProveedor"]>[1]): Promise<string> {
     try {
       const r = await clienteDe(tx).query(
-        "INSERT INTO proveedor (organizacion_id, nombre, documento, telefono, correo, autorizo_tratamiento_en) VALUES ($1,$2,$3,$4,$5, CASE WHEN $6::boolean THEN now() END) RETURNING id",
-        [p.organizacionId, p.nombre, p.documento ?? null, p.telefono ?? null, p.correo ?? null, p.autorizaTratamiento],
+        "INSERT INTO proveedor (organizacion_id, nombre, documento, telefono, correo, autorizo_tratamiento_en, finca_id) VALUES ($1,$2,$3,$4,$5, CASE WHEN $6::boolean THEN now() END, $7) RETURNING id",
+        [p.organizacionId, p.nombre, p.documento ?? null, p.telefono ?? null, p.correo ?? null, p.autorizaTratamiento, p.fincaId ?? null],
       );
       return r.rows[0].id as string;
     } catch (error) {
@@ -20,12 +20,12 @@ export class RepositorioFinanzasPg implements RepositorioFinanzas {
     }
   }
 
-  async listarProveedores(tx: Transaccion, organizacionId: string): Promise<FilaProveedor[]> {
+  async listarProveedores(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]): Promise<FilaProveedor[]> {
     const r = await clienteDe(tx).query(
       `SELECT p.id, p.nombre, p.documento, p.telefono, p.correo,
               coalesce((SELECT sum(c.total - c.pagado) FROM compra c WHERE c.proveedor_id = p.id AND c.estado = 'recibida'), 0) AS por_pagar
-         FROM proveedor p WHERE p.organizacion_id = $1 AND p.activo ORDER BY p.nombre`,
-      [organizacionId],
+         FROM proveedor p WHERE p.organizacion_id = $1 AND p.activo AND (p.finca_id IS NULL OR p.finca_id = ANY($2::uuid[])) ORDER BY p.nombre`,
+      [organizacionId, fincaIds],
     );
     return r.rows.map((x) => ({ id: x.id, nombre: x.nombre, documento: x.documento, telefono: x.telefono, correo: x.correo, porPagar: x.por_pagar }));
   }

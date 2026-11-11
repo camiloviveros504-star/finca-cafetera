@@ -80,8 +80,8 @@ export async function sembrar(c: Client): Promise<void> {
 
     const prod: Record<string, string> = {};
     for (const [codigo, nombre, vendible] of [
-      ["CER", "Café cereza DEMO", false],
-      ["PHU", "Pergamino húmedo DEMO", false],
+      ["CER", "Café cereza DEMO", true],
+      ["PHU", "Pergamino húmedo DEMO", true],
       ["PSE", "Pergamino seco DEMO", true],
       ["EXC", "Excelso DEMO", true],
       ["PAS", "Pasilla DEMO", true],

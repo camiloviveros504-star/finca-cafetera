@@ -98,8 +98,8 @@ export interface Conciliacion {
 }
 
 export interface RepositorioFinanzas {
-  crearProveedor(tx: Transaccion, p: { organizacionId: string; nombre: string; documento?: string; telefono?: string; correo?: string; autorizaTratamiento: boolean }): Promise<string>;
-  listarProveedores(tx: Transaccion, organizacionId: string): Promise<FilaProveedor[]>;
+  crearProveedor(tx: Transaccion, p: { organizacionId: string; nombre: string; documento?: string; telefono?: string; correo?: string; autorizaTratamiento: boolean; fincaId?: string }): Promise<string>;
+  listarProveedores(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]): Promise<FilaProveedor[]>;
   proveedorExiste(tx: Transaccion, organizacionId: string, proveedorId: string): Promise<boolean>;
   buscarCompraPorClave(tx: Transaccion, organizacionId: string, clave: string): Promise<string | null>;
   insertarCompra(tx: Transaccion, c: { organizacionId: string; fincaId: string; proveedorId: string; fecha: string; total: string; clave: string; creadoPor: string; nota?: string; lineas: LineaCompra[] }): Promise<string>;
