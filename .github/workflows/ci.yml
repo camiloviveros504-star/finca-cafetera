@@ -35,6 +35,8 @@ jobs:
         run: npx tsc --noEmit
       - name: Regla de dependencias entre capas (QA-13)
         run: npm run capas
+      - name: La verificación de capas detecta un atajo a propósito (QA-13)
+        run: node scripts/probar-capas.mjs
       - name: Migraciones sobre PostgreSQL real
         run: npm run db:migrar
       - name: Pruebas unitarias, de integración y de concurrencia

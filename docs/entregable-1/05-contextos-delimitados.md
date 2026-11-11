@@ -13,7 +13,9 @@ Cada contexto es un módulo en `src/modules/<contexto>/{domain,application,infra
 | **Configuración y tarifas** | Unidades, equivalencias, tarifas versionadas, parámetros. | *Ciclo de vida distinto* (cambia por decisión del administrador, con vigencia) y *regla propia*: las vigencias de una misma tarifa no se solapan. |
 | **Auditoría** | Registro append-only de operaciones sensibles. | *Regla propia*: solo se inserta, nunca se modifica ni se borra. Transversal: los demás contextos la usan, ella no depende de ninguno. |
 
-## 2. Extensiones (se construyen solo si el núcleo está probado)
+## 2. Extensiones (construidas después de probar el núcleo)
+
+> Estado a 2026-11-11: los cinco contextos de esta tabla están **implementados** y probados contra PostgreSQL real. Dos ajustes respecto al diseño inicial: *Sanidad y planificación agrícola* y *Maquinaria* quedaron en un solo módulo `agricola` (el prompt los agrupa en la sección 9, "Gestión agrícola"), y la parte de *cuentas por cobrar* vive en Comercial (`pagosClientes`) porque el pago de un cliente es un hecho de la venta.
 
 | Contexto | Qué contiene | Señal |
 |---|---|---|
@@ -22,6 +24,20 @@ Cada contexto es un módulo en `src/modules/<contexto>/{domain,application,infra
 | **Compras y finanzas** | Proveedores, compras, gastos, cuentas por pagar y por cobrar. | Los movimientos financieros son distintos de los físicos (sección 11 del prompt). |
 | **Sanidad y planificación agrícola** | Inspecciones, aplicaciones, planes de actividades. | Ciclo de vida y vocabulario propios (broca, floración). |
 | **Maquinaria** | Equipos, mantenimientos, usos. | Responsable y vocabulario propios. |
+
+## 2.1 Módulos de lectura y contextos añadidos al implementar
+
+| Módulo | Qué hace | Por qué existe |
+|---|---|---|
+| **trazabilidad** (lectura) | Reconstruye venta → lote → transformaciones (consulta recursiva hacia atrás) → cosechas. | Es una consulta que cruza varios contextos; se aísla como lado de lectura para que ningún contexto de escritura lea tablas ajenas. Solo tiene la consulta. |
+| **panel** (lectura) | Indicadores del inicio. | Misma razón: agrega datos de varios contextos sin escribir. |
+| **finanzas** (lectura y escritura) | Resumen financiero y conciliación leen hechos de Comercial, Talento y Compras; Compras y Gastos escriben sus propias tablas. | Los movimientos financieros se separan de los físicos. El resumen es lectura transversal declarada, igual que trazabilidad. |
+| **configuración** (ampliado) | Además de tarifas: catálogos, equivalencias con vigencia, temporadas y parámetros operativos (descuento máximo, stock mínimo). | Regla obligatoria §6: ningún valor operativo en el código. |
+| **identidad** (ampliado) | Administración de usuarios, roles, permisos adicionales y cierre de sesiones al cambiar privilegios. | Regla §7. |
+| **auditoría** (ampliado) | Consulta de la auditoría (solo lectura) para roles con `auditoria:ver`. | Regla §13. |
+
+Colaboraciones añadidas (siempre por la capa de aplicación del otro módulo):
+Beneficio → Inventario (`transformar`: cada etapa es una transformación); Comercial y Producción → Inventario (`reversarEnTransaccion`: anulaciones); Agricola → Finanzas (`registrarGasto`: el costo de un mantenimiento); Talento y Comercial → Configuración (tarifas de pago, precios, equivalencias y parámetros).
 
 ## 3. Mapa de relaciones
 

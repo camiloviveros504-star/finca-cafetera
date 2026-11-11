@@ -19,7 +19,10 @@
     "demo": "tsx db/demo.ts",
     "db:iniciar": "tsx db/iniciar.ts",
     "e2e": "playwright test",
-    "test:todo": "vitest run && npm run capas"
+    "test:todo": "vitest run && npm run capas",
+    "capas:probar": "node scripts/probar-capas.mjs",
+    "test:volumen": "PRUEBAS_VOLUMEN=si vitest run tests/rendimiento",
+    "carga:preparar": "tsx scripts/preparar-carga.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.2",

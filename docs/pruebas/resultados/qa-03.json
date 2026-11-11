@@ -1,0 +1,16 @@
+{
+  "id": "qa-03",
+  "fecha": "2026-11-11T12:01:29.390Z",
+  "entorno": "PostgreSQL 16 en Docker (local, Windows 11)",
+  "comando": "vitest run tests/rendimiento",
+  "movimientos": 100004,
+  "cosechas": 10000,
+  "ventas": 90000,
+  "consultas": 300,
+  "ventasSinLote": 0,
+  "consultasConCosechas": 300,
+  "p50Ms": 6,
+  "p95Ms": 7,
+  "maxMs": 12,
+  "cargaDatosSegundos": 11
+}

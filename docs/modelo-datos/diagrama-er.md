@@ -1,6 +1,6 @@
 # Modelo entidad-relación
 
-Estado de cada entidad: **Implementada** (existe en una migración y se usa), **Diseñada** (está en este diagrama, sin migración todavía; trabajo futuro hasta que se construya su módulo). A 2026-11-11 el núcleo está implementado; las extensiones se actualizan aquí cuando se construyan.
+Estado de cada entidad: **Implementada** (existe en una migración y se usa) o **Diseñada** (solo en este diagrama). A 2026-11-11 **todas las entidades de las tablas de abajo están implementadas** (migraciones 0001 a 0007); lo que sigue "Diseñado" sin tabla se indica expresamente.
 
 ## Núcleo (implementado: migraciones 0001 y 0002)
 
@@ -58,12 +58,12 @@ La trazabilidad es **por lote**: de una venta se llega al lote de cultivo y a la
 
 | Módulo | Entidades | Estado |
 |---|---|---|
-| Talento y remuneraciones | trabajador, vinculacion, asignacion, registro_produccion, liquidacion, liquidacion_detalle, anticipo, pago_trabajador | Diseñada |
-| Beneficio y poscosecha | proceso_tipo, proceso_etapa, proceso_registro | Diseñada |
-| Compras y finanzas | proveedor, compra, compra_detalle, gasto, cuenta_por_pagar | Diseñada |
-| Sanidad | inspeccion, aplicacion_agroquimica | Diseñada |
-| Planificación agrícola | actividad_programada | Diseñada |
-| Maquinaria | equipo, mantenimiento | Diseñada |
+| Talento y remuneraciones | trabajador, vinculacion, asignacion, registro_produccion, liquidacion, liquidacion_detalle, anticipo, pago_trabajador | Implementada (0003; `asignacion` se resolvió con `registro_trabajo.lote_id`) |
+| Beneficio y poscosecha | proceso_tipo, proceso_etapa, proceso_registro | Implementada (0004; `proceso_tipo`, `proceso_etapa`, `proceso_registro`) |
+| Compras y finanzas | proveedor, compra, compra_detalle, gasto, cuenta_por_pagar | Implementada (0005; `cuenta_por_pagar` se deriva de `compra`) |
+| Sanidad | inspeccion, aplicacion_agroquimica | Implementada (0006; más `agroquimico`, `agroquimico_stock`, `agroquimico_movimiento`, `registro_ambiental`) |
+| Planificación agrícola | actividad_programada | Implementada (0006; más `proyeccion_cosecha`) |
+| Maquinaria | equipo, mantenimiento | Implementada (0006; más `uso_equipo`) |
 
 ## Decisiones de normalización y fusiones
 
