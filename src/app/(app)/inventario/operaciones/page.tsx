@@ -11,7 +11,7 @@ export default async function Operaciones() {
   let opciones;
   try {
     movimientos = await listarMovimientos(servicios().operaciones, ctx, 1);
-    opciones = ctx.permisos.has("cosecha:registrar") ? await obtenerOpcionesRegistro(servicios().produccion, ctx) : null;
+    opciones = ["inventario:ajustar", "inventario:transformar", "inventario:trasladar", "cosecha:registrar"].some((x) => ctx.permisos.has(x)) ? await obtenerOpcionesRegistro(servicios().produccion, ctx) : null;
   } catch (error) {
     if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-cereza">No tiene permiso para ver los movimientos.</p>;
     throw error;

@@ -74,12 +74,26 @@ export async function sembrar(c: Client): Promise<void> {
     const prod: Record<string, string> = {};
     for (const [codigo, nombre, vendible] of [
       ["CER", "Café cereza DEMO", false],
+      ["PHU", "Pergamino húmedo DEMO", false],
       ["PSE", "Pergamino seco DEMO", true],
       ["EXC", "Excelso DEMO", true],
     ] as const) {
       prod[codigo] = (
         await uno(c, "INSERT INTO producto (organizacion_id, codigo, nombre, categoria, unidad_id, vendible, es_demo) VALUES ($1,$2,$3,'cafe',$4,$5,true) RETURNING id", [org.id, codigo, nombre, unidades.kg, vendible])
       ).id;
+    }
+
+    // Flujos de beneficio de DEMOSTRACIÓN: etapas, orden y mermas esperadas son datos configurables (no valores técnicos reales).
+    const flujos: Array<[string, string, Array<[string, string, string, string, number]>]> = [
+      ["cafe_lavado_demo", "Café lavado DEMO", [["despulpado", "Despulpado", "CER", "PHU", 5], ["secado", "Secado", "PHU", "PSE", 50], ["trilla", "Trilla", "PSE", "EXC", 20]]],
+      ["cafe_natural_demo", "Café natural DEMO", [["secado_natural", "Secado en cereza", "CER", "PSE", 60], ["trilla", "Trilla", "PSE", "EXC", 20]]],
+    ];
+    for (const [codigo, nombre, etapas] of flujos) {
+      const pt = await uno(c, "INSERT INTO proceso_tipo (organizacion_id, codigo, nombre, es_demo, creado_por) VALUES ($1,$2,$3,true,$4) RETURNING id", [org.id, codigo, nombre, idUsuario["admin@demo.local"]]);
+      let orden = 1;
+      for (const [ec, en, pin, pout, merma] of etapas) {
+        await c.query("INSERT INTO proceso_etapa (proceso_tipo_id, orden, codigo, nombre, producto_entrada_id, producto_salida_id, merma_esperada_pct) VALUES ($1,$2,$3,$4,$5,$6,$7)", [pt.id, orden++, ec, en, prod[pin], prod[pout], merma]);
+      }
     }
 
     // Precios de DEMOSTRACIÓN (no son valores comerciales).

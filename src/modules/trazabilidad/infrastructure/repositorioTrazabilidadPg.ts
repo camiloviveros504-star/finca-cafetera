@@ -32,14 +32,22 @@ export class RepositorioTrazabilidadPg implements RepositorioTrazabilidad {
     for (const d of detalles.rows) {
       const [transformaciones, cosechas] = await Promise.all([
         c.query(
-          `SELECT t.id, t.tipo, t.fecha::text AS fecha, pe.nombre AS entrada, ps.nombre AS salida,
-                  tl.cantidad_entrada, tl.cantidad_salida
-             FROM transformacion_linea tl
-             JOIN transformacion t ON t.id = tl.transformacion_id
-             JOIN producto pe ON pe.id = tl.producto_entrada_id
-             JOIN producto ps ON ps.id = tl.producto_salida_id
-            WHERE tl.lote_id = $1 AND tl.producto_salida_id = $2 AND t.fecha <= $3::timestamptz::date
-            ORDER BY t.fecha`,
+          // Cadena completa del lote hacia atrás: la transformación que produjo lo vendido y las que produjeron sus insumos.
+          `WITH RECURSIVE cadena AS (
+              SELECT tl.id, tl.transformacion_id, tl.producto_entrada_id, tl.producto_salida_id, tl.cantidad_entrada, tl.cantidad_salida, 1 AS nivel
+                FROM transformacion_linea tl JOIN transformacion t ON t.id = tl.transformacion_id
+               WHERE tl.lote_id = $1 AND tl.producto_salida_id = $2 AND t.fecha <= $3::timestamptz::date
+              UNION
+              SELECT tl.id, tl.transformacion_id, tl.producto_entrada_id, tl.producto_salida_id, tl.cantidad_entrada, tl.cantidad_salida, c.nivel + 1
+                FROM transformacion_linea tl JOIN transformacion t ON t.id = tl.transformacion_id
+                JOIN cadena c ON tl.producto_salida_id = c.producto_entrada_id
+               WHERE tl.lote_id = $1 AND t.fecha <= $3::timestamptz::date AND c.nivel < 10
+            )
+            SELECT DISTINCT ON (t.fecha, t.creado_en, t.id) t.id, t.tipo, t.fecha::text AS fecha, pe.nombre AS entrada, ps.nombre AS salida,
+                   ca.cantidad_entrada, ca.cantidad_salida
+              FROM cadena ca JOIN transformacion t ON t.id = ca.transformacion_id
+              JOIN producto pe ON pe.id = ca.producto_entrada_id JOIN producto ps ON ps.id = ca.producto_salida_id
+             ORDER BY t.fecha, t.creado_en, t.id`,
           [d.lote_id, d.producto_id, venta.fecha],
         ),
         c.query(

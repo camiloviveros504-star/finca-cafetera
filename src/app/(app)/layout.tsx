@@ -16,6 +16,7 @@ export default async function LayoutAplicacion({ children }: { children: React.R
     { href: "/pedidos", etiqueta: "Pedidos", icono: "☰", permiso: "pedido:ver" },
     { href: "/inventario/operaciones", etiqueta: "Movimientos", icono: "⇄", permiso: "inventario:ajustar" },
     { href: "/configuracion", etiqueta: "Tarifas", icono: "%", permiso: "tarifa:ver" },
+    { href: "/beneficio", etiqueta: "Beneficio", icono: "≋", permiso: "proceso:ver" },
     { href: "/trabajadores", etiqueta: "Trabajadores", icono: "☻", permiso: "trabajador:ver" },
     { href: "/trabajadores", etiqueta: "Mis datos", icono: "☻", permiso: "trabajador:ver_propio" },
     { href: "/trabajo", etiqueta: "Producción", icono: "⚒", permiso: "trabajo:validar" },

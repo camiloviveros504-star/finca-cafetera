@@ -154,6 +154,8 @@ export async function listarCosechas(deps: DependenciasProduccion, ctx: Contexto
 }
 
 export async function obtenerOpcionesRegistro(deps: DependenciasProduccion, ctx: ContextoUsuario): Promise<OpcionesRegistro> {
-  await autorizar(deps.auditor, ctx, "cosecha:registrar", { accion: "cosecha.opciones", entidad: "cosecha" });
+  // Las listas de fincas, lotes, bodegas y productos las usan varias operaciones; basta con tener cualquiera de ellas.
+  const permiso = ["cosecha:registrar", "inventario:ajustar", "inventario:transformar", "inventario:trasladar", "proceso:registrar", "trabajo:registrar"].find((x) => ctx.permisos.has(x)) ?? "cosecha:registrar";
+  await autorizar(deps.auditor, ctx, permiso, { accion: "cosecha.opciones", entidad: "cosecha" });
   return deps.uow.consultar((tx) => deps.produccion.opcionesRegistro(tx, ctx.organizacionId, ctx.fincaIds));
 }

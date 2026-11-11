@@ -21,6 +21,8 @@ import { RepositorioFincasLotesPg } from "@/modules/produccion/infrastructure/re
 import type { DependenciasFincasLotes } from "@/modules/produccion/application/fincasLotes";
 import { RepositorioTalentoPg } from "@/modules/talento/infrastructure/repositorioTalentoPg";
 import type { DependenciasTalento } from "@/modules/talento/application/talento";
+import { RepositorioBeneficioPg } from "@/modules/beneficio/infrastructure/repositorioBeneficioPg";
+import type { DependenciasBeneficio } from "@/modules/beneficio/application/beneficio";
 import { RepositorioTrazabilidadPg } from "@/modules/trazabilidad/infrastructure/repositorioTrazabilidadPg";
 import { hashDeRelleno, verificarContrasena } from "@/shared/infraestructura/contrasenas";
 import { obtenerPool, UnidadDeTrabajoPg } from "@/shared/infraestructura/baseDatos";
@@ -42,6 +44,7 @@ export interface Servicios {
   produccion: DependenciasProduccion;
   trazabilidad: DependenciasTrazabilidad;
   talento: DependenciasTalento;
+  beneficio: DependenciasBeneficio;
 }
 
 export function crearServicios(pool: Pool): Servicios {
@@ -49,6 +52,7 @@ export function crearServicios(pool: Pool): Servicios {
   const auditor = new AuditorPg(pool);
   const inventarioRepo = new RepositorioInventarioPg();
   const configuracion = new RepositorioConfiguracionPg();
+  const operaciones: DependenciasOperaciones = { repo: inventarioRepo, ops: new RepositorioOperacionesPg(), uow, auditor };
   return {
     sesion: {
       repo: new RepositorioIdentidadPg(pool),
@@ -57,7 +61,8 @@ export function crearServicios(pool: Pool): Servicios {
     },
     comercial: { ventas: new RepositorioVentasPg(), inventario: inventarioRepo, configuracion, uow, auditor },
     inventario: { repo: inventarioRepo, uow, auditor },
-    operaciones: { repo: inventarioRepo, ops: new RepositorioOperacionesPg(), uow, auditor },
+    operaciones,
+    beneficio: { repo: new RepositorioBeneficioPg(), operaciones, uow, auditor },
     produccion: { produccion: new RepositorioProduccionPg(), inventario: inventarioRepo, configuracion, uow, auditor },
     trazabilidad: { repo: new RepositorioTrazabilidadPg(), uow, auditor },
     talento: { repo: new RepositorioTalentoPg(), configuracion, uow, auditor },
@@ -90,5 +95,9 @@ export {
   registrarAnticipo, liquidarPeriodo, registrarPagoTrabajador, listarLiquidaciones,
   type FilaLiquidacion, type FilaRegistroTrabajo, type FilaTrabajador, type Modalidad,
 } from "@/modules/talento/application/talento";
+export {
+  crearProcesoTipo, listarProcesos, ejecutarEtapa, listarRegistrosProceso,
+  type FilaProceso, type FilaRegistroProceso, type EtapaProceso,
+} from "@/modules/beneficio/application/beneficio";
 export * from "@/shared/dominio/errores";
 export type { ContextoUsuario } from "@/shared/dominio/contexto";
