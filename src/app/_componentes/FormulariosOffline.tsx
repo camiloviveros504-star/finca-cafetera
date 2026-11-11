@@ -15,7 +15,7 @@ export function ColaLocal({ tipo }: { tipo: TipoOperacion }) {
   const filas = cola.filter((o) => (o.tipo ?? "cosecha") === tipo).slice(0, 8);
   if (filas.length === 0) return null;
   return (
-    <div className="mt-3 rounded-lg bg-pergamino p-3 text-sm" aria-label="Operaciones guardadas en este dispositivo">
+    <div className="mt-3 rounded-lg bg-arena p-3 text-sm" aria-label="Operaciones guardadas en este dispositivo">
       <p className="font-bold">En este dispositivo</p>
       <ul className="space-y-1">
         {filas.map((o) => (

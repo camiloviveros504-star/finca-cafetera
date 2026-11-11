@@ -19,13 +19,13 @@ export default async function Reportes() {
     <section className="space-y-4">
       <EncabezadoModulo titulo="Reportes" detalle="Archivos CSV generados en el servidor, solo con los datos de sus fincas. La exportación en PDF queda como trabajo futuro." />
       {visibles.length === 0 ? (
-        <p className="rounded-lg bg-pergamino p-4">Su rol no tiene reportes disponibles.</p>
+        <p className="rounded-lg bg-arena p-4">Su rol no tiene reportes disponibles.</p>
       ) : (
         <ul className="grid gap-3 md:grid-cols-2">
           {visibles.map((r) => (
-            <li key={r.tipo} className="rounded-xl border-2 border-cafe/20 bg-white p-3">
+            <li key={r.tipo} className="rounded-xl border-2 border-tinta/20 bg-white p-3">
               <p className="font-bold">{r.titulo}</p>
-              <a href={`/api/reportes/${r.tipo}`} download className="mt-2 inline-flex min-h-11 items-center rounded-lg bg-cafetal px-4 font-bold text-white">Descargar CSV</a>
+              <a href={`/api/reportes/${r.tipo}`} download className="mt-2 inline-flex min-h-11 items-center rounded-lg bg-bosque px-4 font-bold text-white">Descargar CSV</a>
             </li>
           ))}
         </ul>

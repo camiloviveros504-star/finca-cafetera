@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-cafe: #3b2416;
-  --color-cereza: #b3261e;
-  --color-cafetal: #2f5d3a;
-  --color-pergamino: #efe6d2;
-  --color-dorado: #d9a441;
-  --color-papel: #fbf8f1;
+  --color-tinta: #1f2d36;
+  --color-alerta: #9b2f2f;
+  --color-bosque: #2d5a4d;
+  --color-arena: #eceae3;
+  --color-ambar: #c9a24a;
+  --color-fondo: #f6f5f1;
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -19,15 +19,15 @@ html {
 }
 
 body {
-  background: var(--color-papel);
-  color: var(--color-cafe);
+  background: var(--color-fondo);
+  color: var(--color-tinta);
   font-family: var(--font-sans);
   overflow-x: hidden;
 }
 
 /* Foco visible para navegación por teclado (accesibilidad). */
 :focus-visible {
-  outline: 3px solid var(--color-dorado);
+  outline: 3px solid var(--color-ambar);
   outline-offset: 2px;
 }
 

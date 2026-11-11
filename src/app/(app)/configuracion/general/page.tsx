@@ -15,7 +15,7 @@ export default async function ConfiguracionGeneral() {
   try {
     a = await obtenerAjustes(servicios().ajustes, ctx);
   } catch (error) {
-    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-cereza">No tiene permiso para consultar la configuración.</p>;
+    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para consultar la configuración.</p>;
     throw error;
   }
   const modifica = ctx.permisos.has("configuracion:modificar");
@@ -29,7 +29,7 @@ export default async function ConfiguracionGeneral() {
       <h2 className="text-xl font-extrabold">Equivalencias de unidades</h2>
       <p className="text-sm">Cada cambio crea una vigencia nueva y cierra la anterior; lo ya registrado conserva el factor que se aplicó.</p>
       {modifica && (
-        <details className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+        <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
           <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nueva equivalencia</summary>
           <div className="mt-3">
             <FormularioGenerico accion={accionEquivalencia} boton="Crear equivalencia" campos={[
@@ -44,7 +44,7 @@ export default async function ConfiguracionGeneral() {
       )}
       <ul className="grid gap-2 md:grid-cols-2">
         {a.equivalencias.map((e) => (
-          <li key={e.id} className={`rounded-xl border-2 bg-white p-3 text-sm ${e.vigente ? "border-cafetal" : "border-cafe/20 opacity-80"}`}>
+          <li key={e.id} className={`rounded-xl border-2 bg-white p-3 text-sm ${e.vigente ? "border-bosque" : "border-tinta/20 opacity-80"}`}>
             <strong>1 {e.origen} = {Number(e.factor)} {e.destino}</strong>{e.esDemo ? " · DEMO" : ""} · {e.fincaNombre ?? "General"}<br />
             Desde {e.desde}{e.hasta ? ` hasta ${e.hasta}` : " (sin fin)"}{e.vigente ? " · vigente hoy" : ""}
           </li>
@@ -53,7 +53,7 @@ export default async function ConfiguracionGeneral() {
 
       <h2 className="text-xl font-extrabold">Catálogos</h2>
       {modifica && (
-        <details className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+        <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
           <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nuevo valor de catálogo</summary>
           <div className="mt-3">
             <FormularioGenerico accion={accionValorCatalogo} boton="Crear valor" campos={[
@@ -65,7 +65,7 @@ export default async function ConfiguracionGeneral() {
       )}
       <div className="grid gap-3 md:grid-cols-2">
         {Object.entries(NOMBRE_CATALOGO).map(([clave, titulo]) => (
-          <div key={clave} className="rounded-xl border-2 border-cafe/20 bg-white p-3 text-sm">
+          <div key={clave} className="rounded-xl border-2 border-tinta/20 bg-white p-3 text-sm">
             <p className="font-bold">{titulo}</p>
             <ul>
               {(porCatalogo[clave] ?? []).map((v) => (
@@ -82,7 +82,7 @@ export default async function ConfiguracionGeneral() {
 
       <h2 className="text-xl font-extrabold">Temporadas</h2>
       {modifica && (
-        <details className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+        <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
           <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nueva temporada</summary>
           <div className="mt-3">
             <FormularioGenerico accion={accionTemporada} boton="Crear temporada" campos={[{ nombre: "nombre", etiqueta: "Nombre", requerido: true }, { nombre: "desde", etiqueta: "Desde", tipo: "date", requerido: true }, { nombre: "hasta", etiqueta: "Hasta", tipo: "date", requerido: true }]} />
@@ -93,7 +93,7 @@ export default async function ConfiguracionGeneral() {
 
       <h2 className="text-xl font-extrabold">Parámetros operativos</h2>
       {modifica && (
-        <details className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+        <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
           <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Guardar parámetro</summary>
           <div className="mt-3">
             <FormularioGenerico accion={accionParametro} boton="Guardar" campos={[

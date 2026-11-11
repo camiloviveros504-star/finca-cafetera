@@ -4,6 +4,8 @@
  */
 import type { Pool } from "pg";
 import { AuditorPg } from "@/modules/auditoria/infrastructure/auditorPg";
+import { RepositorioInstalacionPg } from "@/modules/identidad/infrastructure/repositorioInstalacionPg";
+import type { DependenciasInstalacion } from "@/modules/identidad/application/instalacion";
 import { RepositorioAnulacionPg } from "@/modules/comercial/infrastructure/repositorioAnulacionPg";
 import { RepositorioDerechosPg } from "@/modules/comercial/infrastructure/repositorioDerechosPg";
 import type { DependenciasDerechosCliente } from "@/modules/comercial/application/derechosCliente";
@@ -69,6 +71,7 @@ export interface Servicios {
   finanzas: DependenciasFinanzas;
   pagos: DependenciasPagos;
   agricola: DependenciasAgricola;
+  instalacion: DependenciasInstalacion;
   derechosCliente: DependenciasDerechosCliente;
   derechosTrabajador: DependenciasDerechosTrabajador;
   anulacionVenta: DependenciasAnulacionVenta;
@@ -78,7 +81,7 @@ export interface Servicios {
   auditoria: DependenciasAuditoria;
 }
 
-export function crearServicios(pool: Pool): Servicios {
+export function crearServicios(pool: Pool, opciones: { codigoInstalacion?: string } = {}): Servicios {
   const uow = new UnidadDeTrabajoPg(pool);
   const auditor = new AuditorPg(pool);
   const inventarioRepo = new RepositorioInventarioPg();
@@ -96,6 +99,7 @@ export function crearServicios(pool: Pool): Servicios {
     beneficio: { repo: new RepositorioBeneficioPg(), operaciones, uow, auditor },
     finanzas: { repo: new RepositorioFinanzasPg(), uow, auditor },
     pagos: { repo: new RepositorioPagosPg(), uow, auditor },
+    instalacion: { repo: new RepositorioInstalacionPg(), cifrar: cifrarContrasena, uow, auditor, codigoEsperado: opciones.codigoInstalacion ?? process.env.CODIGO_INSTALACION },
     derechosCliente: { repo: new RepositorioDerechosPg(), uow, auditor },
     derechosTrabajador: { repo: new RepositorioDerechosTrabajadorPg(), uow, auditor },
     anulacionVenta: { repo: new RepositorioAnulacionPg(), operaciones, uow, auditor },
@@ -160,6 +164,7 @@ export {
 } from "@/modules/configuracion/application/ajustes";
 export { listarUsuarios, crearUsuario, asignarRolesYFincas, cambiarEstadoUsuario, restablecerContrasena, cambiarPermisoExtra, type FilaPermiso, type FilaRol, type FilaUsuario } from "@/modules/identidad/application/usuarios";
 export { consultarAuditoria, type FilaAuditoria, type FiltroAuditoria } from "@/modules/auditoria/application/consultarAuditoria";
+export { obtenerEstadoInstalacion, instalarSistema, LARGO_MINIMO_CODIGO } from "@/modules/identidad/application/instalacion";
 export { anularVenta } from "@/modules/comercial/application/anularVenta";
 export { exportarDatosCliente, rectificarCliente, anonimizarCliente } from "@/modules/comercial/application/derechosCliente";
 export { exportarDatosTrabajador, rectificarTrabajador, anonimizarTrabajador } from "@/modules/talento/application/derechosTrabajador";

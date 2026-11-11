@@ -16,7 +16,7 @@ export default async function Planificacion() {
     actividades = await listarActividades(servicios().agricola, ctx);
     proyecciones = await listarProyecciones(servicios().agricola, ctx);
   } catch (error) {
-    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-cereza">No tiene permiso para consultar la planificación.</p>;
+    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para consultar la planificación.</p>;
     throw error;
   }
   const admin = ctx.permisos.has("planificacion:administrar");
@@ -28,7 +28,7 @@ export default async function Planificacion() {
       <EncabezadoModulo titulo="Planificación agrícola" imagen="modulo-planificacion-floracion" alt="Rama de café con flores blancas en plena floración frente a montañas cafeteras" />
       {admin && (
         <div className="grid gap-4 xl:grid-cols-2">
-          <details open className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+          <details open className="rounded-xl border-2 border-tinta/20 bg-white p-4">
             <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Programar actividad</summary>
             <div className="mt-3">
               <FormularioGenerico accion={accionProgramarActividad} boton="Programar" conClave campos={[
@@ -40,7 +40,7 @@ export default async function Planificacion() {
               ]} />
             </div>
           </details>
-          <details className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+          <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
             <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Proyección de cosecha</summary>
             <div className="mt-3">
               <FormularioGenerico accion={accionProyeccion} boton="Registrar proyección" conClave campos={[
@@ -59,7 +59,7 @@ export default async function Planificacion() {
       <h2 className="text-xl font-extrabold">Actividades</h2>
       <ul className="space-y-2">
         {actividades.map((a) => (
-          <li key={a.id} className={`rounded-xl border-2 bg-white p-3 text-sm ${a.atrasada ? "border-cereza" : "border-cafe/20"}`}>
+          <li key={a.id} className={`rounded-xl border-2 bg-white p-3 text-sm ${a.atrasada ? "border-alerta" : "border-tinta/20"}`}>
             <p className="font-bold">{a.fechaProgramada} · {a.tipo} · {a.titulo} · {a.fincaNombre}{a.loteCodigo ? ` · ${a.loteCodigo}` : ""}</p>
             <p>{a.estado === "programada" ? (a.atrasada ? "Atrasada" : "Programada") : `${a.estado === "completada" ? "Completada" : "Cancelada"} el ${a.fechaCierre}${a.resultado ? `: ${a.resultado}` : ""}`}</p>
             {admin && a.estado === "programada" && (

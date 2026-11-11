@@ -14,8 +14,8 @@ export default async function DatosTrabajador({ params }: { params: Promise<{ id
   try {
     d = await exportarDatosTrabajador(servicios().derechosTrabajador, ctx, id);
   } catch (error) {
-    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-cereza">No tiene permiso para atender solicitudes de datos personales.</p>;
-    if (error instanceof ErrorNoEncontrado) return <p role="alert" className="font-semibold text-cereza">Trabajador no encontrado.</p>;
+    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para atender solicitudes de datos personales.</p>;
+    if (error instanceof ErrorNoEncontrado) return <p role="alert" className="font-semibold text-alerta">Trabajador no encontrado.</p>;
     throw error;
   }
   const suprimido = d.anonimizadoEn !== null;
@@ -23,7 +23,7 @@ export default async function DatosTrabajador({ params }: { params: Promise<{ id
     <section className="space-y-6">
       <EncabezadoModulo titulo="Datos personales del trabajador" detalle="Ley 1581 de 2012: conocer, rectificar y suprimir." />
       <p><Link href="/trabajadores" className="font-semibold underline">← Volver a trabajadores</Link></p>
-      <div className="rounded-xl border-2 border-cafe/20 bg-white p-4 text-sm">
+      <div className="rounded-xl border-2 border-tinta/20 bg-white p-4 text-sm">
         <p className="text-base font-extrabold">{d.titular.nombres} {d.titular.apellidos}</p>
         <p>Documento: {d.titular.tipoDocumento} {d.titular.numeroDocumento} · Teléfono: {d.titular.telefono ?? "—"}</p>
         <p>Finalidad: {d.finalidad ?? "—"}</p>
@@ -32,7 +32,7 @@ export default async function DatosTrabajador({ params }: { params: Promise<{ id
         {d.tieneUsuarioDeAcceso && <p className="font-semibold">Tiene un usuario de acceso: desactívelo desde Usuarios si se suprimen sus datos.</p>}
       </div>
       {!suprimido && ctx.permisos.has("trabajador:administrar") && (
-        <details className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+        <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
           <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Rectificar datos</summary>
           <div className="mt-3">
             <FormularioGenerico accion={accionRectificarTrabajador} boton="Guardar cambios" ocultos={{ trabajadorId: id }} campos={[
@@ -43,8 +43,8 @@ export default async function DatosTrabajador({ params }: { params: Promise<{ id
         </details>
       )}
       {!suprimido && (
-        <details className="rounded-xl border-2 border-cereza bg-white p-4">
-          <summary className="min-h-11 cursor-pointer text-lg font-extrabold text-cereza">Suprimir datos personales (anonimizar)</summary>
+        <details className="rounded-xl border-2 border-alerta bg-white p-4">
+          <summary className="min-h-11 cursor-pointer text-lg font-extrabold text-alerta">Suprimir datos personales (anonimizar)</summary>
           <p className="mt-2 text-sm">Se borran nombres, apellidos, documento y teléfono. Las liquidaciones y pagos se conservan sin datos personales. No se puede deshacer.</p>
           <div className="mt-3">
             <FormularioGenerico accion={accionAnonimizarTrabajador} boton="Suprimir datos" ocultos={{ trabajadorId: id }} campos={[{ nombre: "motivo", etiqueta: "Solicitud del titular (mínimo 10 caracteres)", requerido: true }]} />

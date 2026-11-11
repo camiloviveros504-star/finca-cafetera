@@ -17,7 +17,7 @@ export function FormularioLogin() {
           type="email"
           autoComplete="username"
           required
-          className="min-h-11 w-full rounded-lg border-2 border-cafe/40 bg-white px-3 text-base focus:border-cafetal"
+          className="min-h-11 w-full rounded-lg border-2 border-tinta/40 bg-white px-3 text-base focus:border-bosque"
         />
       </div>
       <div>
@@ -30,18 +30,18 @@ export function FormularioLogin() {
           type="password"
           autoComplete="current-password"
           required
-          className="min-h-11 w-full rounded-lg border-2 border-cafe/40 bg-white px-3 text-base focus:border-cafetal"
+          className="min-h-11 w-full rounded-lg border-2 border-tinta/40 bg-white px-3 text-base focus:border-bosque"
         />
       </div>
       {estado.error && (
-        <p role="alert" className="rounded-lg border-2 border-cereza bg-white p-3 text-sm font-semibold text-cereza">
+        <p role="alert" className="rounded-lg border-2 border-alerta bg-white p-3 text-sm font-semibold text-alerta">
           {estado.error}
         </p>
       )}
       <button
         type="submit"
         disabled={pendiente}
-        className="min-h-12 w-full rounded-lg bg-cafetal px-4 text-base font-bold text-white hover:bg-cafetal/90 disabled:opacity-60"
+        className="min-h-12 w-full rounded-lg bg-bosque px-4 text-base font-bold text-white hover:bg-bosque/90 disabled:opacity-60"
       >
         {pendiente ? "Ingresando…" : "Iniciar sesión"}
       </button>

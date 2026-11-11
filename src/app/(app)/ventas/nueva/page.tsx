@@ -15,7 +15,7 @@ export default async function NuevaVenta() {
       </section>
     );
   } catch (error) {
-    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-cereza">No tiene permiso para registrar ventas.</p>;
+    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para registrar ventas.</p>;
     throw error;
   }
 }

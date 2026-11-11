@@ -12,7 +12,7 @@ interface Opciones {
   unidades: { id: string; codigo: string; nombre: string }[];
 }
 
-const campo = "min-h-12 w-full rounded-lg border-2 border-cafe/40 bg-white px-3 text-base focus:border-cafetal";
+const campo = "min-h-12 w-full rounded-lg border-2 border-tinta/40 bg-white px-3 text-base focus:border-bosque";
 const hoy = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
 
 /** Flujo de 4 pasos pensado para celular y una mano: finca y lote → fecha → cantidad y unidad → confirmar. */
@@ -81,7 +81,7 @@ export function FormularioCosecha({ opciones }: { opciones: Opciones; csrfToken:
       <p className="mb-3 text-sm font-bold" aria-live="polite">
         Paso {Math.min(paso, 4)} de 4
       </p>
-      <div className="space-y-4 rounded-xl border-2 border-cafe/20 bg-white p-4">
+      <div className="space-y-4 rounded-xl border-2 border-tinta/20 bg-white p-4">
         {paso === 1 && (
           <>
             <div>
@@ -142,27 +142,27 @@ export function FormularioCosecha({ opciones }: { opciones: Opciones; csrfToken:
             <p className="text-sm">
               Aparece como <strong>pendiente</strong> hasta que el servidor la confirme. No cuenta en el inventario antes de eso.
             </p>
-            <button onClick={otra} className="min-h-12 w-full rounded-lg bg-cafetal px-4 font-bold text-white">
+            <button onClick={otra} className="min-h-12 w-full rounded-lg bg-bosque px-4 font-bold text-white">
               Registrar otra cosecha
             </button>
           </div>
         )}
-        {error && <p role="alert" className="rounded-lg border-2 border-cereza p-3 text-sm font-semibold text-cereza">{error}</p>}
+        {error && <p role="alert" className="rounded-lg border-2 border-alerta p-3 text-sm font-semibold text-alerta">{error}</p>}
       </div>
 
       {!(paso === 4 && guardada) && (
-        <div className="fixed inset-x-0 bottom-14 z-20 flex gap-3 bg-papel/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:static lg:mt-4 lg:bg-transparent lg:p-0">
+        <div className="fixed inset-x-0 bottom-14 z-20 flex gap-3 bg-fondo/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:static lg:mt-4 lg:bg-transparent lg:p-0">
           {paso > 1 && (
-            <button onClick={() => setPaso(paso - 1)} className="min-h-12 flex-1 rounded-lg border-2 border-cafe px-4 font-bold">
+            <button onClick={() => setPaso(paso - 1)} className="min-h-12 flex-1 rounded-lg border-2 border-tinta px-4 font-bold">
               Atrás
             </button>
           )}
           {paso < 4 ? (
-            <button onClick={avanzar} className="min-h-12 flex-[2] rounded-lg bg-cafetal px-4 font-bold text-white">
+            <button onClick={avanzar} className="min-h-12 flex-[2] rounded-lg bg-bosque px-4 font-bold text-white">
               Continuar
             </button>
           ) : (
-            <button onClick={guardar} className="min-h-12 flex-[2] rounded-lg bg-cafetal px-4 font-bold text-white">
+            <button onClick={guardar} className="min-h-12 flex-[2] rounded-lg bg-bosque px-4 font-bold text-white">
               Guardar cosecha
             </button>
           )}
@@ -176,12 +176,12 @@ export function FormularioCosecha({ opciones }: { opciones: Opciones; csrfToken:
         ) : (
           <ul className="space-y-2">
             {sync.cola.slice(0, 10).map((o) => (
-              <li key={o.id} className="flex items-start justify-between gap-3 rounded-lg border-2 border-cafe/20 bg-white p-3 text-sm">
-                <span>{o.resumen}{o.mensaje && <span className="block font-semibold text-cereza">{o.mensaje}</span>}</span>
+              <li key={o.id} className="flex items-start justify-between gap-3 rounded-lg border-2 border-tinta/20 bg-white p-3 text-sm">
+                <span>{o.resumen}{o.mensaje && <span className="block font-semibold text-alerta">{o.mensaje}</span>}</span>
                 <span
                   data-estado={o.estado}
                   className={`shrink-0 rounded-full px-2 py-1 text-xs font-bold ${
-                    o.estado === "sincronizada" ? "bg-cafetal text-white" : o.estado === "rechazada" ? "bg-cereza text-white" : "bg-dorado text-cafe"
+                    o.estado === "sincronizada" ? "bg-bosque text-white" : o.estado === "rechazada" ? "bg-alerta text-white" : "bg-ambar text-tinta"
                   }`}
                 >
                   {o.estado === "sincronizada" ? "Confirmada" : o.estado === "rechazada" ? "Rechazada" : "Pendiente"}

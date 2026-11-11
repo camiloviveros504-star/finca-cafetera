@@ -13,7 +13,7 @@ export default async function Configuracion() {
   try {
     tarifas = await listarTarifas(servicios().tarifas, ctx);
   } catch (error) {
-    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-cereza">No tiene permiso para consultar la configuración.</p>;
+    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para consultar la configuración.</p>;
     throw error;
   }
   const hoy = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
@@ -27,7 +27,7 @@ export default async function Configuracion() {
         Los precios no están en el código: cada cambio crea una versión nueva con su vigencia. Las ventas ya registradas conservan el valor con el que se hicieron.
       </p>
       {puedeModificar && (
-        <details className="mb-4 rounded-xl border-2 border-cafe/20 bg-white p-4">
+        <details className="mb-4 rounded-xl border-2 border-tinta/20 bg-white p-4">
           <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nueva tarifa (precio, compra o pago)</summary>
           <div className="mt-3">
             <FormularioGenerico
@@ -48,7 +48,7 @@ export default async function Configuracion() {
       )}
       <ul className="space-y-4">
         {tarifas.map((t) => (
-          <li key={t.tarifaId} className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+          <li key={t.tarifaId} className="rounded-xl border-2 border-tinta/20 bg-white p-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="text-lg font-extrabold">{t.productoNombre ?? t.codigo}</h2>
               <span className="text-xs font-bold uppercase">{t.tipo.replaceAll("_", " ")}{t.esDemo ? " · DEMO" : ""}</span>

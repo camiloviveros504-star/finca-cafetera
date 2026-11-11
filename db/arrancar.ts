@@ -1,6 +1,7 @@
 /**
- * Un solo comando para la demo SIN Docker: `npm run demo`
- * Levanta PostgreSQL real (embedded-postgres), migra, siembra los datos DEMO y arranca la aplicación.
+ * Arranque local SIN Docker: `npm run iniciar` (o `npm run iniciar:ejemplo` para cargar datos de ejemplo).
+ * Levanta PostgreSQL real (embedded-postgres), migra y arranca la aplicación. Sin datos de ejemplo, la primera vez
+ * se entra a /instalacion para crear la organización y el administrador.
  */
 import EmbeddedPostgres from "embedded-postgres";
 import { spawn, spawnSync } from "node:child_process";
@@ -27,8 +28,9 @@ async function principal() {
   if (nueva) await pg.createDatabase("finca");
 
   process.env.DATABASE_URL = url;
-  process.env.SEMBRAR_DEMO = "si";
-  process.env.SESSION_SECRET ??= "demo-local-no-usar-en-produccion-0000000000";
+  if (process.argv.includes("--ejemplo")) process.env.CARGAR_DATOS_EJEMPLO = "si";
+  process.env.SESSION_SECRET ??= "local-no-usar-en-produccion-000000000000";
+  process.env.CODIGO_INSTALACION ??= "instalacion-local-0001";
   await prepararBase(url);
 
   if (!existsSync(join(process.cwd(), ".next", "BUILD_ID"))) {
@@ -45,7 +47,7 @@ async function principal() {
   process.on("SIGINT", salir);
   process.on("SIGTERM", salir);
   app.on("exit", salir);
-  console.log("\nAplicación en http://localhost:3000  ·  usuarios DEMO: admin@demo.local, produccion@demo.local, comercial@demo.local  ·  contraseña: Demo-2026!");
+  console.log(process.env.CARGAR_DATOS_EJEMPLO === "si" ? "\nAplicación en http://localhost:3000 con datos de ejemplo (usuarios @demo.local, contraseña Demo-2026!)" : `\nAplicación en http://localhost:3000 · primera vez: http://localhost:3000/instalacion (código ${process.env.CODIGO_INSTALACION})`);
 }
 
 principal().catch((e) => {

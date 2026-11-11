@@ -15,7 +15,7 @@ export default async function Trabajadores() {
   try {
     lista = await listarTrabajadores(servicios().talento, ctx);
   } catch (error) {
-    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-cereza">No tiene permiso para consultar trabajadores.</p>;
+    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para consultar trabajadores.</p>;
     throw error;
   }
   const fincas = await listarFincasYLotes(servicios().fincasLotes, ctx).then((d) => d.fincas).catch(() => []);
@@ -29,7 +29,7 @@ export default async function Trabajadores() {
 
       <div className="grid gap-4 xl:grid-cols-3">
         {administra && (
-          <details className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+          <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
             <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nuevo trabajador</summary>
             <div className="mt-3">
               <FormularioGenerico
@@ -48,7 +48,7 @@ export default async function Trabajadores() {
           </details>
         )}
         {administra && (
-          <details className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+          <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
             <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Vincular a una finca</summary>
             <div className="mt-3">
               <FormularioGenerico
@@ -67,7 +67,7 @@ export default async function Trabajadores() {
           </details>
         )}
         {ctx.permisos.has("anticipo:registrar") && (
-          <details className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+          <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
             <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Registrar anticipo</summary>
             <div className="mt-3">
               <FormularioGenerico
@@ -88,16 +88,16 @@ export default async function Trabajadores() {
 
       <ul className="grid gap-3 md:grid-cols-2">
         {lista.map((w) => (
-          <li key={w.id} className="rounded-xl border-2 border-cafe/20 bg-white p-3">
+          <li key={w.id} className="rounded-xl border-2 border-tinta/20 bg-white p-3">
             <p className="font-extrabold">{w.nombre} <span className="text-sm font-normal">· {w.documento}</span></p>
-            {ctx.permisos.has("datos_personales:gestionar") && <Link href={`/trabajadores/${w.id}`} className="inline-flex min-h-11 items-center text-sm font-bold text-cafetal underline">Datos personales (Ley 1581)</Link>}
+            {ctx.permisos.has("datos_personales:gestionar") && <Link href={`/trabajadores/${w.id}`} className="inline-flex min-h-11 items-center text-sm font-bold text-bosque underline">Datos personales (Ley 1581)</Link>}
             <p className="text-sm">{w.vinculaciones.length === 0 ? "Sin vinculación" : w.vinculaciones.map((v) => `${v.fincaNombre} (${v.modalidad})`).join(" · ")}</p>
             <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
               <dt>Pendientes de validar</dt><dd className="text-right font-bold">{w.registrosPendientes}</dd>
               <dt>Validado (valor)</dt><dd className="text-right font-bold">{moneda(w.validadoValor)}</dd>
               <dt>Liquidado neto</dt><dd className="text-right font-bold">{moneda(w.liquidadoNeto)}</dd>
               <dt>Pagado</dt><dd className="text-right font-bold">{moneda(w.pagado)}</dd>
-              <dt>Saldo pendiente</dt><dd className="text-right font-bold text-cereza">{moneda(w.saldoPendiente)}</dd>
+              <dt>Saldo pendiente</dt><dd className="text-right font-bold text-alerta">{moneda(w.saldoPendiente)}</dd>
               <dt>Anticipos por descontar</dt><dd className="text-right font-bold">{moneda(w.anticiposPendientes)}</dd>
             </dl>
           </li>

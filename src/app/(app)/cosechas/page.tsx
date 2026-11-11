@@ -14,7 +14,7 @@ export default async function Cosechas({ searchParams }: { searchParams: Promise
   try {
     datos = await listarCosechas(servicios().produccion, ctx, pagina);
   } catch (error) {
-    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-cereza">No tiene permiso para consultar cosechas.</p>;
+    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para consultar cosechas.</p>;
     throw error;
   }
   const paginas = Math.max(Math.ceil(datos.total / 25), 1);
@@ -23,22 +23,22 @@ export default async function Cosechas({ searchParams }: { searchParams: Promise
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-extrabold">Cosechas</h1>
         {ctx.permisos.has("cosecha:registrar") && (
-          <Link href="/cosechas/nueva" className="flex min-h-11 items-center rounded-lg bg-cafetal px-4 font-bold text-white">
+          <Link href="/cosechas/nueva" className="flex min-h-11 items-center rounded-lg bg-bosque px-4 font-bold text-white">
             Registrar cosecha
           </Link>
         )}
       </div>
       {datos.filas.length === 0 ? (
-        <p className="rounded-lg bg-pergamino p-4">Todavía no hay cosechas registradas.</p>
+        <p className="rounded-lg bg-arena p-4">Todavía no hay cosechas registradas.</p>
       ) : (
         <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {datos.filas.map((c) => (
-            <li key={c.id} className="rounded-xl border-2 border-cafe/20 bg-white p-3">
+            <li key={c.id} className="rounded-xl border-2 border-tinta/20 bg-white p-3">
               <p className="font-bold">{c.productoNombre}{c.estado === "anulada" ? " · ANULADA" : ""}</p>
               <p className="text-sm">Lote {c.loteCodigo} · {c.fecha}</p>
               <p className={`mt-1 text-lg font-extrabold ${c.estado === "anulada" ? "line-through opacity-60" : ""}`}>{cantidad(c.cantidad)} {c.unidadCodigo}</p>
               {ctx.permisos.has("cosecha:anular") && c.estado === "confirmada" && (
-                <details className="mt-2"><summary className="min-h-11 cursor-pointer font-semibold text-cereza">Anular</summary>
+                <details className="mt-2"><summary className="min-h-11 cursor-pointer font-semibold text-alerta">Anular</summary>
                   <FormularioGenerico compacto accion={accionAnularCosecha} boton="Confirmar anulación" ocultos={{ cosechaId: c.id }} campos={[{ nombre: "motivo", etiqueta: "Motivo (mínimo 10 caracteres)", requerido: true }]} />
                 </details>
               )}

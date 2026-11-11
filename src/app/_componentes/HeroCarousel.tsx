@@ -22,13 +22,13 @@ export interface ImagenHero {
 const INTERVALO_MS = 6000;
 
 /**
- * Carrusel de fondo (QA-09). Solo la 1.ª imagen se carga con prioridad; las demás se montan cuando se acerca su turno.
- * En celular se sirve la versión -sm. Pausa con mouse, foco y pestaña oculta; sin rotación con prefers-reduced-motion.
+ * Carrusel de fondo (QA-09) que cambia solo, sin flechas ni botones. Solo la 1.ª imagen se carga con prioridad; las demás
+ * se montan cuando se acerca su turno. En celular se sirve la versión -sm. Se pausa cuando la pestaña no está visible y no
+ * rota con prefers-reduced-motion. El indicador de posición es solo informativo.
  */
 export function HeroCarousel({ imagenes, children }: { imagenes: ImagenHero[]; children: React.ReactNode }) {
   const [actual, setActual] = useState(0);
   const [montadas, setMontadas] = useState<Set<number>>(new Set([0]));
-  const [pausado, setPausado] = useState(false);
   const sinMovimiento = useSyncExternalStore(suscribirseAMovimiento, () => window.matchMedia("(prefers-reduced-motion: reduce)").matches, () => false);
   const oculta = useSyncExternalStore(suscribirseAVisibilidad, () => document.hidden, () => false);
   const raiz = useRef<HTMLElement>(null);
@@ -50,24 +50,13 @@ export function HeroCarousel({ imagenes, children }: { imagenes: ImagenHero[]; c
   }, [actual, imagenes.length, sinMovimiento]);
 
   useEffect(() => {
-    if (sinMovimiento || pausado || oculta) return;
+    if (sinMovimiento || oculta) return;
     const t = setInterval(() => ir(actual + 1), INTERVALO_MS);
     return () => clearInterval(t);
-  }, [actual, ir, pausado, oculta, sinMovimiento]);
+  }, [actual, ir, oculta, sinMovimiento]);
 
   return (
-    <section
-      ref={raiz}
-      aria-roledescription="carrusel"
-      aria-label="Paisajes y procesos del café"
-      className="relative h-svh min-h-[34rem] overflow-hidden bg-cafe"
-      onMouseEnter={() => setPausado(true)}
-      onMouseLeave={() => setPausado(false)}
-      onFocus={() => setPausado(true)}
-      onBlur={(e) => {
-        if (!raiz.current?.contains(e.relatedTarget as Node | null)) setPausado(false);
-      }}
-    >
+    <section ref={raiz} aria-label="Paisajes y procesos del café" className="relative h-[86svh] min-h-[34rem] overflow-hidden bg-tinta">
       {imagenes.map((img, i) => {
         if (!montadas.has(i)) return null;
         const comunes = { alt: img.alt, fill: true, sizes: "100vw", unoptimized: true, priority: i === 0, loading: i === 0 ? undefined : ("lazy" as const) };
@@ -75,53 +64,23 @@ export function HeroCarousel({ imagenes, children }: { imagenes: ImagenHero[]; c
         const chica = getImageProps({ ...comunes, src: `${img.base}-sm.webp` }).props;
         const visible = i === actual;
         return (
-          <picture
-            key={img.base}
-            className={`absolute inset-0 block transition-opacity duration-1000 ${visible ? "opacity-100" : "opacity-0"}`}
-          >
+          <picture key={img.base} className={`absolute inset-0 block transition-opacity duration-[1500ms] ${visible ? "opacity-100" : "opacity-0"}`}>
             <source media="(max-width: 767px)" srcSet={chica.src} />
             <img {...grande} alt={visible ? img.alt : ""} className="object-cover" />
           </picture>
         );
       })}
-      {/* Degradado café para contraste AA; más fuerte en celular. */}
-      <div className="absolute inset-0 bg-gradient-to-t from-cafe/90 via-cafe/70 to-cafe/60 md:from-cafe/80 md:via-cafe/65 md:to-cafe/55" />
+      {/* Velo suave: la imagen se ve clara; el contraste del texto lo da el panel translúcido de abajo. */}
+      <div className="absolute inset-0 bg-gradient-to-t from-tinta/60 via-tinta/10 to-tinta/25" />
 
-      <div className="relative z-10 flex h-full flex-col justify-center px-4 text-center sm:px-6 md:text-left lg:px-8">
+      <div className="relative z-10 flex h-full flex-col justify-end px-4 pb-14 pt-24 sm:px-6 md:justify-center md:pb-0 lg:px-8">
         <div className="mx-auto w-full max-w-7xl">{children}</div>
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 z-20 flex items-center justify-center gap-3 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-        <button
-          type="button"
-          aria-label="Imagen anterior"
-          onClick={() => ir(actual - 1)}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-lg font-bold text-cafe hover:bg-white"
-        >
-          ‹
-        </button>
-        <div className="flex">
-          {imagenes.map((img, i) => (
-            <button
-              key={img.base}
-              type="button"
-              aria-label={`Ir a la imagen ${i + 1} de ${imagenes.length}`}
-              aria-current={i === actual}
-              onClick={() => ir(i)}
-              className="flex h-11 w-8 items-center justify-center"
-            >
-              <span className={`block h-3 rounded-full transition-all ${i === actual ? "w-6 bg-dorado" : "w-3 bg-white/80"}`} />
-            </button>
-          ))}
-        </div>
-        <button
-          type="button"
-          aria-label="Imagen siguiente"
-          onClick={() => ir(actual + 1)}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-lg font-bold text-cafe hover:bg-white"
-        >
-          ›
-        </button>
+      <div aria-hidden className="absolute inset-x-0 bottom-0 z-20 flex items-center justify-center gap-2 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        {imagenes.map((img, i) => (
+          <span key={img.base} className={`block h-1.5 rounded-full transition-all duration-500 ${i === actual ? "w-8 bg-white" : "w-3 bg-white/60"}`} />
+        ))}
       </div>
     </section>
   );

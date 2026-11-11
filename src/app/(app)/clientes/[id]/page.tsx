@@ -15,8 +15,8 @@ export default async function DatosCliente({ params }: { params: Promise<{ id: s
   try {
     d = await exportarDatosCliente(servicios().derechosCliente, ctx, id);
   } catch (error) {
-    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-cereza">No tiene permiso para atender solicitudes de datos personales.</p>;
-    if (error instanceof ErrorNoEncontrado) return <p role="alert" className="font-semibold text-cereza">Cliente no encontrado.</p>;
+    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para atender solicitudes de datos personales.</p>;
+    if (error instanceof ErrorNoEncontrado) return <p role="alert" className="font-semibold text-alerta">Cliente no encontrado.</p>;
     throw error;
   }
   const suprimido = d.anonimizadoEn !== null;
@@ -24,7 +24,7 @@ export default async function DatosCliente({ params }: { params: Promise<{ id: s
     <section className="space-y-6">
       <EncabezadoModulo titulo="Datos personales del cliente" detalle="Ley 1581 de 2012: conocer, rectificar y suprimir." />
       <p><Link href="/clientes" className="font-semibold underline">← Volver a clientes</Link></p>
-      <div className="rounded-xl border-2 border-cafe/20 bg-white p-4 text-sm">
+      <div className="rounded-xl border-2 border-tinta/20 bg-white p-4 text-sm">
         <p className="text-base font-extrabold">{d.titular.nombre}</p>
         <p>Documento: {d.titular.documento ?? "—"} · Teléfono: {d.titular.telefono ?? "—"} · Correo: {d.titular.correo ?? "—"} · Dirección: {d.titular.direccion ?? "—"}</p>
         <p>Finalidad: {d.finalidad}</p>
@@ -32,7 +32,7 @@ export default async function DatosCliente({ params }: { params: Promise<{ id: s
         <p>Historial comercial: {d.resumenComercial.ventas} venta(s) por {moneda(d.resumenComercial.total)} · {d.resumenComercial.pedidos} pedido(s). Se conserva para que la contabilidad cuadre.</p>
       </div>
       {!suprimido && ctx.permisos.has("cliente:administrar") && (
-        <details className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+        <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
           <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Rectificar datos</summary>
           <div className="mt-3">
             <FormularioGenerico accion={accionRectificarCliente} boton="Guardar cambios" ocultos={{ clienteId: id }} campos={[
@@ -43,8 +43,8 @@ export default async function DatosCliente({ params }: { params: Promise<{ id: s
         </details>
       )}
       {!suprimido && (
-        <details className="rounded-xl border-2 border-cereza bg-white p-4">
-          <summary className="min-h-11 cursor-pointer text-lg font-extrabold text-cereza">Suprimir datos personales (anonimizar)</summary>
+        <details className="rounded-xl border-2 border-alerta bg-white p-4">
+          <summary className="min-h-11 cursor-pointer text-lg font-extrabold text-alerta">Suprimir datos personales (anonimizar)</summary>
           <p className="mt-2 text-sm">Se borran nombre, documento, teléfono, correo y dirección. El registro y su historial de ventas se conservan, sin datos personales. No se puede deshacer.</p>
           <div className="mt-3">
             <FormularioGenerico accion={accionAnonimizarCliente} boton="Suprimir datos" ocultos={{ clienteId: id }} campos={[{ nombre: "motivo", etiqueta: "Solicitud del titular (mínimo 10 caracteres)", requerido: true }]} />

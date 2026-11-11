@@ -16,13 +16,14 @@
     "test:integracion": "vitest run tests/integracion tests/concurrencia",
     "capas": "depcruise src --config .dependency-cruiser.cjs",
     "format": "prettier --write .",
-    "demo": "tsx db/demo.ts",
     "db:iniciar": "tsx db/iniciar.ts",
     "e2e": "playwright test",
     "test:todo": "vitest run && npm run capas",
     "capas:probar": "node scripts/probar-capas.mjs",
     "test:volumen": "PRUEBAS_VOLUMEN=si vitest run tests/rendimiento",
-    "carga:preparar": "tsx scripts/preparar-carga.ts"
+    "carga:preparar": "tsx scripts/preparar-carga.ts",
+    "iniciar": "tsx db/arrancar.ts",
+    "iniciar:ejemplo": "tsx db/arrancar.ts --ejemplo"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.2",

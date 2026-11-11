@@ -16,7 +16,7 @@ export default async function Compras() {
     compras = await listarCompras(servicios().finanzas, ctx);
     proveedores = await listarProveedores(servicios().finanzas, ctx);
   } catch (error) {
-    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-cereza">No tiene permiso para consultar compras.</p>;
+    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para consultar compras.</p>;
     throw error;
   }
   const fincas = await listarFincasYLotes(servicios().fincasLotes, ctx).then((d) => d.fincas).catch(() => []);
@@ -26,7 +26,7 @@ export default async function Compras() {
       <EncabezadoModulo titulo="Compras y cuentas por pagar" detalle="Pedido → recepción → cuenta por pagar → pagos." />
       <div className="grid gap-4 xl:grid-cols-2">
         {p("proveedor:administrar") && (
-          <details className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+          <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
             <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nuevo proveedor</summary>
             <div className="mt-3">
               <FormularioGenerico accion={accionCrearProveedor} boton="Crear proveedor" campos={[
@@ -37,7 +37,7 @@ export default async function Compras() {
           </details>
         )}
         {p("compra:crear") && (
-          <details open className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+          <details open className="rounded-xl border-2 border-tinta/20 bg-white p-4">
             <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nuevo pedido de compra (hasta 3 insumos)</summary>
             <div className="mt-3">
               <FormularioGenerico accion={accionRegistrarCompra} boton="Registrar pedido" conClave campos={[
@@ -58,12 +58,12 @@ export default async function Compras() {
 
       <ul className="space-y-3">
         {compras.map((c) => (
-          <li key={c.id} className="rounded-xl border-2 border-cafe/20 bg-white p-3">
+          <li key={c.id} className="rounded-xl border-2 border-tinta/20 bg-white p-3">
             <p className="font-bold">Compra {c.numero} · {c.fecha} · {c.proveedorNombre} · {c.fincaNombre}</p>
             <ul className="text-sm">{c.lineas.map((l, i) => <li key={i}>{l.descripcion}: {cantidad(l.cantidad)} {l.unidad} × {moneda(l.costoUnitario)} = {moneda(l.subtotal)}</li>)}</ul>
             <p className="text-sm">
               Total <strong>{moneda(c.total)}</strong> · Pagado {moneda(c.pagado)} ·{" "}
-              <strong className={c.estado === "pedida" ? "" : c.saldo === "0.00" ? "text-cafetal" : "text-cereza"}>
+              <strong className={c.estado === "pedida" ? "" : c.saldo === "0.00" ? "text-bosque" : "text-alerta"}>
                 {c.estado === "pedida" ? "Pedida (sin recibir)" : c.saldo === "0.00" ? "Pagada" : `Por pagar ${moneda(c.saldo)}`}
               </strong>
             </p>

@@ -57,4 +57,4 @@ Cada medida está implementada y tiene prueba; no se afirma seguridad absoluta.
 - No cifra campos individuales en la base (el cifrado en reposo depende del proveedor de alojamiento).
 - No gestiona automáticamente los plazos de atención de consultas y reclamos.
 - No es un sistema de nómina legal ni de facturación electrónica DIAN.
-- Los datos de la demostración son ficticios y están marcados DEMO.
+- Los datos de ejemplo que pueden cargarse para ensayos son ficticios y están marcados DEMO; no se cargan por defecto.

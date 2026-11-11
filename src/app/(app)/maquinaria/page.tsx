@@ -14,7 +14,7 @@ export default async function Maquinaria() {
   try {
     datos = await listarEquipos(servicios().agricola, ctx);
   } catch (error) {
-    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-cereza">No tiene permiso para consultar maquinaria.</p>;
+    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para consultar maquinaria.</p>;
     throw error;
   }
   const administra = ctx.permisos.has("equipo:administrar");
@@ -26,7 +26,7 @@ export default async function Maquinaria() {
       <EncabezadoModulo titulo="Maquinaria y herramientas" detalle="Equipos, uso, combustible y mantenimientos. El costo de mantenimiento se carga como gasto." />
       <div className="grid gap-4 xl:grid-cols-3">
         {administra && (
-          <details className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+          <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
             <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nuevo equipo</summary>
             <div className="mt-3">
               <FormularioGenerico accion={accionCrearEquipo} boton="Crear equipo" campos={[
@@ -39,7 +39,7 @@ export default async function Maquinaria() {
           </details>
         )}
         {usa && (
-          <details className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+          <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
             <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Registrar uso</summary>
             <div className="mt-3">
               <FormularioGenerico accion={accionUsoEquipo} boton="Registrar uso" conClave campos={[
@@ -51,7 +51,7 @@ export default async function Maquinaria() {
           </details>
         )}
         {administra && (
-          <details className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+          <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
             <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Registrar mantenimiento</summary>
             <div className="mt-3">
               <FormularioGenerico accion={accionMantenimiento} boton="Registrar mantenimiento" conClave campos={[
@@ -68,7 +68,7 @@ export default async function Maquinaria() {
 
       <ul className="grid gap-3 md:grid-cols-2">
         {datos.equipos.map((e) => (
-          <li key={e.id} className={`rounded-xl border-2 bg-white p-3 text-sm ${e.mantenimientoVencido ? "border-cereza" : "border-cafe/20"}`}>
+          <li key={e.id} className={`rounded-xl border-2 bg-white p-3 text-sm ${e.mantenimientoVencido ? "border-alerta" : "border-tinta/20"}`}>
             <p className="font-extrabold">{e.codigo} · {e.nombre} <span className="font-normal">({e.tipo} · {e.fincaNombre})</span></p>
             <p>Estado: {e.estado.replace("_", " ")} · {cantidad(e.horasUso)} h de uso · {cantidad(e.combustibleLitros)} L</p>
             <p>Mantenimientos: {moneda(e.costoMantenimiento)} · último {e.ultimoMantenimiento ?? "—"} · próximo {e.proximoMantenimiento ?? "—"}{e.mantenimientoVencido ? " · VENCIDO" : ""}</p>

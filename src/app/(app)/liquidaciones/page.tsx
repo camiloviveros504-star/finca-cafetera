@@ -14,7 +14,7 @@ export default async function Liquidaciones() {
   try {
     lista = await listarLiquidaciones(servicios().talento, ctx);
   } catch (error) {
-    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-cereza">No tiene permiso para consultar liquidaciones.</p>;
+    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para consultar liquidaciones.</p>;
     throw error;
   }
   const liquida = ctx.permisos.has("liquidacion:crear");
@@ -24,7 +24,7 @@ export default async function Liquidaciones() {
     <section className="space-y-6">
       <EncabezadoModulo titulo="Liquidaciones y pagos" detalle="Liquidación interna de remuneraciones; no es nómina legal ni factura electrónica." />
       {liquida && (
-        <details open className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+        <details open className="rounded-xl border-2 border-tinta/20 bg-white p-4">
           <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Liquidar un período</summary>
           <div className="mt-3">
             <FormularioGenerico
@@ -43,11 +43,11 @@ export default async function Liquidaciones() {
       )}
       <ul className="space-y-3">
         {lista.map((l) => (
-          <li key={l.id} className="rounded-xl border-2 border-cafe/20 bg-white p-3">
+          <li key={l.id} className="rounded-xl border-2 border-tinta/20 bg-white p-3">
             <p className="font-bold">{l.trabajadorNombre} · {l.desde} a {l.hasta}</p>
             <p className="text-sm">
               Bruto {moneda(l.totalBruto)} · Anticipos {moneda(l.totalAnticipos)} · <strong>Neto {moneda(l.neto)}</strong> · Pagado {moneda(l.pagado)} ·{" "}
-              <strong className={l.estado === "pagada" ? "text-cafetal" : "text-cereza"}>{l.estado === "pagada" ? "Pagada" : `Saldo ${moneda(l.saldo)}`}</strong>
+              <strong className={l.estado === "pagada" ? "text-bosque" : "text-alerta"}>{l.estado === "pagada" ? "Pagada" : `Saldo ${moneda(l.saldo)}`}</strong>
             </p>
             {paga && l.estado === "liquidada" && (
               <div className="mt-2">

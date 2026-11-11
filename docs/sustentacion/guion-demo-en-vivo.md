@@ -4,7 +4,7 @@ Duración objetivo: **3 minutos** dentro de los 7. Todas las cuentas son de demo
 
 ## Preparación (una vez, antes de entrar al salón)
 1. Tener abiertas dos ventanas del navegador: una **normal** y una de **incógnito** (dos usuarios a la vez).
-2. Tener la demo en dos lugares: **local** (`npm run demo`, http://localhost:3000) y **desplegada** (URL en el README). Si la desplegada tarda en responder por arranque en frío, abrirla 5 minutos antes.
+2. Tener la demo en dos lugares: **local** (`npm run iniciar:ejemplo`, http://localhost:3000, con los datos de ejemplo cargados) y **desplegada** (URL en el README). Si la desplegada tarda en responder por arranque en frío, abrirla 5 minutos antes.
 3. Reiniciar los datos de demostración si quedaron modificados: `npm run db:reset` (local).
 
 ## Paso 1 · Quién eres define lo que puedes hacer (D3) — 45 s
@@ -37,7 +37,7 @@ Duración objetivo: **3 minutos** dentro de los 7. Todas las cuentas son de demo
 | La base de Render expiró | Seguir la recreación de `docs/despliegue.md` (medida en QA-14) y usar la demo local mientras tanto |
 
 ## Lista de verificación 15 minutos antes
-- [ ] `docker compose up -d` o `npm run demo` responde 200 en `/login`.
+- [ ] `docker compose up -d` o `npm run iniciar:ejemplo` responde 200 en `/login`.
 - [ ] La URL desplegada responde 200 en `/login` (la primera vez puede tardar).
 - [ ] Inicia sesión `comercial@demo.local` y `produccion@demo.local` en las dos ventanas.
 - [ ] Inventario muestra 60 kg y 40 kg de pergamino seco en la finca El Mirador.

@@ -4,7 +4,7 @@ Sistema para administrar lotes, cosechas, inventario por movimientos y ventas de
 
 **Los tres drivers del Driver:** D1 consistencia del inventario, D2 trazabilidad de la producción, D3 seguridad y control de acceso. Restricciones: protección de datos personales y conectividad limitada.
 
-> Los datos que trae la demo están marcados **DEMO**: precios, equivalencias y personas son ilustrativos y no son valores comerciales. Las imágenes son ilustrativas, generadas con IA.
+> Sistema listo para desplegar. En el primer arranque **no hay datos**: se entra a `/instalacion` y se crean la organización y el administrador. Las pruebas automáticas usan un conjunto de datos de ejemplo marcado DEMO que nunca se carga por defecto.
 
 ## Requisitos
 
@@ -18,12 +18,14 @@ Sistema para administrar lotes, cosechas, inventario por movimientos y ventas de
 
 ```bash
 npm install
-npm run demo          # sin Docker: PostgreSQL real + migraciones + datos DEMO + aplicación
+npm run iniciar       # sin Docker: PostgreSQL real + migraciones + aplicación
 # o bien
 docker compose up     # con Docker: contenedores `app` y `db`
 ```
 
-Abra http://localhost:3000. Usuarios DEMO (contraseña `Demo-2026!`):
+Abra http://localhost:3000: la primera vez lo lleva a **/instalacion**. Allí se ingresa el código de instalación (variable `CODIGO_INSTALACION`; en local por defecto `instalacion-local-0001`), el nombre de la organización y de la primera finca, y la cuenta del administrador. Esa pantalla solo funciona una vez. No se crea ningún precio, tarifa ni equivalencia: los define el administrador en **Tarifas** y **Ajustes**.
+
+**Datos de ejemplo (opcionales, para ensayos y para las pruebas E2E):** `npm run iniciar:ejemplo` o, con una base vacía, `CARGAR_DATOS_EJEMPLO=si npm run db:iniciar`. Cargan una organización marcada DEMO con usuarios `@demo.local` (contraseña `Demo-2026!`):
 
 | Correo | Rol |
 |---|---|

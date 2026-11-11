@@ -10,7 +10,7 @@ interface Props {
   permiteDescuento?: boolean;
 }
 
-const campo = "min-h-11 w-full rounded-lg border-2 border-cafe/40 bg-white px-3 text-base focus:border-cafetal";
+const campo = "min-h-11 w-full rounded-lg border-2 border-tinta/40 bg-white px-3 text-base focus:border-bosque";
 
 export function FormularioVenta({ fincas, clientes, productos, permiteDescuento = false }: Props) {
   const [estado, accion, pendiente] = useActionState(accionRegistrarVenta, {});
@@ -50,18 +50,18 @@ export function FormularioVenta({ fincas, clientes, productos, permiteDescuento 
         </div>
       )}
       {estado.error && (
-        <p role="alert" className="rounded-lg border-2 border-cereza bg-white p-3 text-sm font-semibold text-cereza md:col-span-2">
+        <p role="alert" className="rounded-lg border-2 border-alerta bg-white p-3 text-sm font-semibold text-alerta md:col-span-2">
           {estado.error}
           {estado.campos && Object.values(estado.campos).length > 0 && (
             <span className="block font-normal">{Object.values(estado.campos).join(" · ")}</span>
           )}
         </p>
       )}
-      <div className="fixed inset-x-0 bottom-14 z-20 bg-papel/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:static md:col-span-2 md:bg-transparent md:p-0 lg:bottom-0">
+      <div className="fixed inset-x-0 bottom-14 z-20 bg-fondo/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:static md:col-span-2 md:bg-transparent md:p-0 lg:bottom-0">
         <button
           type="submit"
           disabled={pendiente}
-          className="min-h-12 w-full rounded-lg bg-cafetal px-4 text-base font-bold text-white disabled:opacity-60 md:w-auto md:px-8"
+          className="min-h-12 w-full rounded-lg bg-bosque px-4 text-base font-bold text-white disabled:opacity-60 md:w-auto md:px-8"
         >
           {pendiente ? "Registrando…" : "Registrar venta"}
         </button>

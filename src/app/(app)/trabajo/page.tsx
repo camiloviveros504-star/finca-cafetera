@@ -15,7 +15,7 @@ export default async function Trabajo() {
   try {
     registros = await listarTrabajos(servicios().talento, ctx);
   } catch (error) {
-    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-cereza">No tiene permiso para consultar este módulo.</p>;
+    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para consultar este módulo.</p>;
     throw error;
   }
   const datos = await listarFincasYLotes(servicios().fincasLotes, ctx).catch(() => ({ fincas: [], lotes: [] }));
@@ -29,7 +29,7 @@ export default async function Trabajo() {
       <p className="text-sm">Quien trabaja declara la cantidad. El supervisor la valida y el sistema calcula el valor con la tarifa vigente en la fecha de la producción; nadie lo digita.</p>
 
       {puedeRegistrar && (
-        <details open className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+        <details open className="rounded-xl border-2 border-tinta/20 bg-white p-4">
           <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Registrar producción o jornada (funciona sin conexión)</summary>
           <div className="mt-3">
             <FormularioTrabajoOffline
@@ -43,7 +43,7 @@ export default async function Trabajo() {
 
       <ul className="space-y-3">
         {registros.map((r) => (
-          <li key={r.id} className="rounded-xl border-2 border-cafe/20 bg-white p-3">
+          <li key={r.id} className="rounded-xl border-2 border-tinta/20 bg-white p-3">
             <p className="font-bold">{r.trabajadorNombre} · {r.fecha} · {r.fincaNombre}{r.loteCodigo ? ` · ${r.loteCodigo}` : ""}</p>
             <p className="text-sm">
               Declarado: <strong>{cantidad(r.cantidadDeclarada)} {r.unidadDeclarada}</strong>

@@ -88,7 +88,7 @@ export function IndicadorSync() {
       aria-live="polite"
       data-testid="indicador-sync"
       className={`inline-flex min-h-8 items-center gap-2 rounded-full px-3 text-xs font-bold ${
-        !enLinea ? "bg-cereza text-white" : pendientes ? "bg-dorado text-cafe" : "bg-white/15 text-white"
+        !enLinea ? "bg-alerta text-white" : pendientes ? "bg-ambar text-tinta" : "bg-white/15 text-white"
       }`}
     >
       <span aria-hidden className={`h-2 w-2 rounded-full ${enLinea ? "bg-green-300" : "bg-white"}`} />

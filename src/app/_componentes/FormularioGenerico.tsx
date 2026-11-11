@@ -21,7 +21,7 @@ interface Estado {
 }
 type Accion = (previo: Estado, datos: FormData) => Promise<Estado>;
 
-const campoBase = "min-h-11 w-full rounded-lg border-2 border-cafe/40 bg-white px-3 text-base focus:border-cafetal";
+const campoBase = "min-h-11 w-full rounded-lg border-2 border-tinta/40 bg-white px-3 text-base focus:border-bosque";
 
 /**
  * Formulario reutilizable para Server Actions. Genera una clave de idempotencia por envío (D1: un reintento por mala
@@ -60,7 +60,7 @@ export function FormularioGenerico({
         return (
         <Env key={c.nombre} className={`block text-sm font-semibold ${c.tipo === "textarea" || c.tipo === "multiple" ? "sm:col-span-2" : ""}`}>
           {c.tipo === "multiple" ? (
-            <fieldset className="rounded-lg border-2 border-cafe/30 p-2">
+            <fieldset className="rounded-lg border-2 border-tinta/30 p-2">
               <legend className="px-1">{c.etiqueta}</legend>
               <div className="flex flex-wrap gap-x-4 gap-y-1">
                 {c.opciones?.map((o) => (
@@ -104,16 +104,16 @@ export function FormularioGenerico({
         </Env>
         );
       })}
-      <button disabled={pendiente} className="min-h-11 self-end rounded-lg bg-cafetal px-4 font-bold text-white disabled:opacity-60">
+      <button disabled={pendiente} className="min-h-11 self-end rounded-lg bg-bosque px-4 font-bold text-white disabled:opacity-60">
         {pendiente ? "Guardando…" : boton}
       </button>
       {estado.error && (
-        <p role="alert" className="text-sm font-semibold text-cereza sm:col-span-2">
+        <p role="alert" className="text-sm font-semibold text-alerta sm:col-span-2">
           {estado.error}
           {estado.campos && Object.values(estado.campos).length > 0 ? ` (${Object.values(estado.campos).join(" · ")})` : ""}
         </p>
       )}
-      {estado.ok && <p role="status" className="text-sm font-semibold text-cafetal sm:col-span-2">{estado.mensaje}</p>}
+      {estado.ok && <p role="status" className="text-sm font-semibold text-bosque sm:col-span-2">{estado.mensaje}</p>}
     </form>
   );
 }

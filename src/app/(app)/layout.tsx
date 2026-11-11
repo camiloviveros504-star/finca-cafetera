@@ -1,4 +1,5 @@
-import { accionCerrarSesion } from "../login/acciones";
+import { MenuUsuario } from "../_componentes/MenuUsuario";
+import { PieDePagina } from "../_componentes/PieDePagina";
 import { BarraInferior, BarraLateral, type EnlaceNav } from "../_componentes/Navegacion";
 import { IndicadorSync, ProveedorSync } from "../_componentes/ProveedorSync";
 import { exigirContexto } from "../_servidor/sesion";
@@ -44,21 +45,19 @@ export default async function LayoutAplicacion({ children }: { children: React.R
   return (
     <ProveedorSync csrfToken={ctx.csrfToken}>
       <div className="min-h-svh">
-        <header className="sticky top-0 z-20 flex items-center justify-between gap-3 bg-cafe px-4 py-2 text-white sm:px-6">
-          <span className="text-base font-extrabold">Finca Cafetera</span>
+        <header className="sticky top-0 z-20 flex items-center justify-between gap-3 bg-tinta px-4 py-2 text-white sm:px-6">
+          <span className="text-base font-extrabold tracking-tight">Gestión de Finca Cafetera</span>
           <div className="flex items-center gap-3 text-sm">
             <IndicadorSync />
-            <span className="hidden md:inline">
-              {ctx.nombre} · {ctx.roles.join(", ").replaceAll("_", " ")}
-            </span>
-            <form action={accionCerrarSesion}>
-              <button className="min-h-11 rounded-lg border-2 border-white/60 px-3 font-semibold hover:bg-white/10">Salir</button>
-            </form>
+            <MenuUsuario nombre={ctx.nombre} correo={ctx.correo} roles={[...ctx.roles]} />
           </div>
         </header>
         <div className="mx-auto flex max-w-7xl">
           <BarraLateral enlaces={enlaces} />
-          <main className="min-w-0 flex-1 px-4 pb-24 pt-4 sm:px-6 lg:px-8 lg:pb-8">{children}</main>
+          <div className="min-w-0 flex-1">
+            <main className="px-4 pb-6 pt-4 sm:px-6 lg:px-8">{children}</main>
+            <div className="pb-20 lg:pb-0"><PieDePagina /></div>
+          </div>
         </div>
         <BarraInferior enlaces={enlaces} />
       </div>

@@ -14,7 +14,7 @@ export default async function Cartera() {
   try {
     filas = await listarCartera(servicios().pagos, ctx, true);
   } catch (error) {
-    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-cereza">No tiene permiso para consultar la cartera.</p>;
+    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para consultar la cartera.</p>;
     throw error;
   }
   const registra = ctx.permisos.has("pago:registrar");
@@ -24,9 +24,9 @@ export default async function Cartera() {
       <p className="text-sm">Ventas con saldo pendiente. Los comprobantes son internos; el sistema no emite facturas electrónicas DIAN.</p>
       <ul className="space-y-3">
         {filas.map((f) => (
-          <li key={f.ventaId} className="rounded-xl border-2 border-cafe/20 bg-white p-3">
+          <li key={f.ventaId} className="rounded-xl border-2 border-tinta/20 bg-white p-3">
             <p className="font-bold">Comprobante {f.comprobante} · {f.cliente} · {f.fincaNombre}</p>
-            <p className="text-sm">Total {moneda(f.total)} · Pagado {moneda(f.pagado)} · <strong className="text-cereza">Saldo {moneda(f.saldo)}</strong> · {f.diasAntiguedad} día(s)</p>
+            <p className="text-sm">Total {moneda(f.total)} · Pagado {moneda(f.pagado)} · <strong className="text-alerta">Saldo {moneda(f.saldo)}</strong> · {f.diasAntiguedad} día(s)</p>
             {registra && (
               <div className="mt-2">
                 <FormularioGenerico

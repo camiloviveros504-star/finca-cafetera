@@ -9,7 +9,7 @@ import { accionAmbiental, accionAplicacion, accionCrearAgroquimico, accionEntrad
 export const metadata = { title: "Sanidad e inspecciones · Gestión de Finca Cafetera" };
 const hoy = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
 const Caja = ({ titulo, abierto, children }: { titulo: string; abierto?: boolean; children: React.ReactNode }) => (
-  <details open={abierto} className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+  <details open={abierto} className="rounded-xl border-2 border-tinta/20 bg-white p-4">
     <summary className="min-h-11 cursor-pointer text-lg font-extrabold">{titulo}</summary>
     <div className="mt-3">{children}</div>
   </details>
@@ -21,7 +21,7 @@ export default async function Sanidad() {
   const inspecciones = p("inspeccion:ver") ? await listarInspecciones(servicios().agricola, ctx).catch((e) => { if (e instanceof ErrorProhibido) return []; throw e; }) : [];
   const ambientales = p("inspeccion:ver") ? await listarAmbientales(servicios().agricola, ctx).catch(() => []) : [];
   const agro = p("agroquimico:ver") ? await listarAgroquimicos(servicios().agricola, ctx).catch(() => null) : null;
-  if (!p("inspeccion:ver") && !p("agroquimico:ver")) return <p role="alert" className="font-semibold text-cereza">No tiene permiso para consultar sanidad.</p>;
+  if (!p("inspeccion:ver") && !p("agroquimico:ver")) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para consultar sanidad.</p>;
   const datos = await listarFincasYLotes(servicios().fincasLotes, ctx).catch(() => ({ fincas: [], lotes: [] }));
   const fincas = datos.fincas.map((f) => ({ valor: f.id, texto: f.nombre }));
   const lotes = datos.lotes.map((l) => ({ valor: l.id, texto: `${l.fincaNombre} · ${l.codigo}` }));
@@ -79,7 +79,7 @@ export default async function Sanidad() {
           <h2 className="text-xl font-extrabold">Existencias de agroquímicos</h2>
           <ul className="grid gap-2 md:grid-cols-2">
             {agro.stock.map((s) => (
-              <li key={s.id} className={`rounded-xl border-2 bg-white p-3 text-sm ${s.vencido ? "border-cereza" : s.porVencer ? "border-dorado" : "border-cafe/20"}`}>
+              <li key={s.id} className={`rounded-xl border-2 bg-white p-3 text-sm ${s.vencido ? "border-alerta" : s.porVencer ? "border-ambar" : "border-tinta/20"}`}>
                 <strong>{s.nombre}</strong> · lote {s.loteComercial} · {s.fincaNombre}<br />
                 {cantidad(s.cantidad)} {s.unidad} · vence {s.vencimiento}{s.vencido ? " · VENCIDO" : s.porVencer ? " · vence en menos de 30 días" : ""}
               </li>
@@ -96,7 +96,7 @@ export default async function Sanidad() {
       <h2 className="text-xl font-extrabold">Inspecciones</h2>
       <ul className="space-y-2 text-sm">
         {inspecciones.map((i) => (
-          <li key={i.id} className="rounded-xl border-2 border-cafe/20 bg-white p-3">
+          <li key={i.id} className="rounded-xl border-2 border-tinta/20 bg-white p-3">
             <p className="font-bold">{i.fecha} · {i.tipo} · severidad {i.severidad}{i.infestacionPct ? ` · ${i.infestacionPct} %` : ""} · {i.fincaNombre}{i.loteCodigo ? ` · ${i.loteCodigo}` : ""}</p>
             <p>{i.hallazgos}{i.acciones ? ` — Acciones: ${i.acciones}` : ""} <span className="opacity-70">({i.inspector})</span></p>
           </li>

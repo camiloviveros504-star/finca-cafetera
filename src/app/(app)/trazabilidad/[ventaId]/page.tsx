@@ -17,7 +17,7 @@ export default async function Trazabilidad({ params }: { params: Promise<{ venta
         <p className="mb-4 text-sm">{t.cliente} · {fechaHora(t.fecha)}</p>
         <ol className="space-y-4">
           {t.lineas.map((l) => (
-            <li key={l.movimientoId} className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+            <li key={l.movimientoId} className="rounded-xl border-2 border-tinta/20 bg-white p-4">
               <p className="text-lg font-extrabold">{l.producto} · {cantidad(l.cantidadVendida)} kg</p>
               <dl className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
                 <div>
@@ -50,7 +50,7 @@ export default async function Trazabilidad({ params }: { params: Promise<{ venta
       </section>
     );
   } catch (error) {
-    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-cereza">No tiene permiso para consultar la trazabilidad.</p>;
+    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para consultar la trazabilidad.</p>;
     if (error instanceof ErrorNoEncontrado) return <p role="alert" className="font-semibold">Venta no encontrada.</p>;
     throw error;
   }

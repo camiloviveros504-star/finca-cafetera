@@ -9,7 +9,7 @@ interface Props {
   productos: { id: string; nombre: string }[];
 }
 
-const campo = "min-h-11 w-full rounded-lg border-2 border-cafe/40 bg-white px-3 text-base focus:border-cafetal";
+const campo = "min-h-11 w-full rounded-lg border-2 border-tinta/40 bg-white px-3 text-base focus:border-bosque";
 
 export function FormularioPedido({ fincas, clientes, productos }: Props) {
   const [estado, accion, pendiente] = useActionState(accionCrearPedido, {});
@@ -27,9 +27,9 @@ export function FormularioPedido({ fincas, clientes, productos }: Props) {
       <label className="block text-sm font-semibold">Cantidad (kg)
         <input name="cantidad" inputMode="decimal" required className={campo} />
       </label>
-      <button disabled={pendiente} className="min-h-11 rounded-lg bg-cafetal px-4 font-bold text-white disabled:opacity-60 sm:col-span-2">Registrar pedido</button>
-      {estado.error && <p role="alert" className="text-sm font-semibold text-cereza sm:col-span-2">{estado.error}</p>}
-      {estado.ok && <p role="status" className="text-sm font-semibold text-cafetal sm:col-span-2">{estado.mensaje}</p>}
+      <button disabled={pendiente} className="min-h-11 rounded-lg bg-bosque px-4 font-bold text-white disabled:opacity-60 sm:col-span-2">Registrar pedido</button>
+      {estado.error && <p role="alert" className="text-sm font-semibold text-alerta sm:col-span-2">{estado.error}</p>}
+      {estado.ok && <p role="status" className="text-sm font-semibold text-bosque sm:col-span-2">{estado.mensaje}</p>}
     </form>
   );
 }

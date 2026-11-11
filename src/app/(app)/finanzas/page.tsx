@@ -10,9 +10,9 @@ const hoy = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" 
 
 function Tarjeta({ titulo, valor, negativo }: { titulo: string; valor: string; negativo?: boolean }) {
   return (
-    <div className="rounded-xl border-2 border-cafe/20 bg-white p-3">
+    <div className="rounded-xl border-2 border-tinta/20 bg-white p-3">
       <p className="text-sm font-semibold">{titulo}</p>
-      <p className={`text-xl font-extrabold ${negativo || Number(valor) < 0 ? "text-cereza" : ""}`}>{moneda(valor)}</p>
+      <p className={`text-xl font-extrabold ${negativo || Number(valor) < 0 ? "text-alerta" : ""}`}>{moneda(valor)}</p>
     </div>
   );
 }
@@ -29,8 +29,8 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
     resumen = await obtenerResumenFinanciero(servicios().finanzas, ctx, desde, hasta);
     conciliacion = await obtenerConciliacion(servicios().finanzas, ctx, desde, hasta);
   } catch (error) {
-    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-cereza">No tiene permiso para consultar las finanzas.</p>;
-    if (error instanceof ErrorValidacion) return <p role="alert" className="font-semibold text-cereza">{error.message}</p>;
+    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para consultar las finanzas.</p>;
+    if (error instanceof ErrorValidacion) return <p role="alert" className="font-semibold text-alerta">{error.message}</p>;
     throw error;
   }
   const gastos = ctx.permisos.has("gasto:ver") ? await listarGastos(servicios().finanzas, ctx, desde, hasta) : [];
@@ -39,9 +39,9 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
     <section className="space-y-6">
       <EncabezadoModulo titulo="Finanzas" detalle="Resumen de gestión (base devengada) y conciliación interna. No es contabilidad oficial ni facturación electrónica." />
       <form className="flex flex-wrap items-end gap-3">
-        <label className="text-sm font-semibold">Desde<input type="date" name="desde" defaultValue={desde} className="mt-1 block min-h-11 rounded-lg border-2 border-cafe/40 px-3" /></label>
-        <label className="text-sm font-semibold">Hasta<input type="date" name="hasta" defaultValue={hasta} className="mt-1 block min-h-11 rounded-lg border-2 border-cafe/40 px-3" /></label>
-        <button className="min-h-11 rounded-lg bg-cafetal px-4 font-bold text-white">Consultar</button>
+        <label className="text-sm font-semibold">Desde<input type="date" name="desde" defaultValue={desde} className="mt-1 block min-h-11 rounded-lg border-2 border-tinta/40 px-3" /></label>
+        <label className="text-sm font-semibold">Hasta<input type="date" name="hasta" defaultValue={hasta} className="mt-1 block min-h-11 rounded-lg border-2 border-tinta/40 px-3" /></label>
+        <button className="min-h-11 rounded-lg bg-bosque px-4 font-bold text-white">Consultar</button>
       </form>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -59,7 +59,7 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
       </div>
 
       {ctx.permisos.has("gasto:registrar") && (
-        <details className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+        <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
           <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Registrar gasto</summary>
           <div className="mt-3">
             <FormularioGenerico accion={accionRegistrarGasto} boton="Registrar gasto" conClave campos={[
@@ -79,13 +79,13 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
       <h2 className="text-xl font-extrabold">Conciliación interna</h2>
       <p className="text-sm">Entradas {moneda(conciliacion.totalEntradas)} · Salidas {moneda(conciliacion.totalSalidas)} · Neto <strong>{moneda(conciliacion.neto)}</strong></p>
       <ul className="grid gap-2 md:grid-cols-2">
-        {conciliacion.porMetodo.map((m) => <li key={m.metodo} className="rounded-xl border-2 border-cafe/20 bg-white p-3 text-sm"><strong>{m.metodo}</strong>: entradas {moneda(m.entradas)} · salidas {moneda(m.salidas)} · neto {moneda(m.neto)}</li>)}
+        {conciliacion.porMetodo.map((m) => <li key={m.metodo} className="rounded-xl border-2 border-tinta/20 bg-white p-3 text-sm"><strong>{m.metodo}</strong>: entradas {moneda(m.entradas)} · salidas {moneda(m.salidas)} · neto {moneda(m.neto)}</li>)}
       </ul>
       <ul className="space-y-1 text-sm">
         {conciliacion.movimientos.map((m, i) => (
           <li key={i} className="flex flex-wrap justify-between gap-2 rounded-lg bg-white px-3 py-2">
             <span>{m.fecha} · {m.concepto} · {m.tercero} · {m.metodo}</span>
-            <strong className={Number(m.salida) > 0 ? "text-cereza" : "text-cafetal"}>{Number(m.salida) > 0 ? `− ${moneda(m.salida)}` : `+ ${moneda(m.entrada)}`}</strong>
+            <strong className={Number(m.salida) > 0 ? "text-alerta" : "text-bosque"}>{Number(m.salida) > 0 ? `− ${moneda(m.salida)}` : `+ ${moneda(m.entrada)}`}</strong>
           </li>
         ))}
       </ul>

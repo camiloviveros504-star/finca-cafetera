@@ -12,7 +12,7 @@ export default async function Usuarios() {
   try {
     datos = await listarUsuarios(servicios().usuarios, ctx);
   } catch (error) {
-    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-cereza">No tiene permiso para consultar usuarios.</p>;
+    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para consultar usuarios.</p>;
     throw error;
   }
   const administra = ctx.permisos.has("usuario:administrar");
@@ -23,7 +23,7 @@ export default async function Usuarios() {
     <section className="space-y-6">
       <EncabezadoModulo titulo="Usuarios, roles y permisos" detalle="Los permisos se comprueban en el servidor; ocultar un botón es solo una ayuda visual." />
       {administra && (
-        <details className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+        <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
           <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nuevo usuario</summary>
           <div className="mt-3">
             <FormularioGenerico accion={accionCrearUsuario} boton="Crear usuario" campos={[
@@ -38,7 +38,7 @@ export default async function Usuarios() {
       )}
       <ul className="space-y-3">
         {datos.usuarios.map((u) => (
-          <li key={u.id} className={`rounded-xl border-2 bg-white p-3 text-sm ${u.activo ? "border-cafe/20" : "border-cereza opacity-80"}`}>
+          <li key={u.id} className={`rounded-xl border-2 bg-white p-3 text-sm ${u.activo ? "border-tinta/20" : "border-alerta opacity-80"}`}>
             <p className="text-base font-extrabold">{u.nombre} <span className="font-normal">· {u.correo}{u.activo ? "" : " · DESACTIVADO"}</span></p>
             <p>Roles: {u.roles.join(", ").replaceAll("_", " ") || "—"} · Fincas: {u.fincas.map((f) => f.nombre).join(", ") || "—"}</p>
             {u.permisosExtra.length > 0 && <p>Permisos adicionales: {u.permisosExtra.join(", ")}</p>}
@@ -67,7 +67,7 @@ export default async function Usuarios() {
       <h2 className="text-xl font-extrabold">Roles y sus permisos</h2>
       <ul className="grid gap-2 lg:grid-cols-2">
         {datos.roles.map((r) => (
-          <li key={r.codigo} className="rounded-xl border-2 border-cafe/20 bg-white p-3 text-sm">
+          <li key={r.codigo} className="rounded-xl border-2 border-tinta/20 bg-white p-3 text-sm">
             <p className="font-bold">{r.nombre}{r.esExtension ? " · extensión" : ""}</p>
             <p className="opacity-80">{r.permisos.join(" · ")}</p>
           </li>

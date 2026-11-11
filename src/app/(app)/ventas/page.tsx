@@ -14,7 +14,7 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
   try {
     datos = await listarVentas(servicios().comercial, ctx, pagina);
   } catch (error) {
-    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-cereza">No tiene permiso para consultar ventas.</p>;
+    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para consultar ventas.</p>;
     throw error;
   }
   const paginas = Math.max(Math.ceil(datos.total / 25), 1);
@@ -23,28 +23,28 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-extrabold">Ventas</h1>
         {ctx.permisos.has("venta:crear") && (
-          <Link href="/ventas/nueva" className="flex min-h-11 items-center rounded-lg bg-cafetal px-4 font-bold text-white">
+          <Link href="/ventas/nueva" className="flex min-h-11 items-center rounded-lg bg-bosque px-4 font-bold text-white">
             Registrar venta
           </Link>
         )}
       </div>
       {datos.filas.length === 0 ? (
-        <p className="rounded-lg bg-pergamino p-4">Todavía no hay ventas registradas.</p>
+        <p className="rounded-lg bg-arena p-4">Todavía no hay ventas registradas.</p>
       ) : (
         <>
           <ul className="space-y-3 md:hidden">
             {datos.filas.map((v) => (
-              <li key={v.id} className="rounded-xl border-2 border-cafe/20 bg-white p-3">
+              <li key={v.id} className="rounded-xl border-2 border-tinta/20 bg-white p-3">
                 <p className="font-bold">Comprobante {v.numeroComprobante} · {moneda(v.total)}{v.estado === "anulada" ? " · ANULADA" : ""}</p>
                 <p className="text-sm">{v.clienteNombre} · {v.fincaNombre}</p>
                 <p className="text-xs">{fechaHora(v.fecha)}</p>
                 {ctx.permisos.has("trazabilidad:ver") && (
-                  <Link href={`/trazabilidad/${v.id}`} className="mt-2 inline-flex min-h-11 items-center font-bold text-cafetal underline">
+                  <Link href={`/trazabilidad/${v.id}`} className="mt-2 inline-flex min-h-11 items-center font-bold text-bosque underline">
                     Ver trazabilidad
                   </Link>
                 )}
                 {ctx.permisos.has("venta:anular") && v.estado === "confirmada" && (
-                  <details className="mt-2"><summary className="min-h-11 cursor-pointer font-semibold text-cereza">Anular</summary>
+                  <details className="mt-2"><summary className="min-h-11 cursor-pointer font-semibold text-alerta">Anular</summary>
                     <FormularioGenerico compacto accion={accionAnularVenta} boton="Confirmar anulación" ocultos={{ ventaId: v.id }} campos={[{ nombre: "motivo", etiqueta: "Motivo (mínimo 10 caracteres)", requerido: true }]} />
                   </details>
                 )}
@@ -54,7 +54,7 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left text-sm">
               <caption className="sr-only">Ventas registradas</caption>
-              <thead className="bg-cafe text-white">
+              <thead className="bg-tinta text-white">
                 <tr>
                   <th scope="col" className="p-3">N.º</th>
                   <th scope="col" className="p-3">Fecha</th>
@@ -66,7 +66,7 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
               </thead>
               <tbody>
                 {datos.filas.map((v) => (
-                  <tr key={v.id} className="border-b border-cafe/15 bg-white">
+                  <tr key={v.id} className="border-b border-tinta/15 bg-white">
                     <td className="p-3">{v.numeroComprobante}{v.estado === "anulada" ? " (anulada)" : ""}</td>
                     <td className="p-3">{fechaHora(v.fecha)}</td>
                     <td className="p-3">{v.clienteNombre}</td>
@@ -74,10 +74,10 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
                     <td className="p-3 text-right font-bold">{moneda(v.total)}</td>
                     <td className="p-3">
                       {ctx.permisos.has("trazabilidad:ver") && (
-                        <Link href={`/trazabilidad/${v.id}`} className="font-bold text-cafetal underline">Trazabilidad</Link>
+                        <Link href={`/trazabilidad/${v.id}`} className="font-bold text-bosque underline">Trazabilidad</Link>
                       )}
                       {ctx.permisos.has("venta:anular") && v.estado === "confirmada" && (
-                        <details className="mt-1"><summary className="cursor-pointer font-semibold text-cereza">Anular</summary>
+                        <details className="mt-1"><summary className="cursor-pointer font-semibold text-alerta">Anular</summary>
                           <FormularioGenerico compacto accion={accionAnularVenta} boton="Confirmar" ocultos={{ ventaId: v.id }} campos={[{ nombre: "motivo", etiqueta: "Motivo (mín. 10)", requerido: true }]} />
                         </details>
                       )}

@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { accionCrearVersionTarifa } from "./acciones";
 
-const campo = "min-h-11 w-full rounded-lg border-2 border-cafe/40 bg-white px-3 text-base focus:border-cafetal";
+const campo = "min-h-11 w-full rounded-lg border-2 border-tinta/40 bg-white px-3 text-base focus:border-bosque";
 
 export function FormularioTarifa({ tarifaId, hoy }: { tarifaId: string; hoy: string }) {
   const [estado, accion, pendiente] = useActionState(accionCrearVersionTarifa, {});
@@ -18,11 +18,11 @@ export function FormularioTarifa({ tarifaId, hoy }: { tarifaId: string; hoy: str
         <label htmlFor={`desde-${tarifaId}`} className="mb-1 block text-sm font-semibold">Vigente desde</label>
         <input id={`desde-${tarifaId}`} name="desde" type="date" min={hoy} defaultValue={hoy} required className={campo} />
       </div>
-      <button disabled={pendiente} className="min-h-11 rounded-lg bg-cafetal px-4 font-bold text-white disabled:opacity-60">
+      <button disabled={pendiente} className="min-h-11 rounded-lg bg-bosque px-4 font-bold text-white disabled:opacity-60">
         {pendiente ? "Guardando…" : "Crear versión"}
       </button>
-      {estado.error && <p role="alert" className="text-sm font-semibold text-cereza sm:col-span-3">{estado.error}</p>}
-      {estado.ok && <p role="status" className="text-sm font-semibold text-cafetal sm:col-span-3">{estado.mensaje}</p>}
+      {estado.error && <p role="alert" className="text-sm font-semibold text-alerta sm:col-span-3">{estado.error}</p>}
+      {estado.ok && <p role="status" className="text-sm font-semibold text-bosque sm:col-span-3">{estado.mensaje}</p>}
     </form>
   );
 }

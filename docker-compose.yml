@@ -24,7 +24,8 @@ services:
     environment:
       DATABASE_URL: postgresql://finca:finca_local@db:5432/finca
       SESSION_SECRET: demo-local-no-usar-en-produccion-0000000000
-      SEMBRAR_DEMO: "si"
+      # Código para crear la organización y el administrador en /instalacion (cámbielo; solo se usa una vez).
+      CODIGO_INSTALACION: ${CODIGO_INSTALACION:-instalacion-local-0001}
       NODE_ENV: production
     ports:
       - "3000:3000"

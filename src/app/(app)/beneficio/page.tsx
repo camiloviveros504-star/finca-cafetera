@@ -16,7 +16,7 @@ export default async function Beneficio() {
     procesos = await listarProcesos(servicios().beneficio, ctx);
     registros = await listarRegistrosProceso(servicios().beneficio, ctx);
   } catch (error) {
-    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-cereza">No tiene permiso para consultar el beneficio.</p>;
+    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para consultar el beneficio.</p>;
     throw error;
   }
   const registra = ctx.permisos.has("proceso:registrar");
@@ -30,7 +30,7 @@ export default async function Beneficio() {
       <p className="text-sm">Cada etapa registra entrada, salida, pérdida, responsable, fecha y lote de origen. Los flujos son configurables: no todo el café pasa por las mismas etapas. Los porcentajes de merma de los flujos DEMO son valores ilustrativos.</p>
 
       {registra && o && (
-        <details open className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+        <details open className="rounded-xl border-2 border-tinta/20 bg-white p-4">
           <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Registrar una etapa</summary>
           <div className="mt-3">
             <FormularioGenerico
@@ -53,7 +53,7 @@ export default async function Beneficio() {
       )}
 
       {administra && o && (
-        <details className="rounded-xl border-2 border-cafe/20 bg-white p-4">
+        <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
           <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nuevo flujo de proceso (hasta 3 etapas)</summary>
           <div className="mt-3">
             <FormularioGenerico
@@ -77,7 +77,7 @@ export default async function Beneficio() {
 
       <div className="grid gap-3 md:grid-cols-2">
         {procesos.map((p) => (
-          <div key={p.id} className="rounded-xl border-2 border-cafe/20 bg-white p-3">
+          <div key={p.id} className="rounded-xl border-2 border-tinta/20 bg-white p-3">
             <p className="font-extrabold">{p.nombre}{p.esDemo ? " · DEMO" : ""}</p>
             <ol className="mt-1 list-decimal pl-5 text-sm">
               {p.etapas.map((e) => (
@@ -91,7 +91,7 @@ export default async function Beneficio() {
       <h2 className="text-xl font-extrabold">Historial de etapas</h2>
       <ul className="space-y-2">
         {registros.map((r) => (
-          <li key={r.id} className="rounded-xl border-2 border-cafe/20 bg-white p-3 text-sm">
+          <li key={r.id} className="rounded-xl border-2 border-tinta/20 bg-white p-3 text-sm">
             <p className="font-bold">{r.fecha} · {r.procesoNombre} · {r.etapaNombre} · {r.fincaNombre}</p>
             <p>Entrada {cantidad(r.entradaTotal)} kg → salida {cantidad(r.salidaTotal)} kg · pérdida {cantidad(r.perdidaTotal)} kg ({r.mermaPct} %){r.mermaExcede ? " · supera la merma esperada" : ""} · {r.responsable}</p>
             {r.justificacion && <p>Justificación: {r.justificacion}</p>}

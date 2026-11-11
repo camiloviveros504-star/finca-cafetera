@@ -18,13 +18,13 @@ export default async function Inventario() {
       <h1 className="text-2xl font-extrabold">Inventario</h1>
       <p className="mb-4 text-sm">Existencias por finca, producto y lote de origen. Son una proyección de los movimientos.</p>
       {filas.length === 0 ? (
-        <p className="rounded-lg bg-pergamino p-4">Aún no hay existencias registradas.</p>
+        <p className="rounded-lg bg-arena p-4">Aún no hay existencias registradas.</p>
       ) : (
         <>
           {/* Tarjetas en celular */}
           <ul className="space-y-3 md:hidden">
             {filas.map((f) => (
-              <li key={f.saldoId} className="rounded-xl border-2 border-cafe/20 bg-white p-3">
+              <li key={f.saldoId} className="rounded-xl border-2 border-tinta/20 bg-white p-3">
                 <p className="font-bold">{f.productoNombre}</p>
                 <p className="text-sm">
                   {f.fincaNombre} · {f.bodegaNombre} · Lote {f.loteCodigo}
@@ -37,7 +37,7 @@ export default async function Inventario() {
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left text-sm">
               <caption className="sr-only">Existencias de inventario</caption>
-              <thead className="bg-cafe text-white">
+              <thead className="bg-tinta text-white">
                 <tr>
                   <th scope="col" className="p-3">Finca</th>
                   <th scope="col" className="p-3">Bodega</th>
@@ -48,7 +48,7 @@ export default async function Inventario() {
               </thead>
               <tbody>
                 {filas.map((f) => (
-                  <tr key={f.saldoId} className="border-b border-cafe/15 bg-white">
+                  <tr key={f.saldoId} className="border-b border-tinta/15 bg-white">
                     <td className="p-3">{f.fincaNombre}</td>
                     <td className="p-3">{f.bodegaNombre}</td>
                     <td className="p-3">{f.productoNombre}</td>
