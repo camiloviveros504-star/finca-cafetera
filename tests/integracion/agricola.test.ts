@@ -101,10 +101,10 @@ describe("agroquímicos: existencias, vencimiento y aplicaciones", () => {
   });
 
   it("otra finca no puede aplicar sobre esta existencia", async () => {
-    const com2 = await e.contexto("admin@demo.local");
+    const com2 = await e.contexto("propietario.ambas@demo.local");
     void com2;
     const prod = await e.contexto("produccion@demo.local"); // solo finca 1
-    const bod = await e.contexto("admin@demo.local");
+    const bod = await e.contexto("propietario.ambas@demo.local");
     const { id } = await registrarEntradaAgroquimico(e.servicios.agricola, bod, { fincaId: e.ids.finca2, agroquimicoId: agroId, loteComercial: "LOTE-F2", vencimiento: "2030-01-01", cantidad: "3" });
     await expect(registrarAplicacion(e.servicios.agricola, prod, { stockId: id, loteId: e.ids.lote2_01, fecha: hoy, dosis: "1", unidadDosis: "litro/ha", cantidadTotal: "1", claveIdempotencia: k() })).rejects.toThrow(ErrorNoEncontrado);
   });
@@ -141,7 +141,7 @@ describe("planificación agrícola", () => {
 describe("maquinaria y herramientas", () => {
   let equipoId = "";
   it("crea equipos, registra uso y mantenimiento; el costo pasa a finanzas como gasto", async () => {
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     ({ id: equipoId } = await crearEquipo(e.servicios.agricola, admin, { fincaId: e.ids.finca1, tipo: "maquinaria", codigo: "DESP-01", nombre: "Despulpadora DEMO", intervaloDias: 90 }));
     await expect(crearEquipo(e.servicios.agricola, admin, { fincaId: e.ids.finca1, tipo: "maquinaria", codigo: "DESP-01", nombre: "Repetida" })).rejects.toThrow(/Ya existe/);
     const sup = await e.contexto("supervisor@demo.local");
@@ -161,7 +161,7 @@ describe("maquinaria y herramientas", () => {
   });
 
   it("un equipo en mantenimiento o de otra finca no puede usarse; el supervisor no administra equipos", async () => {
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     await e.pool.query("UPDATE equipo SET estado = 'en_mantenimiento' WHERE id = $1", [equipoId]);
     const sup = await e.contexto("supervisor@demo.local");
     await expect(registrarUsoEquipo(e.servicios.agricola, sup, { equipoId, fecha: hoy, horas: "1", claveIdempotencia: k() })).rejects.toThrow(/no puede usarse/);

@@ -57,7 +57,7 @@ describe("remuneración por producción (ejemplo del prompt: 80 kg × 1.500 = 12
   });
 
   it("una tarifa que cambia después no altera los valores ya generados (QA-12 en liquidaciones)", async () => {
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     const manana = new Date(Date.now() + 86_400_000 + 5 * 3600_000).toISOString().slice(0, 10);
     const t = await e.pool.query("SELECT id FROM tarifa WHERE codigo = 'pago_kg'");
     await crearVersionTarifa(e.servicios.tarifas, admin, { tarifaId: t.rows[0].id, valor: "1800", desde: manana });
@@ -87,7 +87,7 @@ describe("remuneración por producción (ejemplo del prompt: 80 kg × 1.500 = 12
     const sup = await e.contexto("supervisor@demo.local");
     const { id } = await registrarTrabajo(e.servicios.talento, sup, { trabajadorId: w2, fincaId: e.ids.finca1, fecha: hoy, cantidad: "25", unidad: "kg" });
     await expect(validarTrabajo(e.servicios.talento, sup, { registroId: id, decision: "validar" })).rejects.toThrow(/tarifa de pago vigente/);
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     await crearTarifa(e.servicios.tarifas, admin, { codigo: "pago_arroba", tipo: "pago_arroba", unidadCodigo: "arroba", valor: "20000", desde: "2026-01-01" });
     const r = await validarTrabajo(e.servicios.talento, sup, { registroId: id, decision: "validar" });
     expect(r).toMatchObject({ estado: "validado", valor: "40000.00" }); // 25 kg / 12,5 = 2 arrobas × 20.000
@@ -179,7 +179,7 @@ describe("registro idempotente, anticipos, liquidación y pagos", () => {
   });
 
   it("crear trabajador exige la autorización de datos personales (Ley 1581) y no repite documentos", async () => {
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     const base = { tipoDocumento: "CC", numeroDocumento: "2000000001", nombres: "Nueva", apellidos: "Persona DEMO" };
     await expect(crearTrabajador(e.servicios.talento, admin, { ...base, autorizaTratamiento: false })).rejects.toThrow(ErrorValidacion);
     const { id } = await crearTrabajador(e.servicios.talento, admin, { ...base, autorizaTratamiento: true });

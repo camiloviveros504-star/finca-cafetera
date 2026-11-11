@@ -138,7 +138,7 @@ describe("insumos: compra → inventario → abonada por gramos por árbol", () 
   it("cada finca tiene sus propios insumos: no se crean ni se compran insumos de una finca ajena", async () => {
     const dueno = await e.contexto("propietario@demo.local"); // solo tiene la finca 1
     await expect(crearAgroquimico(e.servicios.agricola, dueno, { nombre: "Insumo ajeno", unidad: "bulto", fincaId: e.ids.finca2 })).rejects.toThrow(ErrorNoEncontrado);
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     const { id: ajeno } = await crearAgroquimico(e.servicios.agricola, admin, { nombre: "Solo de la finca dos", unidad: "bulto", fincaId: e.ids.finca2 });
     expect((await listarAgroquimicos(e.servicios.agricola, dueno)).catalogo.some((x) => x.id === ajeno)).toBe(false);
     const { id: proveedorId } = await crearProveedor(e.servicios.finanzas, dueno, { nombre: "Otro proveedor de prueba" });
@@ -225,7 +225,7 @@ describe("eliminar lo que no sirve: se borra si no tiene historial y se archiva 
     expect(visibles).not.toContain(activo);
 
     // Un trabajador de la finca 2 no lo toca el dueño de la finca 1.
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     const { id: ajeno } = await crearTrabajador(e.servicios.talento, admin, { tipoDocumento: "CC", numeroDocumento: "8000003", nombres: "De", apellidos: "Otra Finca", fincaId: e.ids.finca2, autorizaTratamiento: true });
     await expect(eliminarRegistro(e.servicios.eliminacion, dueno, { tipo: "trabajador", id: ajeno })).rejects.toThrow(ErrorProhibido);
     await expect(eliminarRegistro(e.servicios.eliminacion, dueno, { tipo: "trabajador", id: randomUUID() })).rejects.toThrow(ErrorNoEncontrado);

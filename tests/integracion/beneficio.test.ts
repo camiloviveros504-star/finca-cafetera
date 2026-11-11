@@ -89,7 +89,7 @@ describe("beneficio y poscosecha configurable", () => {
   });
 
   it("los flujos son configurables: un flujo nuevo con etapas encadenadas, y el comercial no puede registrar etapas", async () => {
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     const { id } = await crearProcesoTipo(e.servicios.beneficio, admin, {
       codigo: "honey_demo", nombre: "Proceso honey DEMO",
       etapas: [

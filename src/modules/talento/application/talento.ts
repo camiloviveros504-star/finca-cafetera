@@ -105,7 +105,8 @@ export async function crearVinculacion(deps: DependenciasTalento, ctx: ContextoU
 export async function vincularUsuarioATrabajador(deps: DependenciasTalento, ctx: ContextoUsuario, cruda: unknown) {
   const e = validar(z.object({ trabajadorId: z.string().uuid(), usuarioId: z.string().uuid() }), cruda, "Revise los datos del vínculo");
   await autorizar(deps.auditor, ctx, "trabajador:administrar", { accion: "trabajador.vincular_usuario", entidad: "trabajador" });
-  await autorizar(deps.auditor, ctx, "usuario:administrar", { accion: "trabajador.vincular_usuario", entidad: "trabajador" });
+  // El dueño vincula a su trabajador con la cuenta que acaba de invitar; el administrador de la plataforma también podría gestionar cuentas.
+  await autorizar(deps.auditor, ctx, ctx.permisos.has("usuario:administrar") ? "usuario:administrar" : "usuario:invitar_equipo", { accion: "trabajador.vincular_usuario", entidad: "trabajador" });
   return deps.uow.ejecutar(async (tx) => {
     const r = await deps.repo.vincularUsuario(tx, ctx.organizacionId, e.trabajadorId, e.usuarioId);
     if (r === "no_encontrado") throw new ErrorNoEncontrado("Trabajador o usuario");

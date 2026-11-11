@@ -133,7 +133,7 @@ test.describe("flujos de extensiones", () => {
   test("financiero, administrador y auditor ven sus módulos; el comercial no ve finanzas ni usuarios", async ({ browser }) => {
     for (const [correo, rutas, ausentes] of [
       ["financiero@demo.local", ["/finanzas", "/compras", "/liquidaciones", "/cartera"], []],
-      ["admin@demo.local", ["/usuarios", "/auditoria", "/configuracion/general", "/beneficio", "/sanidad", "/planificacion", "/maquinaria"], []],
+      ["admin@demo.local", ["/fincas", "/usuarios", "/auditoria", "/configuracion/general", "/lotes", "/cosechas", "/inventario", "/ventas", "/finanzas"], []],
       ["auditor@demo.local", ["/auditoria", "/finanzas"], []],
       ["comercial@demo.local", ["/cartera"], ["/finanzas", "/usuarios"]],
     ] as [string, string[], string[]][]) {

@@ -39,6 +39,32 @@ test.describe("flujos con roles", () => {
     await expect(page.locator("main [role=alert]")).toContainText("Existencias insuficientes");
   });
 
+  test("administrador de la plataforma: da de alta una finca con su propietario y su menú no trae lo operativo", async ({ page }) => {
+    await entrar(page, "admin@demo.local");
+    const menu = page.getByRole("navigation", { name: "Principal" }).first();
+    await expect(menu.getByRole("link", { name: "Fincas" })).toBeVisible();
+    await expect(menu.getByRole("link", { name: "Compra de insumos" })).toHaveCount(0);
+    await expect(menu.getByRole("link", { name: "Insumos" })).toHaveCount(0);
+    await page.goto("/fincas");
+    const nombre = `Finca E2E ${Date.now()}`;
+    await page.locator('input[name="nombre"]').first().fill(nombre);
+    await page.locator('input[name="areaHa"]').first().fill("7.5");
+    await page.locator('input[name="propietarioNombre"]').first().fill("Dueño de Prueba");
+    await page.locator('input[name="propietarioCorreo"]').first().fill(`dueno.${Date.now()}@e2e.test`);
+    await page.getByRole("button", { name: "Crear finca y propietario" }).click();
+    await expect(page.locator('input[aria-label="Enlace de activación"]')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(nombre).first()).toBeVisible();
+  });
+
+  test("propietario: ve lo operativo de su finca y no la administración de la plataforma", async ({ page }) => {
+    await entrar(page, "propietario@demo.local");
+    const menu = page.getByRole("navigation", { name: "Principal" }).first();
+    await expect(menu.getByRole("link", { name: "Compra de insumos" })).toBeVisible();
+    await expect(menu.getByRole("link", { name: "Fincas" })).toHaveCount(0);
+    await page.goto("/fincas");
+    await expect(page.locator("main [role=alert]")).toContainText("administrador de la plataforma");
+  });
+
   test("encargado de producción: el menú no muestra Ventas y el servidor rechaza el acceso directo", async ({ page }) => {
     await entrar(page, "produccion@demo.local");
     await expect(page.getByRole("link", { name: "Ventas" })).toHaveCount(0);

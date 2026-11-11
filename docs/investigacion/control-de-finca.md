@@ -30,7 +30,7 @@ Cifras agronómicas usadas en el plan de manejo, todas de Cenicafé: **58 g de n
 
 | Rol | Alcance |
 |---|---|
-| Administrador | La plataforma: cuentas, fincas y totales globales. No opera el día a día de cada finca |
+| Administrador | La plataforma: da de alta fincas y propietarios en un solo paso, administra cuentas y ajustes, atiende los derechos de datos personales y consulta todo en solo lectura. **No opera ninguna finca**: no vende, no registra cosechas, no compra ni paga (permisos retirados en la migración 0010) |
 | Propietario | Todo lo de **su** finca: lotes, insumos, equipo, recolección, ventas, gastos, pagos. Invita a su capataz y a sus trabajadores |
 | Capataz | Recolección, labores y aplicaciones del personal. No ve ventas, cartera ni pagos |
 | Trabajador | Sus propios kilos, jornales y lo que le deben |

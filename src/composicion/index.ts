@@ -197,3 +197,4 @@ export type { ContextoUsuario } from "@/shared/dominio/contexto";
 
 export { registrarRecoleccion } from "./recoleccion";
 export { eliminarRegistro } from "@/shared/aplicacion/eliminar";
+export { altaDeFinca } from "./altaFinca";

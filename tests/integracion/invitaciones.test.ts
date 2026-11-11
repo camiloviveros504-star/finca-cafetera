@@ -146,13 +146,15 @@ describe("alta de usuarios por invitación (todo parte del administrador)", () =
     await expect(cambiarEstadoUsuario(e.servicios.usuarios, admin, { usuarioId: u.id, activo: true })).rejects.toThrow(ErrorRegla);
   });
 
-  it("vincula la cuenta de un recolector con su ficha de trabajador, una sola vez", async () => {
+  it("el propietario vincula la cuenta de un trabajador con su ficha, una sola vez; el administrador de la plataforma no opera fichas", async () => {
     const admin = await e.contexto("admin@demo.local");
+    const dueno = await e.contexto("propietario.ambas@demo.local");
     const inv = await invitar("trabajador.nuevo@finca.co");
     const usuarioId = (await listarUsuarios(e.servicios.usuarios, admin)).usuarios.find((x) => x.correo === "trabajador.nuevo@finca.co")!.id;
     const trabajadorId = (await e.pool.query("SELECT id FROM trabajador WHERE numero_documento = '1000000002'")).rows[0].id; // sin cuenta de acceso
-    await vincularUsuarioATrabajador(e.servicios.talento, admin, { trabajadorId, usuarioId });
-    await expect(vincularUsuarioATrabajador(e.servicios.talento, admin, { trabajadorId, usuarioId })).rejects.toThrow(/ya tiene una cuenta/);
+    await expect(vincularUsuarioATrabajador(e.servicios.talento, admin, { trabajadorId, usuarioId })).rejects.toThrow(ErrorProhibido);
+    await vincularUsuarioATrabajador(e.servicios.talento, dueno, { trabajadorId, usuarioId });
+    await expect(vincularUsuarioATrabajador(e.servicios.talento, dueno, { trabajadorId, usuarioId })).rejects.toThrow(/ya tiene una cuenta/);
     const sup = await e.contexto("supervisor@demo.local");
     await expect(vincularUsuarioATrabajador(e.servicios.talento, sup, { trabajadorId, usuarioId })).rejects.toThrow(ErrorProhibido);
     await activar(inv.token);

@@ -20,7 +20,7 @@ const manana = fechaColombia(new Date(Date.now() + 36 * 3600 * 1000));
 describe("QA-12 · cambio de tarifa sin tocar el histórico", () => {
   it("una venta guarda el precio y la versión aplicados; una nueva tarifa no los altera", async () => {
     const com = await e.contexto("comercial@demo.local");
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     const v1 = await registrarVenta(e.servicios.comercial, com, { fincaId: e.ids.finca1, clienteId: e.ids.clienteA, claveIdempotencia: randomUUID(), items: [{ productoId: e.ids.PSE, cantidad: "2", loteId: e.ids.lote1_01 }] });
     expect(v1.venta.detalles[0].precioUnitario).toBe("14000.00");
 
@@ -40,7 +40,7 @@ describe("QA-12 · cambio de tarifa sin tocar el histórico", () => {
   });
 
   it("no se permite una vigencia en el pasado ni solapada", async () => {
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     await expect(crearVersionTarifa(e.servicios.tarifas, admin, { tarifaId: tarifaPse, valor: "1", desde: "2020-01-01" })).rejects.toThrow(/pasado/);
     await crearVersionTarifa(e.servicios.tarifas, admin, { tarifaId: tarifaPse, valor: "16000", desde: manana });
     await expect(crearVersionTarifa(e.servicios.tarifas, admin, { tarifaId: tarifaPse, valor: "1", desde: hoy })).rejects.toThrow(/después|solapa/);

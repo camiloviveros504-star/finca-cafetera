@@ -63,7 +63,7 @@ describe("ajustes y pérdidas", () => {
   });
 
   it("30 pérdidas simultáneas de 5 kg sobre 100 kg: exactamente 20 prosperan y el saldo no es negativo", async () => {
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     await e.pool.query("UPDATE saldo_inventario SET cantidad = 100 WHERE bodega_id = $1 AND producto_id = $2 AND lote_id = $3", [e.ids.bodega1, e.ids.PSE, e.ids.lote1_02]);
     const u = { fincaId: e.ids.finca1, bodegaId: e.ids.bodega1, productoId: e.ids.PSE, loteId: e.ids.lote1_02 };
     const r = await Promise.allSettled(
@@ -77,7 +77,7 @@ describe("ajustes y pérdidas", () => {
 
 describe("traslados, transformaciones y reversos", () => {
   it("un traslado mueve existencias entre bodegas sin cambiar el total", async () => {
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     const total = async () => (await saldo(e.ids.bodega1, e.ids.EXC, e.ids.lote1_01)) + (await saldo(bodegaB, e.ids.EXC, e.ids.lote1_01));
     const antes = await total();
     await trasladar(e.servicios.operaciones, admin, { fincaId: e.ids.finca1, bodegaOrigenId: e.ids.bodega1, bodegaDestinoId: bodegaB, productoId: e.ids.EXC, loteId: e.ids.lote1_01, cantidad: "10", claveIdempotencia: randomUUID() });
@@ -137,7 +137,7 @@ describe("traslados, transformaciones y reversos", () => {
   });
 
   it("un reverso corrige un ajuste; no se puede reversar dos veces ni dejar el saldo negativo", async () => {
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     const u = { fincaId: e.ids.finca1, bodegaId: e.ids.bodega1, productoId: e.ids.EXC, loteId: e.ids.lote1_01 };
     const aj = await registrarAjuste(e.servicios.operaciones, admin, { ...u, tipo: "ajuste", sentido: "aumento", cantidad: "4", motivo: "Error de conteo", claveIdempotencia: randomUUID() });
     const antes = await saldo(e.ids.bodega1, e.ids.EXC, e.ids.lote1_01);
@@ -156,7 +156,7 @@ describe("traslados, transformaciones y reversos", () => {
   });
 
   it("las ventas no se pueden reversar como movimiento suelto", async () => {
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     const m = await e.pool.query("SELECT id FROM movimiento_inventario WHERE origen_tipo = 'venta' LIMIT 1");
     await expect(reversarMovimiento(e.servicios.operaciones, admin, { movimientoId: m.rows[0].id, motivo: "Intento" })).rejects.toThrow(/no se puede reversar/i);
   });

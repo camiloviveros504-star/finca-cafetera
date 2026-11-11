@@ -9,6 +9,7 @@ export default async function LayoutAplicacion({ children }: { children: React.R
   // El menú solo muestra lo permitido; la validación real está en el servidor (cada caso de uso).
   const todos: Array<EnlaceNav & { permiso?: string }> = [
     { href: "/inicio", etiqueta: "Inicio", icono: "⌂" },
+    { href: "/fincas", etiqueta: "Fincas", icono: "⌖", permiso: "finca:administrar", grupo: "Plataforma" },
     // Mi finca: lo que se hace día a día en los lotes y con el personal.
     { href: "/lotes", etiqueta: "Lotes", icono: "◩", permiso: "lote:ver", grupo: "Mi finca" },
     { href: "/cosechas", etiqueta: "Recolección", icono: "☘", permiso: "cosecha:ver", grupo: "Mi finca" },
@@ -39,11 +40,20 @@ export default async function LayoutAplicacion({ children }: { children: React.R
     { href: "/auditoria", etiqueta: "Auditoría", icono: "✓", permiso: "auditoria:ver", grupo: "Administración" },
   ];
   const vistos = new Set<string>();
-  const enlaces = todos.filter((e) => {
+  let enlaces = todos.filter((e) => {
     if ((e.permiso && !ctx.permisos.has(e.permiso)) || vistos.has(e.href)) return false;
     vistos.add(e.href);
     return true;
   });
+  // El administrador de la plataforma ve primero lo suyo (fincas, cuentas, ajustes, auditoría) y después, en solo lectura,
+  // los datos globales. Lo operativo de cada finca (equipo, insumos, compras…) es de su propietario y no aparece aquí.
+  if (ctx.permisos.has("finca:administrar")) {
+    const PLATAFORMA = ["/fincas", "/usuarios", "/configuracion/general", "/auditoria"];
+    const GLOBAL = ["/lotes", "/cosechas", "/inventario", "/ventas", "/finanzas", "/reportes"];
+    const propios = enlaces.filter((e) => PLATAFORMA.includes(e.href)).sort((a, b) => PLATAFORMA.indexOf(a.href) - PLATAFORMA.indexOf(b.href)).map((e) => ({ ...e, grupo: "Plataforma" }));
+    const globales = enlaces.filter((e) => GLOBAL.includes(e.href)).sort((a, b) => GLOBAL.indexOf(a.href) - GLOBAL.indexOf(b.href)).map((e) => ({ ...e, grupo: "Datos globales (consulta)" }));
+    enlaces = [...enlaces.filter((e) => e.href === "/inicio"), ...propios, ...globales];
+  }
 
   return (
     <ProveedorSync csrfToken={ctx.csrfToken}>

@@ -31,7 +31,7 @@ export default async function Usuarios() {
   // El dueño de una finca invita a su capataz y a sus trabajadores, solo a sus propias fincas.
   const invita = administra || ctx.permisos.has("usuario:invitar_equipo");
   const fincas = await listarFincasYLotes(servicios().fincasLotes, ctx).then((d) => d.fincas).catch(() => []);
-  const sinCuenta = administra ? (await listarTrabajadores(servicios().talento, ctx).catch(() => [])).filter((w) => !w.usuarioId) : [];
+  const sinCuenta = invita ? (await listarTrabajadores(servicios().talento, ctx).catch(() => [])).filter((w) => !w.usuarioId) : [];
   const opcionesRol = datos.roles.map((r) => ({ valor: r.codigo, texto: DESCRIPCION[r.codigo] ? `${r.nombre} — ${DESCRIPCION[r.codigo]}` : `${r.nombre}${r.esExtension ? " (extensión)" : ""}` }));
   const opcionesFinca = fincas.map((f) => ({ valor: f.id, texto: f.nombre }));
   return (
@@ -54,7 +54,7 @@ export default async function Usuarios() {
               { nombre: "correo", etiqueta: "Correo (será su usuario)", requerido: true },
               { nombre: "roles", etiqueta: "Roles", tipo: "multiple", opciones: opcionesRol },
               { nombre: "fincaIds", etiqueta: "Fincas con acceso", tipo: "multiple", opciones: opcionesFinca },
-              { nombre: "trabajadorId", etiqueta: "Vincular con un trabajador (para recolectores y supervisores)", tipo: "select", opciones: [{ valor: "", texto: "No vincular" }, ...sinCuenta.map((w) => ({ valor: w.id, texto: `${w.nombre} · ${w.documento}` }))] },
+              ...(ctx.permisos.has("trabajador:administrar") ? [{ nombre: "trabajadorId", etiqueta: "Vincular con un trabajador (para que vea sus kilos)", tipo: "select" as const, opciones: [{ valor: "", texto: "No vincular" }, ...sinCuenta.map((w) => ({ valor: w.id, texto: `${w.nombre} · ${w.documento}` }))] }] : []),
             ]}
           />
         </div>

@@ -38,6 +38,7 @@ export async function sembrar(c: Client): Promise<void> {
       ["bodega@demo.local", "Responsable de bodega DEMO", "responsable_bodega", [f1.id]],
       ["auditor@demo.local", "Auditor DEMO", "auditor", [f1.id, f2.id]],
       ["propietario@demo.local", "Propietario DEMO", "propietario", [f1.id]],
+      ["propietario.ambas@demo.local", "Propietario de ambas fincas DEMO", "propietario", [f1.id, f2.id]],
       ["capataz@demo.local", "Capataz DEMO", "capataz", [f1.id]],
       ["trabajador@demo.local", "Trabajador DEMO", "trabajador", [f1.id]],
     ];

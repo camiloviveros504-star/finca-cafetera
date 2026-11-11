@@ -1,7 +1,7 @@
 import { consultarCultivo, DENSIDAD_POR_DEFECTO, ErrorProhibido, listarFincasYLotes, servicios, type LoteConPlan } from "@/composicion";
 import { cantidad } from "../../_servidor/formatos";
 import { exigirContexto } from "../../_servidor/sesion";
-import { EliminarLote, FormularioEventoLote, FormularioFinca, FormularioLote } from "./Formularios";
+import { EliminarLote, FormularioEventoLote, FormularioLote } from "./Formularios";
 
 export const metadata = { title: "Lotes · Gestión de Finca Cafetera" };
 
@@ -112,12 +112,6 @@ export default async function Lotes() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        {ctx.permisos.has("finca:administrar") && (
-          <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
-            <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nueva finca</summary>
-            <div className="mt-3"><FormularioFinca /></div>
-          </details>
-        )}
         {puedeAdministrar && datos.fincas.length > 0 && (
           <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
             <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nuevo lote</summary>

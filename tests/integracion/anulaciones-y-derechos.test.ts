@@ -38,7 +38,7 @@ afterAll(async () => {
 describe("descuentos autorizados", () => {
   it("sin máximo configurado no hay descuentos; con máximo, solo hasta ese tope y exacto al centavo", async () => {
     await expect(vender([{ productoId: e.ids.PSE, cantidad: "1", loteId: e.ids.lote1_01 }], { descuentoPct: "5" })).rejects.toThrow(/máximo autorizado/);
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     await guardarParametro(e.servicios.ajustes, admin, { clave: "descuento_maximo_pct", valor: "10" });
     await expect(vender([{ productoId: e.ids.PSE, cantidad: "1", loteId: e.ids.lote1_01 }], { descuentoPct: "10.01" })).rejects.toThrow(/máximo autorizado/);
     const v = await vender([{ productoId: e.ids.PSE, cantidad: "10", loteId: e.ids.lote1_01 }], { descuentoPct: "10" });
@@ -60,7 +60,7 @@ describe("anulación de ventas (corrección auditada con reverso)", () => {
     const antes = await saldo("PSE", e.ids.lote1_01);
     const v = await vender([{ productoId: e.ids.PSE, cantidad: "7", loteId: e.ids.lote1_01 }]);
     expect(await saldo("PSE", e.ids.lote1_01)).toBe(antes - 7);
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     const r = await anularVenta(e.servicios.anulacionVenta, admin, { ventaId: v.venta.id, motivo: "Error en la cantidad digitada por el cliente" });
     expect(r.movimientosRevertidos).toBe(1);
     expect(await saldo("PSE", e.ids.lote1_01)).toBe(antes);
@@ -77,7 +77,7 @@ describe("anulación de ventas (corrección auditada con reverso)", () => {
     const v = await vender([{ productoId: e.ids.PSE, cantidad: "2", loteId: e.ids.lote1_02 }]);
     await expect(anularVenta(e.servicios.anulacionVenta, com, { ventaId: v.venta.id, motivo: "No tengo permiso para esto" })).rejects.toThrow(ErrorProhibido);
     await registrarPagoCliente(e.servicios.pagos, com, { ventaId: v.venta.id, monto: "1000", metodo: "efectivo", fecha: fechaColombia(), claveIdempotencia: randomUUID() });
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     await expect(anularVenta(e.servicios.anulacionVenta, admin, { ventaId: v.venta.id, motivo: "Intento con pagos registrados" })).rejects.toThrow(/pagos registrados/);
     const otra = await vender([{ productoId: e.ids.PSE, cantidad: "1", loteId: e.ids.lote1_02 }]);
     await anularVenta(e.servicios.anulacionVenta, admin, { ventaId: otra.venta.id, motivo: "Venta duplicada por error" });
@@ -87,7 +87,7 @@ describe("anulación de ventas (corrección auditada con reverso)", () => {
   it("anulaciones simultáneas de la misma venta: solo una compensa el inventario", async () => {
     const antes = await saldo("EXC", e.ids.lote1_01);
     const v = await vender([{ productoId: e.ids.EXC, cantidad: "5", loteId: e.ids.lote1_01 }]);
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     const r = await Promise.allSettled(Array.from({ length: 5 }, () => anularVenta(e.servicios.anulacionVenta, admin, { ventaId: v.venta.id, motivo: "Anulación concurrente de prueba" })));
     expect(r.filter((x) => x.status === "fulfilled")).toHaveLength(1);
     expect(await saldo("EXC", e.ids.lote1_01)).toBe(antes);
@@ -106,7 +106,7 @@ describe("anulación de cosechas", () => {
     expect(await saldo("CER", e.ids.lote1_01)).toBe(30);
     const enc = await e.contexto("produccion@demo.local");
     await expect(anularCosecha(e.servicios.anulacionCosecha, enc, { cosechaId: id, motivo: "El encargado no tiene permiso" })).rejects.toThrow(ErrorProhibido);
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     await anularCosecha(e.servicios.anulacionCosecha, admin, { cosechaId: id, motivo: "Registrada en el lote equivocado" });
     expect(await saldo("CER", e.ids.lote1_01)).toBe(0);
     expect((await e.pool.query("SELECT estado FROM cosecha WHERE id = $1", [id])).rows[0].estado).toBe("anulada");
@@ -118,7 +118,7 @@ describe("anulación de cosechas", () => {
     const enc = await e.contexto("produccion@demo.local");
     const PHU = (await e.pool.query("SELECT id FROM producto WHERE codigo = 'PHU'")).rows[0].id;
     await transformar(e.servicios.operaciones, enc, { fincaId: e.ids.finca1, bodegaId: e.ids.bodega1, tipo: "Despulpado de prueba", fecha: "2026-11-03", claveIdempotencia: randomUUID(), lineas: [{ loteId: e.ids.lote1_01, productoEntradaId: e.ids.CER, productoSalidaId: PHU, cantidadEntrada: "15", cantidadSalida: "14" }] });
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     await expect(anularCosecha(e.servicios.anulacionCosecha, admin, { cosechaId: id, motivo: "Intento de anular lo ya transformado" })).rejects.toThrow(/ya fue transformado/);
     expect(await saldo("CER", e.ids.lote1_01)).toBe(5);
   });
@@ -126,7 +126,7 @@ describe("anulación de cosechas", () => {
 
 describe("derechos del titular (Ley 1581)", () => {
   it("el cliente puede conocer, rectificar y suprimir sus datos; las ventas siguen cuadrando", async () => {
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     const com = await e.contexto("comercial@demo.local");
     const v = await vender([{ productoId: e.ids.PSE, cantidad: "1", loteId: e.ids.lote1_01 }]);
     const exportado = await exportarDatosCliente(e.servicios.derechosCliente, admin, e.ids.clienteA);
@@ -148,7 +148,7 @@ describe("derechos del titular (Ley 1581)", () => {
   });
 
   it("el trabajador puede conocer, rectificar y suprimir sus datos; los registros económicos se conservan", async () => {
-    const admin = await e.contexto("admin@demo.local");
+    const admin = await e.contexto("propietario.ambas@demo.local");
     const w = (await e.pool.query("SELECT id FROM trabajador WHERE numero_documento = '1000000003'")).rows[0].id;
     const exportado = await exportarDatosTrabajador(e.servicios.derechosTrabajador, admin, w);
     expect(exportado.titular.numeroDocumento).toBe("1000000003");
