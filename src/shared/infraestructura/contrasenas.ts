@@ -12,3 +12,10 @@ export async function verificarContrasena(cifrada: string, contrasena: string): 
     return false;
   }
 }
+
+let relleno: Promise<string> | undefined;
+
+export function hashDeRelleno(): Promise<string> {
+  relleno ??= cifrarContrasena("relleno-para-igualar-tiempos");
+  return relleno;
+}

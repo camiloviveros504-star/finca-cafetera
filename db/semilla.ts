@@ -3,7 +3,7 @@
  * Los precios y equivalencias NO son valores comerciales reales.
  */
 import type { Client } from "pg";
-import { cifrarContrasena } from "../src/shared/contrasenas";
+import { cifrarContrasena } from "../src/shared/infraestructura/contrasenas";
 
 export const CONTRASENA_DEMO = "Demo-2026!";
 
