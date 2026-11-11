@@ -55,18 +55,22 @@ const esquemaTrabajador = z.object({
   apellidos: z.string().trim().min(2, "Indique los apellidos").max(80),
   telefono: z.preprocess(vacio, z.string().trim().max(20).optional()),
   usuarioId: z.preprocess(vacio, z.string().uuid().optional()),
+  fincaId: z.preprocess(vacio, z.string().uuid().optional()),
+  modalidad: z.preprocess(vacio, z.enum(["kg", "arroba", "jornada", "actividad"]).optional()),
   // Ley 1581: sin autorización explícita del titular no se guardan sus datos.
   autorizaTratamiento: z.literal(true, { message: "Debe confirmar que el trabajador autorizó el tratamiento de sus datos" }),
 });
 
 export async function crearTrabajador(deps: DependenciasTalento, ctx: ContextoUsuario, cruda: unknown) {
   const e = validar(esquemaTrabajador, cruda, "Revise los datos del trabajador");
-  await autorizar(deps.auditor, ctx, "trabajador:administrar", { accion: "trabajador.crear", entidad: "trabajador" });
+  await autorizar(deps.auditor, ctx, "trabajador:administrar", { accion: "trabajador.crear", entidad: "trabajador", fincaId: e.fincaId });
   return deps.uow.ejecutar(async (tx) => {
     const id = await deps.repo.crearTrabajador(tx, {
       organizacionId: ctx.organizacionId, tipoDocumento: e.tipoDocumento, numeroDocumento: e.numeroDocumento, nombres: e.nombres, apellidos: e.apellidos,
       telefono: e.telefono, usuarioId: e.usuarioId, finalidad: "Registro de producción, liquidación y pago de remuneraciones", creadoPor: ctx.usuarioId,
     });
+    // Si se indica la finca, el trabajador queda vinculado desde hoy y puede recibir registros de inmediato.
+    if (e.fincaId) await deps.repo.crearVinculacion(tx, { organizacionId: ctx.organizacionId, trabajadorId: id, fincaId: e.fincaId, modalidad: e.modalidad ?? "kg", desde: fechaColombia() });
     // La auditoría no guarda el documento completo: solo lo necesario para ubicar el registro.
     await registrarAuditoria(deps, ctx, tx, "trabajador.crear", "trabajador", id, { nombres: e.nombres });
     return { id };
@@ -170,6 +174,64 @@ export async function registrarTrabajo(deps: DependenciasTalento, ctx: ContextoU
     });
     await registrarAuditoria(deps, ctx, tx, "trabajo.registrar", "registro_trabajo", id, { trabajadorId, cantidad: e.cantidad, unidad: e.unidad });
     return { id, repetido: false };
+  });
+}
+
+// ───────────── Recolección y labores del día, registradas por el dueño o el capataz ─────────────
+
+export const LABORES = ["recoleccion", "abonada", "fumigacion", "plateo", "renovacion", "otra"] as const;
+
+const esquemaJornada = z.object({
+  fincaId: z.string().uuid(),
+  loteId: z.preprocess(vacio, z.string().uuid().optional()),
+  fecha,
+  labor: z.enum(LABORES, { message: "Labor inválida" }),
+  claveIdempotencia: z.string().min(8).max(100),
+  lineas: z
+    .array(z.object({ trabajadorId: z.string().uuid(), cantidad: cantidadTxt, unidad: z.enum(["kg", "jornada"], { message: "Unidad inválida" }), valorUnitario: montoTxt }))
+    .min(1, "Agregue al menos un trabajador")
+    .max(60),
+});
+
+/**
+ * Registra lo que hizo cada trabajador en el día (kilos recolectados, o jornadas de abonada, fumigación, limpieza…) con el
+ * valor que fija quien lo registra (por kilo o por jornal). Quien registra es el dueño o el capataz: el registro nace validado
+ * y queda listo para liquidar. Idempotente por línea: reenviar el mismo formulario no duplica nada.
+ */
+export async function registrarJornada(deps: DependenciasTalento, ctx: ContextoUsuario, cruda: unknown) {
+  const e = validar(esquemaJornada, cruda, "Revise los datos del registro");
+  if (e.fecha > fechaColombia()) throw new ErrorValidacion("La fecha no puede ser futura", { fecha: "Fecha futura" });
+  if (new Set(e.lineas.map((l) => l.trabajadorId)).size !== e.lineas.length) throw new ErrorValidacion("Un trabajador aparece dos veces", { lineas: "Trabajador repetido" });
+  await autorizar(deps.auditor, ctx, "trabajo:registrar", { accion: "jornada.registrar", entidad: "registro_trabajo", fincaId: e.fincaId });
+  await autorizar(deps.auditor, ctx, "trabajo:validar", { accion: "jornada.registrar", entidad: "registro_trabajo", fincaId: e.fincaId });
+  for (const l of e.lineas) {
+    if (aEscala(l.cantidad, ESCALA_CANTIDAD) <= 0n) throw new ErrorValidacion("La cantidad debe ser mayor que cero", { lineas: "Cantidad inválida" });
+    if (!mayorQue(l.valorUnitario, "0.00")) throw new ErrorValidacion("El valor por kilo o por jornal debe ser mayor que cero", { lineas: "Valor inválido" });
+  }
+  return deps.uow.ejecutar(async (tx) => {
+    if (e.loteId && !(await deps.repo.loteEsDeFinca(tx, ctx.organizacionId, e.loteId, e.fincaId))) throw new ErrorRegla("El lote no pertenece a la finca indicada", "lote_invalido");
+    const ids: string[] = [];
+    let total = "0.00";
+    for (const l of e.lineas) {
+      const clave = `${e.claveIdempotencia}:${l.trabajadorId}`;
+      const previo = await deps.repo.buscarRegistroPorClave(tx, ctx.organizacionId, clave);
+      if (previo) { ids.push(previo); continue; }
+      const trab = await deps.repo.trabajadorUsuario(tx, ctx.organizacionId, l.trabajadorId);
+      if (!trab.existe) throw new ErrorNoEncontrado("Trabajador");
+      if (trab.usuarioId === ctx.usuarioId) {
+        await deps.auditor.registrar({ organizacionId: ctx.organizacionId, usuarioId: ctx.usuarioId, accion: "jornada.registrar", entidad: "registro_trabajo", resultado: "denegado", despues: { motivo: "autoregistro_validado" }, ip: ctx.ip });
+        throw new ErrorProhibido();
+      }
+      const vinc = await deps.repo.vinculacionVigente(tx, ctx.organizacionId, l.trabajadorId, e.fincaId, e.fecha);
+      if (!vinc) throw new ErrorRegla("Un trabajador no está vinculado a esta finca en esa fecha; agréguelo al equipo primero", "sin_vinculacion");
+      const unidadId = await deps.repo.unidadId(tx, l.unidad);
+      if (!unidadId) throw new ErrorRegla("Unidad no configurada", "unidad_invalida");
+      const valor = calcularValor(l.cantidad, l.valorUnitario);
+      ids.push(await deps.repo.insertarRegistroValidado(tx, { organizacionId: ctx.organizacionId, fincaId: e.fincaId, loteId: e.loteId, trabajadorId: l.trabajadorId, vinculacionId: vinc.id, fecha: e.fecha, modalidad: l.unidad, labor: e.labor, cantidad: l.cantidad, unidadId, valorUnitario: l.valorUnitario, valor, clave, registradoPor: ctx.usuarioId }));
+      total = sumar([total, valor]);
+    }
+    await registrarAuditoria(deps, ctx, tx, "jornada.registrar", "registro_trabajo", ids[0], { labor: e.labor, trabajadores: ids.length, total });
+    return { ids, total };
   });
 }
 

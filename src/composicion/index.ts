@@ -153,7 +153,7 @@ export { registrarAjuste, trasladar, transformar, reversarMovimiento, listarMovi
 export { registrarCosecha, listarCosechas, obtenerOpcionesRegistro } from "@/modules/produccion/application/cosechas";
 export { consultarTrazabilidadVenta } from "@/modules/trazabilidad/application/consultarTrazabilidad";
 export {
-  crearTrabajador, crearVinculacion, vincularUsuarioATrabajador, listarTrabajadores, registrarTrabajo, validarTrabajo, listarTrabajos,
+  crearTrabajador, crearVinculacion, vincularUsuarioATrabajador, registrarJornada, LABORES, listarTrabajadores, registrarTrabajo, validarTrabajo, listarTrabajos,
   registrarAnticipo, liquidarPeriodo, registrarPagoTrabajador, listarLiquidaciones,
   type FilaLiquidacion, type FilaRegistroTrabajo, type FilaTrabajador, type Modalidad,
 } from "@/modules/talento/application/talento";
@@ -190,3 +190,5 @@ export { exportarDatosTrabajador, rectificarTrabajador, anonimizarTrabajador } f
 export { anularCosecha } from "@/modules/produccion/application/anularCosecha";
 export * from "@/shared/dominio/errores";
 export type { ContextoUsuario } from "@/shared/dominio/contexto";
+
+export { registrarRecoleccion } from "./recoleccion";

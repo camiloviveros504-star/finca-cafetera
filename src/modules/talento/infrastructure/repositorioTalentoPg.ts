@@ -141,6 +141,17 @@ export class RepositorioTalentoPg implements RepositorioTalento {
     return res.rows[0].id as string;
   }
 
+  async insertarRegistroValidado(tx: Transaccion, r: Parameters<RepositorioTalento["insertarRegistroValidado"]>[1]): Promise<string> {
+    // Registro hecho por el dueño o el capataz: nace validado, con el valor por kilo o por jornal que ellos fijaron.
+    const res = await clienteDe(tx).query(
+      `INSERT INTO registro_trabajo (organizacion_id, finca_id, lote_id, trabajador_id, vinculacion_id, fecha, modalidad, labor, cantidad_declarada, unidad_declarada_id,
+                                     estado, cantidad_validada, valor_unitario_aplicado, valor_calculado, valor_manual, validado_por, validado_en, clave_idempotencia, registrado_por)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'validado',$9,$11,$12,true,$13,now(),$14,$13) RETURNING id`,
+      [r.organizacionId, r.fincaId, r.loteId ?? null, r.trabajadorId, r.vinculacionId, r.fecha, r.modalidad, r.labor, r.cantidad, r.unidadId, r.valorUnitario, r.valor, r.registradoPor, r.clave],
+    );
+    return res.rows[0].id as string;
+  }
+
   async bloquearRegistro(tx: Transaccion, organizacionId: string, id: string): Promise<RegistroParaValidar | null> {
     const r = await clienteDe(tx).query(
       `SELECT w.id, w.finca_id, w.trabajador_id, t.usuario_id, w.fecha::text AS fecha, w.modalidad, w.cantidad_declarada,
@@ -170,7 +181,7 @@ export class RepositorioTalentoPg implements RepositorioTalento {
   async listarRegistros(tx: Transaccion, organizacionId: string, fincaIds: readonly string[], o: { estado?: string; trabajadorId?: string }): Promise<FilaRegistroTrabajo[]> {
     const r = await clienteDe(tx).query(
       `SELECT w.id, w.trabajador_id, t.nombres || ' ' || t.apellidos AS trabajador, w.finca_id, f.nombre AS finca, l.codigo AS lote,
-              w.fecha::text AS fecha, w.modalidad, w.actividad, w.cantidad_declarada, u.codigo AS unidad, w.cantidad_validada,
+              w.fecha::text AS fecha, w.modalidad, w.actividad, w.labor, w.cantidad_declarada, u.codigo AS unidad, w.cantidad_validada,
               w.estado, w.valor_unitario_aplicado, w.valor_calculado, w.motivo_rechazo
          FROM registro_trabajo w
          JOIN trabajador t ON t.id = w.trabajador_id JOIN finca f ON f.id = w.finca_id JOIN unidad u ON u.id = w.unidad_declarada_id
@@ -182,7 +193,7 @@ export class RepositorioTalentoPg implements RepositorioTalento {
     );
     return r.rows.map((x) => ({
       id: x.id, trabajadorId: x.trabajador_id, trabajadorNombre: x.trabajador, fincaId: x.finca_id, fincaNombre: x.finca, loteCodigo: x.lote,
-      fecha: x.fecha, modalidad: x.modalidad, actividad: x.actividad, cantidadDeclarada: x.cantidad_declarada, unidadDeclarada: x.unidad,
+      fecha: x.fecha, modalidad: x.modalidad, actividad: x.actividad, labor: x.labor, cantidadDeclarada: x.cantidad_declarada, unidadDeclarada: x.unidad,
       cantidadValidada: x.cantidad_validada, estado: x.estado, valorUnitario: x.valor_unitario_aplicado, valor: x.valor_calculado, motivoRechazo: x.motivo_rechazo,
     }));
   }

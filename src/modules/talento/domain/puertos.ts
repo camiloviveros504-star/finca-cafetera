@@ -28,6 +28,7 @@ export interface FilaRegistroTrabajo {
   fecha: string;
   modalidad: Modalidad;
   actividad: string | null;
+  labor: string | null;
   cantidadDeclarada: string;
   unidadDeclarada: string;
   cantidadValidada: string | null;
@@ -76,6 +77,7 @@ export interface RepositorioTalento {
   unidadId(tx: Transaccion, codigo: string): Promise<string | null>;
   buscarRegistroPorClave(tx: Transaccion, organizacionId: string, clave: string): Promise<string | null>;
   insertarRegistro(tx: Transaccion, r: { organizacionId: string; fincaId: string; loteId?: string; trabajadorId: string; vinculacionId: string; fecha: string; modalidad: Modalidad; actividad?: string; cantidad: string; unidadId: string; clave?: string; registradoPor: string }): Promise<string>;
+  insertarRegistroValidado(tx: Transaccion, r: { organizacionId: string; fincaId: string; loteId?: string; trabajadorId: string; vinculacionId: string; fecha: string; modalidad: Modalidad; labor: string; cantidad: string; unidadId: string; valorUnitario: string; valor: string; clave: string; registradoPor: string }): Promise<string>;
   bloquearRegistro(tx: Transaccion, organizacionId: string, id: string): Promise<RegistroParaValidar | null>;
   validarRegistro(tx: Transaccion, v: { id: string; cantidadValidada: string; tarifaVersionId: string; valorUnitario: string; valor: string; validadoPor: string }): Promise<void>;
   rechazarRegistro(tx: Transaccion, v: { id: string; motivo: string; validadoPor: string }): Promise<void>;

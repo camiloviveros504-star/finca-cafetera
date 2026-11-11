@@ -5,10 +5,17 @@ import {
   crearAgroquimico,
   crearLote,
   crearProveedor,
+  crearTrabajador,
+  liquidarPeriodo,
+  listarTrabajos,
+  registrarJornada,
+  registrarRecoleccion,
+  consultarSaldos,
   eliminarLote,
   ErrorNoEncontrado,
   ErrorProhibido,
   ErrorRegla,
+  ErrorValidacion,
   listarAgroquimicos,
   listarCompras,
   recibirCompra,
@@ -114,5 +121,53 @@ describe("insumos: compra → inventario → abonada por gramos por árbol", () 
     await expect(
       registrarCompra(e.servicios.finanzas, dueno, { fincaId: e.ids.finca1, proveedorId, fecha: hoy, claveIdempotencia: k(), lineas: [{ insumoId: ajeno, cantidad: "1", unidad: "bulto", costoUnitario: "1000" }] }),
     ).rejects.toThrow(ErrorRegla);
+  });
+});
+
+describe("recolección y labores por trabajador", () => {
+  const nuevoTrabajador = (dueno: Awaited<ReturnType<Entorno["contexto"]>>, doc: string, nombres: string) =>
+    crearTrabajador(e.servicios.talento, dueno, { tipoDocumento: "CC", numeroDocumento: doc, nombres, apellidos: "De prueba", fincaId: e.ids.finca1, modalidad: "kg", autorizaTratamiento: true });
+
+  it("un formulario registra la cosecha en bodega y lo que se le debe a cada recolector; reenviarlo no duplica", async () => {
+    const dueno = await e.contexto("propietario@demo.local");
+    const { id: ana } = await nuevoTrabajador(dueno, "7000001", "Ana");
+    const { id: luis } = await nuevoTrabajador(dueno, "7000002", "Luis");
+    const entrada = {
+      fincaId: e.ids.finca1, loteId: e.ids.lote1_01, productoId: e.ids.CER, fecha: hoy, claveIdempotencia: k(),
+      lineas: [{ trabajadorId: ana, kg: "80.5", precioKg: "1000" }, { trabajadorId: luis, kg: "60", precioKg: "1200" }],
+    };
+    const kgBodega = async () => (await consultarSaldos(e.servicios.inventario, dueno, e.ids.finca1)).filter((x) => x.productoCodigo === "CER" && x.loteCodigo === "L-01").reduce((a, x) => a + Number(x.cantidad), 0);
+    const antes = await kgBodega();
+
+    const r = await registrarRecoleccion(e.servicios, dueno, entrada);
+    expect(r).toMatchObject({ kg: "140.500", trabajadores: 2, totalPagar: "152500.00", repetida: false }); // 80,5 × 1.000 + 60 × 1.200
+    expect(await kgBodega()).toBeCloseTo(antes + 140.5);
+
+    expect(await registrarRecoleccion(e.servicios, dueno, entrada)).toMatchObject({ repetida: true });
+    expect(await kgBodega()).toBeCloseTo(antes + 140.5); // no se suma dos veces
+    const registros = (await listarTrabajos(e.servicios.talento, dueno)).filter((x) => x.trabajadorId === ana);
+    expect(registros).toHaveLength(1);
+    expect(registros[0]).toMatchObject({ estado: "validado", valor: "80500.00", labor: "recoleccion" });
+
+    // Lo recolectado queda listo para liquidar: el neto sale de kilos × valor por kilo.
+    const liq = await liquidarPeriodo(e.servicios.talento, dueno, { trabajadorId: ana, desde: hoy, hasta: hoy });
+    expect(liq.neto).toBe("80500.00");
+  });
+
+  it("labores por jornal (abonada, fumigación, limpieza), capataz autorizado y trabajador sin acceso", async () => {
+    const capataz = await e.contexto("capataz@demo.local");
+    const dueno = await e.contexto("propietario@demo.local");
+    const { id: pedro } = await nuevoTrabajador(dueno, "7000003", "Pedro");
+    const base = { fincaId: e.ids.finca1, loteId: e.ids.lote1_01, fecha: hoy, labor: "abonada", lineas: [{ trabajadorId: pedro, cantidad: "1", unidad: "jornada", valorUnitario: "60000" }] };
+    expect(await registrarJornada(e.servicios.talento, capataz, { ...base, claveIdempotencia: k() })).toMatchObject({ total: "60000.00" });
+    await expect(registrarJornada(e.servicios.talento, capataz, { ...base, claveIdempotencia: k(), labor: "volar" })).rejects.toThrow();
+    await expect(registrarJornada(e.servicios.talento, capataz, { ...base, claveIdempotencia: k(), lineas: [{ trabajadorId: pedro, cantidad: "1", unidad: "jornada", valorUnitario: "0" }] })).rejects.toThrow(ErrorValidacion);
+    await expect(registrarJornada(e.servicios.talento, capataz, { ...base, claveIdempotencia: k(), fecha: "2099-01-01" })).rejects.toThrow(ErrorValidacion);
+
+    const obrero = await e.contexto("trabajador@demo.local");
+    await expect(registrarJornada(e.servicios.talento, obrero, { ...base, claveIdempotencia: k() })).rejects.toThrow(ErrorProhibido);
+    await expect(registrarRecoleccion(e.servicios, obrero, { fincaId: e.ids.finca1, loteId: e.ids.lote1_01, productoId: e.ids.CER, fecha: hoy, claveIdempotencia: k(), kgTotal: "10", lineas: [] })).rejects.toThrow(ErrorProhibido);
+    // El trabajador solo ve lo suyo: nunca los registros de Pedro.
+    expect((await listarTrabajos(e.servicios.talento, obrero)).every((x) => x.trabajadorId !== pedro)).toBe(true);
   });
 });
