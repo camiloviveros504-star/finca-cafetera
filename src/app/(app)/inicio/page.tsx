@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { obtenerPanel, servicios } from "@/composicion";
+import { listarFincasYLotes, obtenerPanel, servicios } from "@/composicion";
 import { Icono, type NombreIcono } from "../../_componentes/Icono";
 import { cantidad, moneda } from "../../_servidor/formatos";
 import { exigirContexto } from "../../_servidor/sesion";
@@ -132,13 +132,34 @@ export default async function Inicio() {
   const pendientesConValor = pendientes.filter((p) => p.monto !== 0);
 
   const sinNada = !panel.plataforma && lotes.length === 0 && kgBodega === 0;
+  const fincas = await listarFincasYLotes(servicios().fincasLotes, ctx).then((d) => d.fincas).catch(() => []);
+  const fechaTexto = new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", weekday: "long", day: "numeric", month: "long" }).format(new Date());
+  const fecha = fechaTexto.charAt(0).toUpperCase() + fechaTexto.slice(1);
+  const hectareas = fincas.reduce((t, f) => t + Number(f.areaHa ?? 0), 0);
+  const lugar = panel.plataforma ? `${fincas.length} finca(s) en la plataforma` : fincas.length === 1 ? fincas[0].nombre : `${fincas.length} fincas`;
+  const rol = ctx.roles.includes("administrador") ? "Administrador" : ctx.roles.includes("propietario") ? "Propietario" : ctx.roles.includes("capataz") ? "Capataz" : null;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Hola, {ctx.nombre}</h1>
-        <p className="mt-1 text-sm text-suave">{panel.plataforma ? "Resumen de toda la plataforma." : `Así va su finca en ${mes}.`}</p>
-      </div>
+      <section className="relative overflow-hidden rounded-2xl bg-[#0e1f18] px-6 py-7 text-white shadow-lg sm:px-8 sm:py-8">
+        <div aria-hidden className="absolute -right-16 -top-24 size-72 rounded-full bg-[#1d4f3f]/70 blur-2xl" />
+        <div aria-hidden className="absolute -bottom-28 right-32 size-64 rounded-full bg-[#2e6b55]/40 blur-2xl" />
+        <div className="relative flex flex-wrap items-end justify-between gap-6">
+          <div className="min-w-0">
+            <p className="text-sm text-[#a9d5c2]">{fecha}{rol ? ` · ${rol}` : ""}</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Hola, {ctx.nombre.split(" ")[0]}</h1>
+            <p className="mt-1.5 text-sm text-white/75">{panel.plataforma ? "Así va la plataforma." : `Así va ${lugar} en ${mes}.`}</p>
+          </div>
+          {!panel.plataforma && (lotes.length > 0 || kgBodega > 0) && (
+            <dl className="flex gap-6 text-right">
+              <div><dt className="text-xs text-white/60">Lotes</dt><dd className="text-xl font-semibold tabular-nums">{lotes.length}</dd></div>
+              <div><dt className="text-xs text-white/60">Con café</dt><dd className="text-xl font-semibold tabular-nums">{lotes.filter((l) => l.estado !== "Sin sembrar").length}</dd></div>
+              {hectareas > 0 && <div><dt className="text-xs text-white/60">Hectáreas</dt><dd className="text-xl font-semibold tabular-nums">{cantidad(hectareas)}</dd></div>}
+            </dl>
+          )}
+          {panel.plataforma && <p className="text-sm text-white/75">{lugar}</p>}
+        </div>
+      </section>
 
       {(panel.insumosPorVencer ?? 0) > 0 && (
         <Link href="/sanidad" role="alert" className="flex items-center gap-3 rounded-xl border border-ambar/40 bg-ambar/5 p-4 text-sm font-medium text-tinta hover:bg-ambar/10">

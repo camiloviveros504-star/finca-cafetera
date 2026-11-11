@@ -16,10 +16,10 @@ export default async function PaginaLogin({ searchParams }: { searchParams: Prom
   const { instalado, cuenta } = await searchParams;
   return (
     <MarcoAcceso
-      titulo="Iniciar sesión"
-      subtitulo="Ingrese con el correo y la contraseña de su cuenta."
+      titulo="Bienvenido"
+      subtitulo="Ingrese a su cuenta para continuar."
       pie={
-        <p>¿No tiene cuenta o olvidó su contraseña? Pídale al administrador de su finca un enlace de acceso. Tras varios intentos fallidos el acceso se bloquea unos minutos.</p>
+        <p><strong className="font-semibold text-tinta">¿Olvidó su contraseña o no tiene cuenta?</strong> Pídale al administrador de su finca un enlace de acceso.</p>
       }
     >
       {(cuenta === "activada" || cuenta === "restablecida") && (

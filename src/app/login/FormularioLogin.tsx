@@ -7,7 +7,7 @@ import { accionIniciarSesion } from "./acciones";
 export function FormularioLogin() {
   const [estado, accion, pendiente] = useActionState(accionIniciarSesion, {});
   return (
-    <form action={accion} className="space-y-5" noValidate>
+    <form action={accion} className="space-y-5" noValidate aria-label="Iniciar sesión">
       <div>
         <label htmlFor="correo" className="mb-1.5 block text-sm font-medium">Correo</label>
         <div className="relative">
@@ -37,7 +37,7 @@ export function FormularioLogin() {
       <button
         type="submit"
         disabled={pendiente}
-        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-bosque px-4 text-base font-semibold text-white shadow-sm transition hover:bg-bosque/90 disabled:opacity-70"
+        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-bosque px-4 text-base font-semibold text-white shadow-md shadow-bosque/20 transition hover:bg-[#163f32] active:translate-y-px disabled:opacity-70"
       >
         {pendiente && <span aria-hidden className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />}
         {pendiente ? "Verificando…" : "Iniciar sesión"}
