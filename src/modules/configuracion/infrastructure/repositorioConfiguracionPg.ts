@@ -3,6 +3,14 @@ import { clienteDe } from "@/shared/infraestructura/baseDatos";
 import type { PrecioVigente, RepositorioConfiguracion } from "../domain/puertos";
 
 export class RepositorioConfiguracionPg implements RepositorioConfiguracion {
+  async parametro(tx: Transaccion, organizacionId: string, fincaId: string, clave: string): Promise<string | null> {
+    const r = await clienteDe(tx).query(
+      "SELECT valor #>> '{}' AS valor FROM parametro WHERE organizacion_id = $1 AND clave = $3 AND (finca_id = $2 OR finca_id IS NULL) ORDER BY finca_id NULLS LAST LIMIT 1",
+      [organizacionId, fincaId, clave],
+    );
+    return r.rows[0] ? (r.rows[0].valor as string) : null;
+  }
+
   async tarifaPagoVigente(tx: Transaccion, organizacionId: string, fincaId: string, trabajadorId: string, tipo: string, fecha: string): Promise<PrecioVigente | null> {
     const r = await clienteDe(tx).query(
       `SELECT v.valor, v.id

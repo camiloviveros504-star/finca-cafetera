@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ErrorProhibido, listarVentas, servicios } from "@/composicion";
+import { FormularioGenerico } from "../../_componentes/FormularioGenerico";
 import { fechaHora, moneda } from "../../_servidor/formatos";
+import { accionAnularVenta } from "./acciones";
 import { exigirContexto } from "../../_servidor/sesion";
 
 export const metadata = { title: "Ventas · Gestión de Finca Cafetera" };
@@ -33,13 +35,18 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
           <ul className="space-y-3 md:hidden">
             {datos.filas.map((v) => (
               <li key={v.id} className="rounded-xl border-2 border-cafe/20 bg-white p-3">
-                <p className="font-bold">Comprobante {v.numeroComprobante} · {moneda(v.total)}</p>
+                <p className="font-bold">Comprobante {v.numeroComprobante} · {moneda(v.total)}{v.estado === "anulada" ? " · ANULADA" : ""}</p>
                 <p className="text-sm">{v.clienteNombre} · {v.fincaNombre}</p>
                 <p className="text-xs">{fechaHora(v.fecha)}</p>
                 {ctx.permisos.has("trazabilidad:ver") && (
                   <Link href={`/trazabilidad/${v.id}`} className="mt-2 inline-flex min-h-11 items-center font-bold text-cafetal underline">
                     Ver trazabilidad
                   </Link>
+                )}
+                {ctx.permisos.has("venta:anular") && v.estado === "confirmada" && (
+                  <details className="mt-2"><summary className="min-h-11 cursor-pointer font-semibold text-cereza">Anular</summary>
+                    <FormularioGenerico compacto accion={accionAnularVenta} boton="Confirmar anulación" ocultos={{ ventaId: v.id }} campos={[{ nombre: "motivo", etiqueta: "Motivo (mínimo 10 caracteres)", requerido: true }]} />
+                  </details>
                 )}
               </li>
             ))}
@@ -60,7 +67,7 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
               <tbody>
                 {datos.filas.map((v) => (
                   <tr key={v.id} className="border-b border-cafe/15 bg-white">
-                    <td className="p-3">{v.numeroComprobante}</td>
+                    <td className="p-3">{v.numeroComprobante}{v.estado === "anulada" ? " (anulada)" : ""}</td>
                     <td className="p-3">{fechaHora(v.fecha)}</td>
                     <td className="p-3">{v.clienteNombre}</td>
                     <td className="hidden p-3 lg:table-cell">{v.fincaNombre}</td>
@@ -68,6 +75,11 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
                     <td className="p-3">
                       {ctx.permisos.has("trazabilidad:ver") && (
                         <Link href={`/trazabilidad/${v.id}`} className="font-bold text-cafetal underline">Trazabilidad</Link>
+                      )}
+                      {ctx.permisos.has("venta:anular") && v.estado === "confirmada" && (
+                        <details className="mt-1"><summary className="cursor-pointer font-semibold text-cereza">Anular</summary>
+                          <FormularioGenerico compacto accion={accionAnularVenta} boton="Confirmar" ocultos={{ ventaId: v.id }} campos={[{ nombre: "motivo", etiqueta: "Motivo (mín. 10)", requerido: true }]} />
+                        </details>
                       )}
                     </td>
                   </tr>

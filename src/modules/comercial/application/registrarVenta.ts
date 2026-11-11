@@ -10,6 +10,7 @@ import {
   ErrorNegocio,
   ErrorNoEncontrado,
   ErrorValidacion,
+  ErrorRegla,
 } from "@/shared/dominio/errores";
 import { fechaColombia } from "@/shared/dominio/fechas";
 import { obtenerPrecioVigente } from "@/modules/configuracion/application/consultas";
@@ -36,6 +37,8 @@ export const esquemaVenta = z.object({
   clienteId: z.string().uuid(),
   claveIdempotencia: z.string().min(8).max(100),
   nota: z.string().max(500).optional(),
+  /** Descuento autorizado (%): requiere permiso `venta:descontar` y no puede superar el máximo configurado. */
+  descuentoPct: z.string().regex(/^\d{1,3}(\.\d{1,2})?$/, "Descuento inválido").optional(),
   items: z
     .array(
       z.object({
@@ -78,6 +81,11 @@ export async function registrarVenta(
     fincaId: entrada.fincaId,
   });
 
+  const descuentoBp = entrada.descuentoPct ? aEscala(entrada.descuentoPct, 2) : 0n; // porcentaje con 2 decimales
+  if (descuentoBp > 0n) {
+    await autorizar(deps.auditor, ctx, "venta:descontar", { accion: "venta.descontar", entidad: "venta", fincaId: entrada.fincaId });
+  }
+
   const repetir = (): Promise<VentaRegistrada | null> =>
     deps.uow.consultar((tx) => deps.ventas.buscarPorClave(tx, ctx.organizacionId, entrada.claveIdempotencia));
 
@@ -101,6 +109,12 @@ export async function registrarVenta(
         nota: entrada.nota,
       });
 
+      if (descuentoBp > 0n) {
+        const maximo = await deps.configuracion.parametro(tx, ctx.organizacionId, entrada.fincaId, "descuento_maximo_pct");
+        if (maximo === null || descuentoBp > aEscala(maximo, 2)) {
+          throw new ErrorRegla(`El descuento supera el máximo autorizado (${maximo ?? "0"} %)`, "descuento_excede_maximo");
+        }
+      }
       const hoy = fechaColombia();
       const precios = new Map<string, { valor: string; tarifaVersionId: string }>();
       for (const productoId of new Set(entrada.items.map((i) => i.productoId))) {
@@ -122,11 +136,14 @@ export async function registrarVenta(
       });
 
       let total = 0n;
+      let descuentoTotal = 0n;
       for (const s of salidas) {
         const precio = precios.get(s.productoId);
         if (!precio) throw new ErrorValidacion("Producto sin precio");
         const subtotal = multiplicarCantidadPorPrecio(aEscala(s.cantidad, ESCALA_CANTIDAD), aEscala(precio.valor, ESCALA_MONTO));
-        total += subtotal;
+        const descuento = (subtotal * descuentoBp + 5000n) / 10000n;
+        descuentoTotal += descuento;
+        total += subtotal - descuento;
         await deps.ventas.insertarDetalle(tx, {
           ventaId,
           productoId: s.productoId,
@@ -136,11 +153,12 @@ export async function registrarVenta(
           cantidad: s.cantidad,
           precioUnitario: precio.valor,
           tarifaVersionId: precio.tarifaVersionId,
-          subtotal: deElSubtotal(subtotal),
+          descuento: deElSubtotal(descuento),
+          subtotal: deElSubtotal(subtotal - descuento),
           movimientoId: s.movimientoId,
         });
       }
-      await deps.ventas.fijarTotal(tx, ventaId, deElSubtotal(total));
+      await deps.ventas.fijarTotal(tx, ventaId, deElSubtotal(total), deElSubtotal(descuentoTotal));
 
       await deps.auditor.registrar(
         {
@@ -150,7 +168,7 @@ export async function registrarVenta(
           entidad: "venta",
           entidadId: ventaId,
           resultado: "ok",
-          despues: { total: deElSubtotal(total), lineas: salidas.length },
+          despues: { total: deElSubtotal(total), descuento: deElSubtotal(descuentoTotal), lineas: salidas.length },
           ip: ctx.ip,
         },
         tx,

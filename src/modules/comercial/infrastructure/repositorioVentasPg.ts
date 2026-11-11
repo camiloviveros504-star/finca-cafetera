@@ -82,14 +82,14 @@ export class RepositorioVentasPg implements RepositorioVentas {
 
   async insertarDetalle(tx: Transaccion, d: NuevoDetalle): Promise<void> {
     await clienteDe(tx).query(
-      `INSERT INTO venta_detalle (venta_id, producto_id, lote_id, finca_id, bodega_id, cantidad, precio_unitario, tarifa_version_id, subtotal, movimiento_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-      [d.ventaId, d.productoId, d.loteId, d.fincaId, d.bodegaId, d.cantidad, d.precioUnitario, d.tarifaVersionId, d.subtotal, d.movimientoId],
+      `INSERT INTO venta_detalle (venta_id, producto_id, lote_id, finca_id, bodega_id, cantidad, precio_unitario, tarifa_version_id, descuento, subtotal, movimiento_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+      [d.ventaId, d.productoId, d.loteId, d.fincaId, d.bodegaId, d.cantidad, d.precioUnitario, d.tarifaVersionId, d.descuento, d.subtotal, d.movimientoId],
     );
   }
 
-  async fijarTotal(tx: Transaccion, ventaId: string, total: string): Promise<void> {
-    await clienteDe(tx).query("UPDATE venta SET total = $2 WHERE id = $1", [ventaId, total]);
+  async fijarTotal(tx: Transaccion, ventaId: string, total: string, descuentoTotal: string): Promise<void> {
+    await clienteDe(tx).query("UPDATE venta SET total = $2, descuento_total = $3 WHERE id = $1", [ventaId, total, descuentoTotal]);
   }
 
   async obtener(tx: Transaccion, organizacionId: string, ventaId: string): Promise<VentaRegistrada | null> {

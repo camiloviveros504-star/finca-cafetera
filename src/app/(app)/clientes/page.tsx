@@ -40,6 +40,7 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
               <p className="font-bold">{c.nombre}</p>
               <p className="text-sm">{[c.documento, c.telefono, c.correo].filter(Boolean).join(" · ") || "Sin datos de contacto"}</p>
               <p className="text-xs">{c.autorizoEn ? "Tratamiento de datos autorizado" : "Sin autorización registrada"}</p>
+              {ctx.permisos.has("datos_personales:gestionar") && <Link href={`/clientes/${c.id}`} className="mt-1 inline-flex min-h-11 items-center text-sm font-bold text-cafetal underline">Datos personales (Ley 1581)</Link>}
             </li>
           ))}
         </ul>

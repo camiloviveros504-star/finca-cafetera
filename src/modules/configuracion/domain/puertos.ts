@@ -6,6 +6,8 @@ export interface PrecioVigente {
 }
 
 export interface RepositorioConfiguracion {
+  /** Parámetro operativo numérico: el de la finca prevalece sobre el general. Null si no está configurado. */
+  parametro(tx: Transaccion, organizacionId: string, fincaId: string, clave: string): Promise<string | null>;
   /** Tarifa de pago vigente en la fecha. Prefiere la del trabajador, luego la de la finca y por último la general. */
   tarifaPagoVigente(
     tx: Transaccion,

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ErrorProhibido, listarFincasYLotes, listarTrabajadores, servicios } from "@/composicion";
 import { EncabezadoModulo } from "../../_componentes/EncabezadoModulo";
 import { FormularioGenerico } from "../../_componentes/FormularioGenerico";
@@ -89,6 +90,7 @@ export default async function Trabajadores() {
         {lista.map((w) => (
           <li key={w.id} className="rounded-xl border-2 border-cafe/20 bg-white p-3">
             <p className="font-extrabold">{w.nombre} <span className="text-sm font-normal">· {w.documento}</span></p>
+            {ctx.permisos.has("datos_personales:gestionar") && <Link href={`/trabajadores/${w.id}`} className="inline-flex min-h-11 items-center text-sm font-bold text-cafetal underline">Datos personales (Ley 1581)</Link>}
             <p className="text-sm">{w.vinculaciones.length === 0 ? "Sin vinculación" : w.vinculaciones.map((v) => `${v.fincaNombre} (${v.modalidad})`).join(" · ")}</p>
             <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
               <dt>Pendientes de validar</dt><dd className="text-right font-bold">{w.registrosPendientes}</dd>

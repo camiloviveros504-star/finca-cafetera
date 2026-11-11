@@ -43,6 +43,7 @@ export interface NuevoDetalle {
   cantidad: string;
   precioUnitario: string;
   tarifaVersionId: string;
+  descuento: string;
   subtotal: string;
   movimientoId: string;
 }
@@ -63,7 +64,7 @@ export interface RepositorioVentas {
     v: { id: string; organizacionId: string; fincaId: string; clienteId: string; clave: string; creadoPor: string; nota?: string },
   ): Promise<void>;
   insertarDetalle(tx: Transaccion, d: NuevoDetalle): Promise<void>;
-  fijarTotal(tx: Transaccion, ventaId: string, total: string): Promise<void>;
+  fijarTotal(tx: Transaccion, ventaId: string, total: string, descuentoTotal: string): Promise<void>;
   obtener(tx: Transaccion, organizacionId: string, ventaId: string): Promise<VentaRegistrada | null>;
   listar(
     tx: Transaccion,

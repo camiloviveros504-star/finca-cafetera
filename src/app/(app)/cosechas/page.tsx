@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ErrorProhibido, listarCosechas, servicios } from "@/composicion";
+import { FormularioGenerico } from "../../_componentes/FormularioGenerico";
 import { cantidad } from "../../_servidor/formatos";
+import { accionAnularCosecha } from "./acciones";
 import { exigirContexto } from "../../_servidor/sesion";
 
 export const metadata = { title: "Cosechas · Gestión de Finca Cafetera" };
@@ -32,9 +34,14 @@ export default async function Cosechas({ searchParams }: { searchParams: Promise
         <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {datos.filas.map((c) => (
             <li key={c.id} className="rounded-xl border-2 border-cafe/20 bg-white p-3">
-              <p className="font-bold">{c.productoNombre}</p>
+              <p className="font-bold">{c.productoNombre}{c.estado === "anulada" ? " · ANULADA" : ""}</p>
               <p className="text-sm">Lote {c.loteCodigo} · {c.fecha}</p>
-              <p className="mt-1 text-lg font-extrabold">{cantidad(c.cantidad)} {c.unidadCodigo}</p>
+              <p className={`mt-1 text-lg font-extrabold ${c.estado === "anulada" ? "line-through opacity-60" : ""}`}>{cantidad(c.cantidad)} {c.unidadCodigo}</p>
+              {ctx.permisos.has("cosecha:anular") && c.estado === "confirmada" && (
+                <details className="mt-2"><summary className="min-h-11 cursor-pointer font-semibold text-cereza">Anular</summary>
+                  <FormularioGenerico compacto accion={accionAnularCosecha} boton="Confirmar anulación" ocultos={{ cosechaId: c.id }} campos={[{ nombre: "motivo", etiqueta: "Motivo (mínimo 10 caracteres)", requerido: true }]} />
+                </details>
+              )}
             </li>
           ))}
         </ul>

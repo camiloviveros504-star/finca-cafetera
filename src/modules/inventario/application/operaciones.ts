@@ -262,51 +262,64 @@ export async function transformar(deps: DependenciasOperaciones, ctx: ContextoUs
 const esquemaReverso = z.object({ movimientoId: uuid, motivo });
 
 /**
+ * Revierte un movimiento dentro de la transacción del llamador (anulación de una venta o de una cosecha). Inserta un
+ * movimiento de reverso (nunca edita ni borra el original), ajusta el saldo y nunca deja existencias negativas.
+ */
+export async function reversarEnTransaccion(
+  deps: DependenciasOperaciones,
+  tx: Transaccion,
+  ctx: ContextoUsuario,
+  movimientoId: string,
+  motivo: string,
+  origenesPermitidos: string[],
+): Promise<string> {
+  const original = await deps.ops.obtenerMovimiento(tx, ctx.organizacionId, movimientoId);
+  if (!original || !ctx.fincaIds.includes(original.fincaId)) throw new ErrorNoEncontrado("Movimiento");
+  if (!origenesPermitidos.includes(original.origenTipo) || original.tipo === "reverso") {
+    throw new ErrorRegla("Este movimiento no se puede reversar directamente", "no_reversible");
+  }
+  const saldo = await deps.ops.bloquearSaldoExacto(tx, { bodegaId: original.bodegaId, productoId: original.productoId, loteId: original.loteId });
+  if (await deps.ops.yaReversado(tx, original.id)) throw new ErrorRegla("El movimiento ya fue reversado", "ya_reversado");
+  const delta = aEscala(original.delta, ESCALA_CANTIDAD);
+  const reverso = -delta;
+  if (reverso < 0n) {
+    const disponible = saldo ? aEscala(saldo.cantidad, ESCALA_CANTIDAD) : 0n;
+    if (!saldo || disponible < -reverso) throw new ErrorRegla("No se puede reversar: dejaría existencias negativas", "reverso_deja_negativo");
+    await deps.repo.descontarSaldo(tx, saldo.id, deEscala(-reverso, ESCALA_CANTIDAD));
+  } else {
+    await deps.repo.acreditarSaldo(tx, { organizacionId: ctx.organizacionId, fincaId: original.fincaId, bodegaId: original.bodegaId, productoId: original.productoId, loteId: original.loteId, cantidad: deEscala(reverso, ESCALA_CANTIDAD) });
+  }
+  const id = await deps.ops.insertarMovimientoConClave(tx, {
+    organizacionId: ctx.organizacionId,
+    fincaId: original.fincaId,
+    bodegaId: original.bodegaId,
+    productoId: original.productoId,
+    loteId: original.loteId,
+    tipo: "reverso",
+    delta: deEscala(reverso, ESCALA_CANTIDAD),
+    origenTipo: "reverso",
+    origenId: original.id,
+    revierteA: original.id,
+    creadoPor: ctx.usuarioId,
+    nota: motivo,
+    clave: null,
+  });
+  await deps.auditor.registrar(
+    { organizacionId: ctx.organizacionId, usuarioId: ctx.usuarioId, accion: "inventario.reversar", entidad: "movimiento_inventario", entidadId: id, resultado: "ok", antes: { movimientoId: original.id, delta: original.delta }, despues: { delta: deEscala(reverso, ESCALA_CANTIDAD), motivo }, ip: ctx.ip },
+    tx,
+  );
+  return id;
+}
+
+/**
  * Los movimientos confirmados no se editan ni se borran: se corrigen con un reverso auditado.
- * Solo se reversan ajustes y movimientos manuales; ventas, cosechas y transformaciones tienen su propio flujo.
+ * Aquí solo se reversan ajustes y movimientos manuales; ventas y cosechas se corrigen anulándolas (tienen su propio flujo).
  */
 export async function reversarMovimiento(deps: DependenciasOperaciones, ctx: ContextoUsuario, cruda: unknown) {
   const e = validar(esquemaReverso, cruda, "Revise los datos del reverso");
   await autorizar(deps.auditor, ctx, "inventario:reversar", { accion: "inventario.reversar", entidad: "movimiento_inventario" });
   try {
-    return await deps.uow.ejecutar(async (tx) => {
-      const original = await deps.ops.obtenerMovimiento(tx, ctx.organizacionId, e.movimientoId);
-      if (!original || !ctx.fincaIds.includes(original.fincaId)) throw new ErrorNoEncontrado("Movimiento");
-      if (!["ajuste", "manual"].includes(original.origenTipo) || original.tipo === "reverso") {
-        throw new ErrorRegla("Este movimiento no se puede reversar directamente", "no_reversible");
-      }
-      const saldo = await deps.ops.bloquearSaldoExacto(tx, { bodegaId: original.bodegaId, productoId: original.productoId, loteId: original.loteId });
-      if (await deps.ops.yaReversado(tx, original.id)) throw new ErrorRegla("El movimiento ya fue reversado", "ya_reversado");
-      const delta = aEscala(original.delta, ESCALA_CANTIDAD);
-      const reverso = -delta;
-      if (reverso < 0n) {
-        const disponible = saldo ? aEscala(saldo.cantidad, ESCALA_CANTIDAD) : 0n;
-        if (!saldo || disponible < -reverso) throw new ErrorRegla("No se puede reversar: dejaría existencias negativas", "reverso_deja_negativo");
-        await deps.repo.descontarSaldo(tx, saldo.id, deEscala(-reverso, ESCALA_CANTIDAD));
-      } else {
-        await deps.repo.acreditarSaldo(tx, { organizacionId: ctx.organizacionId, fincaId: original.fincaId, bodegaId: original.bodegaId, productoId: original.productoId, loteId: original.loteId, cantidad: deEscala(reverso, ESCALA_CANTIDAD) });
-      }
-      const id = await deps.ops.insertarMovimientoConClave(tx, {
-        organizacionId: ctx.organizacionId,
-        fincaId: original.fincaId,
-        bodegaId: original.bodegaId,
-        productoId: original.productoId,
-        loteId: original.loteId,
-        tipo: "reverso",
-        delta: deEscala(reverso, ESCALA_CANTIDAD),
-        origenTipo: "reverso",
-        origenId: original.id,
-        revierteA: original.id,
-        creadoPor: ctx.usuarioId,
-        nota: e.motivo,
-        clave: null,
-      });
-      await deps.auditor.registrar(
-        { organizacionId: ctx.organizacionId, usuarioId: ctx.usuarioId, accion: "inventario.reversar", entidad: "movimiento_inventario", entidadId: id, resultado: "ok", antes: { movimientoId: original.id, delta: original.delta }, despues: { delta: deEscala(reverso, ESCALA_CANTIDAD), motivo: e.motivo }, ip: ctx.ip },
-        tx,
-      );
-      return { reversoId: id };
-    });
+    return await deps.uow.ejecutar(async (tx) => ({ reversoId: await reversarEnTransaccion(deps, tx, ctx, e.movimientoId, e.motivo, ["ajuste", "manual"]) }));
   } catch (error) {
     await auditarError(deps, ctx, "inventario.reversar", error);
     throw error;

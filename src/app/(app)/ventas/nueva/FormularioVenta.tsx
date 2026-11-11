@@ -7,11 +7,12 @@ interface Props {
   fincas: { id: string; nombre: string }[];
   clientes: { id: string; nombre: string }[];
   productos: { id: string; codigo: string; nombre: string }[];
+  permiteDescuento?: boolean;
 }
 
 const campo = "min-h-11 w-full rounded-lg border-2 border-cafe/40 bg-white px-3 text-base focus:border-cafetal";
 
-export function FormularioVenta({ fincas, clientes, productos }: Props) {
+export function FormularioVenta({ fincas, clientes, productos, permiteDescuento = false }: Props) {
   const [estado, accion, pendiente] = useActionState(accionRegistrarVenta, {});
   // Clave de idempotencia generada una vez por formulario: un reintento no duplica la venta.
   const [clave] = useState(() => crypto.randomUUID());
@@ -41,6 +42,13 @@ export function FormularioVenta({ fincas, clientes, productos }: Props) {
         <input id="cantidad" name="cantidad" inputMode="decimal" autoComplete="off" required placeholder="0" className={campo} aria-describedby="ayuda-cantidad" />
         <p id="ayuda-cantidad" className="mt-1 text-xs">El precio lo define la tarifa vigente; no se escribe aquí.</p>
       </div>
+      {permiteDescuento && (
+        <div>
+          <label htmlFor="descuentoPct" className="mb-1 block text-sm font-semibold">Descuento autorizado (%)</label>
+          <input id="descuentoPct" name="descuentoPct" inputMode="decimal" autoComplete="off" placeholder="0" className={campo} aria-describedby="ayuda-descuento" />
+          <p id="ayuda-descuento" className="mt-1 text-xs">No puede superar el máximo configurado por el administrador.</p>
+        </div>
+      )}
       {estado.error && (
         <p role="alert" className="rounded-lg border-2 border-cereza bg-white p-3 text-sm font-semibold text-cereza md:col-span-2">
           {estado.error}

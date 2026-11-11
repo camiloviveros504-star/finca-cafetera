@@ -5,6 +5,8 @@ import {
   crearTrabajador,
   crearVinculacion,
   liquidarPeriodo,
+  anonimizarTrabajador,
+  rectificarTrabajador,
   registrarAnticipo,
   registrarPagoTrabajador,
   registrarTrabajo,
@@ -123,5 +125,19 @@ export async function accionPagarTrabajador(_p: EstadoFormulario, d: FormData) {
       fecha: t(d, "fecha"),
       claveIdempotencia: t(d, "claveIdempotencia") || undefined,
     }),
+  );
+}
+
+export async function accionRectificarTrabajador(_p: EstadoFormulario, d: FormData) {
+  const ctx = await exigirContexto();
+  return ejecutar(["/trabajadores"], "Datos rectificados.", () =>
+    rectificarTrabajador(servicios().derechosTrabajador, ctx, { trabajadorId: t(d, "trabajadorId"), nombres: t(d, "nombres") || undefined, apellidos: t(d, "apellidos") || undefined, telefono: t(d, "telefono") }),
+  );
+}
+
+export async function accionAnonimizarTrabajador(_p: EstadoFormulario, d: FormData) {
+  const ctx = await exigirContexto();
+  return ejecutar(["/trabajadores"], "Datos personales suprimidos (anonimizados). Las liquidaciones y pagos conservan su valor.", () =>
+    anonimizarTrabajador(servicios().derechosTrabajador, ctx, { trabajadorId: t(d, "trabajadorId"), motivo: t(d, "motivo") }),
   );
 }

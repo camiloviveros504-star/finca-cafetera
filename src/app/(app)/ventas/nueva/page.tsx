@@ -11,7 +11,7 @@ export default async function NuevaVenta() {
     return (
       <section>
         <h1 className="mb-4 text-2xl font-extrabold">Registrar venta</h1>
-        <FormularioVenta {...opciones} />
+        <FormularioVenta {...opciones} permiteDescuento={ctx.permisos.has("venta:descontar")} />
       </section>
     );
   } catch (error) {

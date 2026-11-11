@@ -4,6 +4,14 @@
  */
 import type { Pool } from "pg";
 import { AuditorPg } from "@/modules/auditoria/infrastructure/auditorPg";
+import { RepositorioAnulacionPg } from "@/modules/comercial/infrastructure/repositorioAnulacionPg";
+import { RepositorioDerechosPg } from "@/modules/comercial/infrastructure/repositorioDerechosPg";
+import type { DependenciasDerechosCliente } from "@/modules/comercial/application/derechosCliente";
+import { RepositorioDerechosTrabajadorPg } from "@/modules/talento/infrastructure/repositorioDerechosPg";
+import type { DependenciasDerechosTrabajador } from "@/modules/talento/application/derechosTrabajador";
+import type { DependenciasAnulacionVenta } from "@/modules/comercial/application/anularVenta";
+import { RepositorioAnulacionCosechaPg } from "@/modules/produccion/infrastructure/repositorioAnulacionPg";
+import type { DependenciasAnulacionCosecha } from "@/modules/produccion/application/anularCosecha";
 import { RepositorioConfiguracionPg } from "@/modules/configuracion/infrastructure/repositorioConfiguracionPg";
 import { RepositorioTarifasPg } from "@/modules/configuracion/infrastructure/repositorioTarifasPg";
 import type { DependenciasTarifas } from "@/modules/configuracion/application/tarifas";
@@ -61,6 +69,10 @@ export interface Servicios {
   finanzas: DependenciasFinanzas;
   pagos: DependenciasPagos;
   agricola: DependenciasAgricola;
+  derechosCliente: DependenciasDerechosCliente;
+  derechosTrabajador: DependenciasDerechosTrabajador;
+  anulacionVenta: DependenciasAnulacionVenta;
+  anulacionCosecha: DependenciasAnulacionCosecha;
   ajustes: DependenciasAjustes;
   usuarios: DependenciasUsuarios;
   auditoria: DependenciasAuditoria;
@@ -84,6 +96,10 @@ export function crearServicios(pool: Pool): Servicios {
     beneficio: { repo: new RepositorioBeneficioPg(), operaciones, uow, auditor },
     finanzas: { repo: new RepositorioFinanzasPg(), uow, auditor },
     pagos: { repo: new RepositorioPagosPg(), uow, auditor },
+    derechosCliente: { repo: new RepositorioDerechosPg(), uow, auditor },
+    derechosTrabajador: { repo: new RepositorioDerechosTrabajadorPg(), uow, auditor },
+    anulacionVenta: { repo: new RepositorioAnulacionPg(), operaciones, uow, auditor },
+    anulacionCosecha: { repo: new RepositorioAnulacionCosechaPg(), operaciones, uow, auditor },
     ajustes: { repo: new RepositorioAjustesPg(), uow, auditor },
     usuarios: { repo: new RepositorioUsuariosPg(), cifrar: cifrarContrasena, uow, auditor },
     auditoria: { consulta: new ConsultaAuditoriaPg(), uow, auditor },
@@ -144,5 +160,9 @@ export {
 } from "@/modules/configuracion/application/ajustes";
 export { listarUsuarios, crearUsuario, asignarRolesYFincas, cambiarEstadoUsuario, restablecerContrasena, cambiarPermisoExtra, type FilaPermiso, type FilaRol, type FilaUsuario } from "@/modules/identidad/application/usuarios";
 export { consultarAuditoria, type FilaAuditoria, type FiltroAuditoria } from "@/modules/auditoria/application/consultarAuditoria";
+export { anularVenta } from "@/modules/comercial/application/anularVenta";
+export { exportarDatosCliente, rectificarCliente, anonimizarCliente } from "@/modules/comercial/application/derechosCliente";
+export { exportarDatosTrabajador, rectificarTrabajador, anonimizarTrabajador } from "@/modules/talento/application/derechosTrabajador";
+export { anularCosecha } from "@/modules/produccion/application/anularCosecha";
 export * from "@/shared/dominio/errores";
 export type { ContextoUsuario } from "@/shared/dominio/contexto";
