@@ -67,6 +67,7 @@ export interface FilaLiquidacion {
 export interface RepositorioTalento {
   crearTrabajador(tx: Transaccion, t: { organizacionId: string; tipoDocumento: string; numeroDocumento: string; nombres: string; apellidos: string; telefono?: string; usuarioId?: string; finalidad: string; creadoPor: string }): Promise<string>;
   crearVinculacion(tx: Transaccion, v: { organizacionId: string; trabajadorId: string; fincaId: string; modalidad: Modalidad; cargo?: string; desde: string; hasta?: string }): Promise<string>;
+  vincularUsuario(tx: Transaccion, organizacionId: string, trabajadorId: string, usuarioId: string): Promise<"ok" | "trabajador_con_usuario" | "usuario_ya_vinculado" | "no_encontrado">;
   listarTrabajadores(tx: Transaccion, organizacionId: string, fincaIds: readonly string[], soloUsuarioId?: string): Promise<FilaTrabajador[]>;
   trabajadorDeUsuario(tx: Transaccion, organizacionId: string, usuarioId: string): Promise<string | null>;
   trabajadorUsuario(tx: Transaccion, organizacionId: string, trabajadorId: string): Promise<{ existe: boolean; usuarioId: string | null }>;

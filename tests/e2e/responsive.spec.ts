@@ -26,7 +26,7 @@ const RUTAS = [
 async function entrar(page: Page, correo: string) {
   await page.goto("/login");
   await page.getByLabel("Correo").fill(correo);
-  await page.getByLabel("Contraseña").fill("Demo-2026!");
+  await page.getByLabel("Contraseña", { exact: true }).fill("Demo-2026!");
   await page.getByRole("button", { name: "Iniciar sesión" }).click();
   await page.waitForURL("**/inicio");
 }

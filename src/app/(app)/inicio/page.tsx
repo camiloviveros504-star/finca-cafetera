@@ -1,12 +1,25 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { obtenerPanel, servicios } from "@/composicion";
 import { cantidad, moneda } from "../../_servidor/formatos";
 import { exigirContexto } from "../../_servidor/sesion";
 
 export const metadata = { title: "Inicio · Gestión de Finca Cafetera" };
 
+const PANEL_PROPIO = ["administrador", "encargado_produccion", "responsable_comercial"];
+const DESTINO_POR_ROL: [string, string][] = [
+  ["recolector", "/trabajo"],
+  ["supervisor_campo", "/trabajo"],
+  ["responsable_financiero", "/finanzas"],
+  ["responsable_bodega", "/inventario"],
+  ["auditor", "/auditoria"],
+];
+
 export default async function Inicio() {
   const ctx = await exigirContexto();
+  // Cada rol aterriza en su pantalla de trabajo; administrador, producción y comercial ven el panel.
+  const destino = DESTINO_POR_ROL.find(([rol]) => ctx.roles.includes(rol))?.[1];
+  if (destino && !ctx.roles.some((r) => PANEL_PROPIO.includes(r))) redirect(destino);
   const panel = await obtenerPanel(servicios().panel, ctx);
   const accesos = [
     { href: "/cosechas/nueva", texto: "Registrar cosecha", permiso: "cosecha:registrar" },

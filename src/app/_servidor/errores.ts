@@ -6,6 +6,9 @@ export interface EstadoFormulario {
   error?: string;
   campos?: Record<string, string>;
   mensaje?: string;
+  /** Enlace secreto de un solo uso para entregar a la persona (se muestra una vez, con botón de copiar). */
+  enlace?: string;
+  enlaceVence?: string;
 }
 
 /** Convierte un error en un mensaje seguro para el usuario: nunca expone detalles internos. */

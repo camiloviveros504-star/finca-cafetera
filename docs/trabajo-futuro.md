@@ -9,6 +9,9 @@ Todo lo que está aquí **no está construido** (o está construido solo en part
 | Detalle de cultivos y lotes | Edad y densidad calculadas, zoca, renovación con historial por lote | Hoy hay variedad, número de árboles, fecha de siembra y estado productivo |
 | Modalidad de pago "otras" | Modalidades de remuneración distintas de kg, arroba, jornada y actividad | El esquema usa cuatro modalidades con tarifa propia; agregar una exige una migración |
 | Flujos de beneficio largos desde la pantalla | La pantalla crea flujos de hasta 3 etapas (el caso de uso admite hasta 15) y registra un lote por envío | Priorizar el núcleo; el caso de uso ya soporta varios lotes |
+| Envío de correos de invitación | El enlace de activación lo entrega el administrador | No hay servicio de correo configurado |
+| Segundo factor de autenticación y prueba de penetración | No hay 2FA ni auditoría de seguridad externa | Alcance y presupuesto |
+| Política de contenido sin `'unsafe-inline'` | Requiere nonces por solicitud en Next.js | La hidratación actual los necesita |
 | Notas de crédito | Una venta con pagos no puede anularse; hay que resolver el cobro | Requiere un nuevo documento contable |
 | Reservas de inventario | Reservar existencias para un pedido con vencimiento | ADR-002 la descarta para el alcance actual; pedido → venta automático tampoco está |
 | Reportes en PDF | Solo CSV | El prompt dice "PDF solo si da tiempo" |

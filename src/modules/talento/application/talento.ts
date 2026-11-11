@@ -94,6 +94,24 @@ export async function crearVinculacion(deps: DependenciasTalento, ctx: ContextoU
   });
 }
 
+/**
+ * Vincula la cuenta de acceso de un usuario (rol recolector, supervisor, etc.) con su ficha de trabajador, para que vea y
+ * registre solo lo suyo. Requiere poder administrar trabajadores Y usuarios: nadie se concede acceso a sí mismo.
+ */
+export async function vincularUsuarioATrabajador(deps: DependenciasTalento, ctx: ContextoUsuario, cruda: unknown) {
+  const e = validar(z.object({ trabajadorId: z.string().uuid(), usuarioId: z.string().uuid() }), cruda, "Revise los datos del vínculo");
+  await autorizar(deps.auditor, ctx, "trabajador:administrar", { accion: "trabajador.vincular_usuario", entidad: "trabajador" });
+  await autorizar(deps.auditor, ctx, "usuario:administrar", { accion: "trabajador.vincular_usuario", entidad: "trabajador" });
+  return deps.uow.ejecutar(async (tx) => {
+    const r = await deps.repo.vincularUsuario(tx, ctx.organizacionId, e.trabajadorId, e.usuarioId);
+    if (r === "no_encontrado") throw new ErrorNoEncontrado("Trabajador o usuario");
+    if (r === "trabajador_con_usuario") throw new ErrorRegla("El trabajador ya tiene una cuenta de acceso", "trabajador_con_usuario");
+    if (r === "usuario_ya_vinculado") throw new ErrorRegla("Ese usuario ya está vinculado a otro trabajador", "usuario_ya_vinculado");
+    await registrarAuditoria(deps, ctx, tx, "trabajador.vincular_usuario", "trabajador", e.trabajadorId, { usuarioId: e.usuarioId });
+    return { ok: true };
+  });
+}
+
 export async function listarTrabajadores(deps: DependenciasTalento, ctx: ContextoUsuario) {
   const propio = !ctx.permisos.has("trabajador:ver") && ctx.permisos.has("trabajador:ver_propio");
   await autorizar(deps.auditor, ctx, propio ? "trabajador:ver_propio" : "trabajador:ver", { accion: "trabajador.listar", entidad: "trabajador" });

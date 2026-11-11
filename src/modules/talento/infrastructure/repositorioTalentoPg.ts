@@ -50,6 +50,21 @@ export class RepositorioTalentoPg implements RepositorioTalento {
     }
   }
 
+  async vincularUsuario(tx: Transaccion, organizacionId: string, trabajadorId: string, usuarioId: string) {
+    const c = clienteDe(tx);
+    const t = await c.query("SELECT usuario_id FROM trabajador WHERE id = $1 AND organizacion_id = $2 FOR UPDATE", [trabajadorId, organizacionId]);
+    const u = await c.query("SELECT 1 FROM usuario WHERE id = $1 AND organizacion_id = $2", [usuarioId, organizacionId]);
+    if (!t.rows[0] || !u.rows[0]) return "no_encontrado" as const;
+    if (t.rows[0].usuario_id) return "trabajador_con_usuario" as const;
+    try {
+      await c.query("UPDATE trabajador SET usuario_id = $2 WHERE id = $1", [trabajadorId, usuarioId]);
+    } catch (error) {
+      if (codigoError(error) === "23505") return "usuario_ya_vinculado" as const;
+      throw error;
+    }
+    return "ok" as const;
+  }
+
   async listarTrabajadores(tx: Transaccion, organizacionId: string, fincaIds: readonly string[], soloUsuarioId?: string): Promise<FilaTrabajador[]> {
     const r = await clienteDe(tx).query(
       `SELECT t.id, t.usuario_id, t.tipo_documento || ' ' || t.numero_documento AS documento,

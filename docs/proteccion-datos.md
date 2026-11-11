@@ -47,6 +47,28 @@ Cada medida está implementada y tiene prueba; no se afirma seguridad absoluta.
 - Secretos solo en variables de entorno; `.env` está en `.gitignore`.
 - Reportes CSV con neutralización de fórmulas y limitados a las fincas del usuario.
 
+### Alta de usuarios y recuperación de contraseña
+- **No hay registro público.** El administrador registra a la persona y define sus roles y fincas; el sistema genera un enlace de **un solo uso** que vence a las 72 horas, y la persona fija ella misma su contraseña. El administrador nunca conoce ni escribe la contraseña de nadie.
+- El token del enlace es aleatorio de 256 bits y solo se guarda su huella SHA-256; se consume dentro de una transacción con bloqueo (dos usos simultáneos: solo uno prospera); generar un enlace nuevo revoca los anteriores; al activar o restablecer se cierran las sesiones abiertas de esa cuenta.
+- Enlaces inválidos, vencidos o ya usados responden igual (sin revelar el motivo) y cuentan contra el límite de intentos por IP del inicio de sesión.
+- No hay envío de correos: el administrador entrega el enlace (limitación documentada; un servicio de correo transaccional queda como trabajo futuro).
+
+### Amenazas consideradas (qué se hizo y qué lo prueba)
+| Ataque | Defensa | Prueba |
+|---|---|---|
+| Adivinar contraseñas (fuerza bruta) | Bloqueo tras 5 fallos por cuenta y 20 por IP en 15 min; Argon2id; política de contraseñas (10+ caracteres, letras y números, sin palabras comunes ni el usuario del correo) | `seguridad-y-base.test.ts` (QA-06), `invitaciones.test.ts` |
+| Saber si un usuario existe (enumeración) | Misma respuesta y mismo trabajo (contraseña de relleno) exista o no | `seguridad-y-base.test.ts` |
+| Robar o reutilizar un enlace de activación | Un solo uso, vencimiento, huella en la base, revocación, bloqueo por intentos | `invitaciones.test.ts` |
+| Robo de sesión / XSS | Cookie httpOnly, Secure y SameSite; Content-Security-Policy; React escapa el contenido | `flujos.spec.ts`; cabeceras en `next.config.ts` |
+| CSRF | Verificación de origen en Server Actions; token de sesión en las rutas API | `flujos.spec.ts` (QA-05) |
+| Clickjacking | `frame-ancestors 'none'` y `X-Frame-Options: DENY` | cabeceras |
+| Inyección SQL | Todas las consultas son parametrizadas; los nombres de columnas dinámicos salen de listas fijas | revisión de código |
+| Escalar privilegios o ver otra finca | Autorización en el servidor por permiso y por finca en cada caso de uso | QA-05, QA-07 |
+| Inyección de fórmulas en CSV | Neutralización de `= + - @` | `csv.test.ts` |
+| Adueñarse de una instalación nueva | Código de instalación de un solo uso definido en el entorno | `instalacion.test.ts` |
+
+**Límite honesto:** ninguna lista de defensas hace un sistema "impenetrable". La política de contenido usa `'unsafe-inline'` en scripts por la hidratación de Next.js (sin nonces), no hay autenticación de dos factores ni detección de anomalías, y no se ha hecho una prueba de penetración externa. Esos puntos están en `trabajo-futuro.md`.
+
 ## 6. Conservación y copias de seguridad
 - **Tiempo de conservación:** no hay borrado automático. La política propuesta (a decidir por la organización) es conservar los datos mientras dure la relación comercial o laboral y el tiempo que exijan las obligaciones contables y tributarias, y luego suprimirlos con la función de anonimización. Está como **trabajo futuro** automatizar avisos de vencimiento.
 - **Copias de seguridad:** la base gratuita de Render **no incluye respaldos**. La estrategia está en [`despliegue.md`](despliegue.md): `pg_dump` manual antes de la sustentación y restauración con migraciones y semilla.

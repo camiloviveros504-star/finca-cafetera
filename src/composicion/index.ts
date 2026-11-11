@@ -4,6 +4,7 @@
  */
 import type { Pool } from "pg";
 import { AuditorPg } from "@/modules/auditoria/infrastructure/auditorPg";
+import type { DependenciasInvitaciones } from "@/modules/identidad/application/invitaciones";
 import { RepositorioInstalacionPg } from "@/modules/identidad/infrastructure/repositorioInstalacionPg";
 import type { DependenciasInstalacion } from "@/modules/identidad/application/instalacion";
 import { RepositorioAnulacionPg } from "@/modules/comercial/infrastructure/repositorioAnulacionPg";
@@ -72,6 +73,7 @@ export interface Servicios {
   pagos: DependenciasPagos;
   agricola: DependenciasAgricola;
   instalacion: DependenciasInstalacion;
+  invitaciones: DependenciasInvitaciones;
   derechosCliente: DependenciasDerechosCliente;
   derechosTrabajador: DependenciasDerechosTrabajador;
   anulacionVenta: DependenciasAnulacionVenta;
@@ -84,12 +86,13 @@ export interface Servicios {
 export function crearServicios(pool: Pool, opciones: { codigoInstalacion?: string } = {}): Servicios {
   const uow = new UnidadDeTrabajoPg(pool);
   const auditor = new AuditorPg(pool);
+  const identidadRepo = new RepositorioIdentidadPg(pool);
   const inventarioRepo = new RepositorioInventarioPg();
   const configuracion = new RepositorioConfiguracionPg();
   const operaciones: DependenciasOperaciones = { repo: inventarioRepo, ops: new RepositorioOperacionesPg(), uow, auditor };
   return {
     sesion: {
-      repo: new RepositorioIdentidadPg(pool),
+      repo: identidadRepo,
       contrasenas: { verificar: verificarContrasena, hashDeRelleno },
       auditor,
     },
@@ -99,6 +102,7 @@ export function crearServicios(pool: Pool, opciones: { codigoInstalacion?: strin
     beneficio: { repo: new RepositorioBeneficioPg(), operaciones, uow, auditor },
     finanzas: { repo: new RepositorioFinanzasPg(), uow, auditor },
     pagos: { repo: new RepositorioPagosPg(), uow, auditor },
+    invitaciones: { repo: new RepositorioUsuariosPg(), acceso: identidadRepo, cifrar: cifrarContrasena, uow, auditor },
     instalacion: { repo: new RepositorioInstalacionPg(), cifrar: cifrarContrasena, uow, auditor, codigoEsperado: opciones.codigoInstalacion ?? process.env.CODIGO_INSTALACION },
     derechosCliente: { repo: new RepositorioDerechosPg(), uow, auditor },
     derechosTrabajador: { repo: new RepositorioDerechosTrabajadorPg(), uow, auditor },
@@ -136,7 +140,7 @@ export { registrarAjuste, trasladar, transformar, reversarMovimiento, listarMovi
 export { registrarCosecha, listarCosechas, obtenerOpcionesRegistro } from "@/modules/produccion/application/cosechas";
 export { consultarTrazabilidadVenta } from "@/modules/trazabilidad/application/consultarTrazabilidad";
 export {
-  crearTrabajador, crearVinculacion, listarTrabajadores, registrarTrabajo, validarTrabajo, listarTrabajos,
+  crearTrabajador, crearVinculacion, vincularUsuarioATrabajador, listarTrabajadores, registrarTrabajo, validarTrabajo, listarTrabajos,
   registrarAnticipo, liquidarPeriodo, registrarPagoTrabajador, listarLiquidaciones,
   type FilaLiquidacion, type FilaRegistroTrabajo, type FilaTrabajador, type Modalidad,
 } from "@/modules/talento/application/talento";
@@ -164,6 +168,7 @@ export {
 } from "@/modules/configuracion/application/ajustes";
 export { listarUsuarios, crearUsuario, asignarRolesYFincas, cambiarEstadoUsuario, restablecerContrasena, cambiarPermisoExtra, type FilaPermiso, type FilaRol, type FilaUsuario } from "@/modules/identidad/application/usuarios";
 export { consultarAuditoria, type FilaAuditoria, type FiltroAuditoria } from "@/modules/auditoria/application/consultarAuditoria";
+export { invitarUsuario, emitirEnlace, consultarInvitacion, activarCuenta, DURACION_INVITACION_MS } from "@/modules/identidad/application/invitaciones";
 export { obtenerEstadoInstalacion, instalarSistema, LARGO_MINIMO_CODIGO } from "@/modules/identidad/application/instalacion";
 export { anularVenta } from "@/modules/comercial/application/anularVenta";
 export { exportarDatosCliente, rectificarCliente, anonimizarCliente } from "@/modules/comercial/application/derechosCliente";

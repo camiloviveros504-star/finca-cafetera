@@ -8,6 +8,7 @@ import { autorizar } from "@/shared/aplicacion/autorizar";
 import type { Auditor, UnidadDeTrabajo } from "@/shared/aplicacion/puertos";
 import type { ContextoUsuario } from "@/shared/dominio/contexto";
 import { ErrorNoEncontrado, ErrorRegla, ErrorValidacion } from "@/shared/dominio/errores";
+import { esquemaContrasena } from "@/shared/dominio/contrasena";
 import type { RepositorioUsuarios } from "../domain/usuarios";
 
 export interface DependenciasUsuarios {
@@ -25,11 +26,7 @@ function validar<T extends z.ZodTypeAny>(esquema: T, entrada: unknown, mensaje: 
   throw new ErrorValidacion(mensaje, campos);
 }
 const uuid = z.string().uuid();
-const contrasena = z
-  .string()
-  .min(10, "La contraseña debe tener al menos 10 caracteres")
-  .max(128)
-  .refine((v) => /[A-Za-z]/.test(v) && /\d/.test(v), "Use letras y números");
+const contrasena = esquemaContrasena();
 const auditar = (deps: DependenciasUsuarios, ctx: ContextoUsuario, tx: Parameters<Auditor["registrar"]>[1], accion: string, usuarioId: string, despues: unknown) =>
   deps.auditor.registrar({ organizacionId: ctx.organizacionId, usuarioId: ctx.usuarioId, accion, entidad: "usuario", entidadId: usuarioId, resultado: "ok", despues, ip: ctx.ip }, tx);
 
@@ -96,6 +93,7 @@ export async function cambiarEstadoUsuario(deps: DependenciasUsuarios, ctx: Cont
   await autorizar(deps.auditor, ctx, "usuario:administrar", { accion: "usuario.estado", entidad: "usuario" });
   return deps.uow.ejecutar(async (tx) => {
     const u = await cargarUsuario(deps, ctx, tx, e.usuarioId);
+    if (!u.activada) throw new ErrorRegla("La cuenta aún no fue activada por la persona; genere un nuevo enlace en vez de cambiar su estado", "cuenta_pendiente");
     if (!e.activo) {
       if (u.id === ctx.usuarioId) throw new ErrorRegla("No puede desactivar su propio usuario", "autoexclusion");
       if (u.roles.includes("administrador") && (await deps.repo.contarAdministradoresActivos(tx, ctx.organizacionId)) <= 1) throw new ErrorRegla("La organización debe conservar al menos un administrador", "ultimo_administrador");

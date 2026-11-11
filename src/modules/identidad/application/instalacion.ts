@@ -6,6 +6,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import type { Auditor, UnidadDeTrabajo } from "@/shared/aplicacion/puertos";
+import { problemaDeContrasena } from "@/shared/dominio/contrasena";
 import { ErrorProhibido, ErrorRegla, ErrorValidacion } from "@/shared/dominio/errores";
 import type { RepositorioInstalacion } from "../domain/instalacion";
 
@@ -31,11 +32,7 @@ const esquema = z.object({
   finca: z.string().trim().min(3, "Indique el nombre de la primera finca").max(120),
   nombre: z.string().trim().min(3, "Indique el nombre del administrador").max(100),
   correo: z.string().trim().toLowerCase().email("Correo inválido").max(120),
-  contrasena: z
-    .string()
-    .min(10, "La contraseña debe tener al menos 10 caracteres")
-    .max(128)
-    .refine((v) => /[A-Za-z]/.test(v) && /\d/.test(v), "Use letras y números"),
+  contrasena: z.string().min(1, "Ingrese una contraseña"),
   autorizaTratamiento: z.literal(true, { message: "Debe aceptar el tratamiento de sus datos personales" }),
 });
 
@@ -53,6 +50,8 @@ export async function instalarSistema(deps: DependenciasInstalacion, cruda: unkn
     throw new ErrorValidacion("Revise los datos de la instalación", campos);
   }
   const e = r.data;
+  const problema = problemaDeContrasena(e.contrasena, e.correo);
+  if (problema) throw new ErrorValidacion("Revise los datos de la instalación", { contrasena: problema });
   // Comparación en tiempo constante y una pausa ante un código errado para frenar la adivinación.
   if (!timingSafeEqual(huella(e.codigo), huella(deps.codigoEsperado ?? ""))) {
     await deps.auditor.registrar({ organizacionId: null, usuarioId: null, accion: "sistema.instalar", entidad: "sistema", resultado: "denegado", despues: { motivo: "codigo_incorrecto" } });

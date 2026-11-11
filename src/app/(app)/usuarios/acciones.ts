@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import {
+  emitirEnlace, invitarUsuario, vincularUsuarioATrabajador,
   asignarRolesYFincas, cambiarEstadoUsuario, cambiarEstadoValorCatalogo, cambiarPermisoExtra, crearEquivalencia, crearTemporada, crearUsuario, crearValorCatalogo,
   guardarParametro, restablecerContrasena, servicios,
 } from "@/composicion";
 import { aEstadoError, type EstadoFormulario } from "../../_servidor/errores";
+import { formatoVencimiento, urlDeActivacion } from "../../_servidor/enlaces";
 import { exigirContexto } from "../../_servidor/sesion";
 
 const t = (d: FormData, k: string) => String(d.get(k) ?? "");
@@ -76,4 +78,30 @@ export async function accionTemporada(_p: EstadoFormulario, d: FormData) {
 export async function accionParametro(_p: EstadoFormulario, d: FormData) {
   const ctx = await exigirContexto();
   return ejecutar(["/configuracion/general"], "Parámetro guardado.", () => guardarParametro(servicios().ajustes, ctx, { clave: t(d, "clave"), valor: dec(d, "valor"), fincaId: t(d, "fincaId") }));
+}
+
+/** El administrador registra a la persona y define sus roles; el sistema entrega un enlace para que ella fije su contraseña. */
+export async function accionInvitar(_p: EstadoFormulario, d: FormData): Promise<EstadoFormulario> {
+  const ctx = await exigirContexto();
+  try {
+    const r = await invitarUsuario(servicios().invitaciones, ctx, { correo: t(d, "correo"), nombre: t(d, "nombre"), roles: todos(d, "roles"), fincaIds: todos(d, "fincaIds") });
+    const trabajadorId = t(d, "trabajadorId");
+    if (trabajadorId) await vincularUsuarioATrabajador(servicios().talento, ctx, { trabajadorId, usuarioId: r.usuarioId });
+    revalidatePath("/usuarios");
+    return { ok: true, mensaje: "Usuario registrado. Aún no puede ingresar: debe activar su cuenta con el enlace.", enlace: await urlDeActivacion(r.token), enlaceVence: formatoVencimiento(r.expiraEn) };
+  } catch (error) {
+    return aEstadoError(error);
+  }
+}
+
+/** Alta pendiente: enlace nuevo (el anterior deja de servir). Cuenta activa: enlace para restablecer la contraseña. */
+export async function accionEmitirEnlace(_p: EstadoFormulario, d: FormData): Promise<EstadoFormulario> {
+  const ctx = await exigirContexto();
+  try {
+    const r = await emitirEnlace(servicios().invitaciones, ctx, { usuarioId: t(d, "usuarioId") });
+    revalidatePath("/usuarios");
+    return { ok: true, mensaje: r.tipo === "alta" ? "Enlace de activación generado; el anterior ya no sirve." : "Enlace de restablecimiento generado; el anterior ya no sirve.", enlace: await urlDeActivacion(r.token), enlaceVence: formatoVencimiento(r.expiraEn) };
+  } catch (error) {
+    return aEstadoError(error);
+  }
 }

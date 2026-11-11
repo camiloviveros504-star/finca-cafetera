@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { HeroCarousel, type ImagenHero } from "./_componentes/HeroCarousel";
+import { Logo } from "./_componentes/Logo";
 import { PieDePagina } from "./_componentes/PieDePagina";
 
 const IMAGENES: ImagenHero[] = [
@@ -44,14 +45,14 @@ export default function Inicio() {
       <div className="relative">
         <header className="absolute inset-x-0 top-0 z-30 px-4 py-4 sm:px-6 lg:px-8">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
-            <span className="rounded-lg bg-tinta/55 px-3 py-1.5 text-base font-extrabold text-white backdrop-blur-sm">Gestión de Finca Cafetera</span>
+            <span className="flex items-center gap-2.5 rounded-xl bg-white/95 py-1.5 pl-1.5 pr-4 text-sm font-extrabold text-tinta shadow"><Logo className="size-8" />Gestión de Finca Cafetera</span>
             <Link href="/login" className="inline-flex min-h-11 items-center rounded-lg bg-white px-5 text-sm font-bold text-tinta shadow hover:bg-arena">
               Iniciar sesión
             </Link>
           </div>
         </header>
         <HeroCarousel imagenes={IMAGENES}>
-          <div className="mx-auto max-w-xl rounded-2xl bg-tinta/60 p-6 text-center text-white backdrop-blur-sm md:mx-0 md:p-8 md:text-left">
+          <div className="mx-auto max-w-xl rounded-2xl bg-tinta/85 p-6 text-center text-white shadow-xl md:mx-0 md:p-8 md:text-left">
             <h1 className="text-[clamp(1.9rem,5vw,3.25rem)] font-extrabold leading-tight">Del lote a la venta, cada kilo con su origen</h1>
             <p className="mt-3 text-[clamp(1rem,2.2vw,1.2rem)] text-white/90">
               Gestión de fincas cafeteras: producción, inventario, trabajadores, ventas y finanzas en un solo lugar, con trazabilidad completa.
@@ -64,7 +65,7 @@ export default function Inicio() {
       </div>
 
       <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8" aria-labelledby="pilares">
-        <h2 id="pilares" className="text-2xl font-extrabold md:text-3xl">Pensado para que los números cuadren</h2>
+        <h2 id="pilares" className="text-2xl font-extrabold md:text-3xl">Control, trazabilidad y seguridad en cada operación</h2>
         <ul className="mt-6 grid gap-4 md:grid-cols-3">
           {PILARES.map(([titulo, texto]) => (
             <li key={titulo} className="rounded-xl border border-tinta/15 bg-white p-5">
@@ -77,8 +78,8 @@ export default function Inicio() {
 
       <section className="bg-arena" aria-labelledby="modulos">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-          <h2 id="modulos" className="text-2xl font-extrabold md:text-3xl">Todo el ciclo del café</h2>
-          <p className="mt-2 max-w-2xl text-tinta/85">Desde la ladera hasta el cliente, cada etapa en su módulo y con los permisos de cada rol.</p>
+          <h2 id="modulos" className="text-2xl font-extrabold md:text-3xl">Módulos del sistema</h2>
+          <p className="mt-2 max-w-2xl text-tinta/85">Del cultivo al cliente: cada etapa en su módulo, con los permisos de cada rol.</p>
           <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {MODULOS.map((m) => (
               <li key={m.titulo} className="group overflow-hidden rounded-xl bg-white shadow-sm">
@@ -96,8 +97,8 @@ export default function Inicio() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-14 text-center sm:px-6 lg:px-8">
-        <h2 className="text-2xl font-extrabold md:text-3xl">¿Listo para empezar?</h2>
-        <p className="mx-auto mt-2 max-w-xl text-tinta/85">Ingrese con la cuenta que le entregó el administrador de su organización.</p>
+        <h2 className="text-2xl font-extrabold md:text-3xl">Acceso para equipos autorizados</h2>
+        <p className="mx-auto mt-2 max-w-xl text-tinta/85">Las cuentas las crea el administrador de cada organización y definen lo que cada persona puede hacer.</p>
         <Link href="/login" className="mt-6 inline-flex min-h-12 items-center rounded-lg bg-bosque px-8 text-base font-extrabold text-white hover:opacity-90">
           Iniciar sesión
         </Link>

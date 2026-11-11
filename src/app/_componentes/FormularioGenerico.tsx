@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useId, useState } from "react";
 
 export interface CampoFormulario {
   nombre: string;
@@ -18,8 +18,29 @@ interface Estado {
   error?: string;
   mensaje?: string;
   campos?: Record<string, string>;
+  enlace?: string;
+  enlaceVence?: string;
 }
 type Accion = (previo: Estado, datos: FormData) => Promise<Estado>;
+
+function EnlaceCopiable({ enlace, vence }: { enlace: string; vence?: string }) {
+  const [copiado, setCopiado] = useState(false);
+  return (
+    <div className="rounded-lg border border-ambar/60 bg-ambar/10 p-3 sm:col-span-2">
+      <p className="text-sm font-semibold">Entregue este enlace a la persona. Se muestra una sola vez{vence ? ` y vence el ${vence}` : ""}.</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <input readOnly value={enlace} aria-label="Enlace de activación" onFocus={(e) => e.currentTarget.select()} className="min-h-11 min-w-0 flex-1 rounded-lg border border-tinta/30 bg-white px-3 font-mono text-xs" />
+        <button
+          type="button"
+          onClick={async () => { try { await navigator.clipboard.writeText(enlace); setCopiado(true); setTimeout(() => setCopiado(false), 2500); } catch { /* el campo queda seleccionable */ } }}
+          className="min-h-11 rounded-lg bg-tinta px-4 text-sm font-bold text-white"
+        >
+          {copiado ? "Copiado" : "Copiar enlace"}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 const campoBase = "min-h-11 w-full rounded-lg border-2 border-tinta/40 bg-white px-3 text-base focus:border-bosque";
 
@@ -42,6 +63,7 @@ export function FormularioGenerico({
   conClave?: boolean;
   compacto?: boolean;
 }) {
+  const prefijo = useId(); // identificadores únicos aunque haya varios formularios en la misma página
   const [clave, setClave] = useState(() => crypto.randomUUID());
   const envolver: Accion = async (previo, datos) => {
     const r = await accion(previo, datos);
@@ -65,8 +87,8 @@ export function FormularioGenerico({
               <div className="flex flex-wrap gap-x-4 gap-y-1">
                 {c.opciones?.map((o) => (
                   <span key={o.valor} className="flex min-h-11 items-center gap-2 font-normal">
-                    <input id={`${c.nombre}-${o.valor}`} type="checkbox" name={c.nombre} value={o.valor} defaultChecked={c.valorInicial?.split(",").includes(o.valor)} className="size-5" />
-                    <label htmlFor={`${c.nombre}-${o.valor}`}>{o.texto}</label>
+                    <input id={`${prefijo}-${c.nombre}-${o.valor}`} type="checkbox" name={c.nombre} value={o.valor} defaultChecked={c.valorInicial?.split(",").includes(o.valor)} className="size-5" />
+                    <label htmlFor={`${prefijo}-${c.nombre}-${o.valor}`}>{o.texto}</label>
                   </span>
                 ))}
               </div>
@@ -114,6 +136,7 @@ export function FormularioGenerico({
         </p>
       )}
       {estado.ok && <p role="status" className="text-sm font-semibold text-bosque sm:col-span-2">{estado.mensaje}</p>}
+      {estado.ok && estado.enlace && <EnlaceCopiable enlace={estado.enlace} vence={estado.enlaceVence} />}
     </form>
   );
 }

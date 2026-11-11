@@ -25,6 +25,8 @@ docker compose up     # con Docker: contenedores `app` y `db`
 
 Abra http://localhost:3000: la primera vez lo lleva a **/instalacion**. Allí se ingresa el código de instalación (variable `CODIGO_INSTALACION`; en local por defecto `instalacion-local-0001`), el nombre de la organización y de la primera finca, y la cuenta del administrador. Esa pantalla solo funciona una vez. No se crea ningún precio, tarifa ni equivalencia: los define el administrador en **Tarifas** y **Ajustes**.
 
+**Usuarios nuevos:** no hay registro público. En **Usuarios**, el administrador registra a la persona, elige sus roles y fincas (y, si es recolector o supervisor, la vincula con su ficha de trabajador) y entrega el enlace de un solo uso que genera el sistema; la persona crea su contraseña. El mismo mecanismo restablece contraseñas. Cada rol aterriza en su pantalla de trabajo al iniciar sesión.
+
 **Datos de ejemplo (opcionales, para ensayos y para las pruebas E2E):** `npm run iniciar:ejemplo` o, con una base vacía, `CARGAR_DATOS_EJEMPLO=si npm run db:iniciar`. Cargan una organización marcada DEMO con usuarios `@demo.local` (contraseña `Demo-2026!`):
 
 | Correo | Rol |

@@ -6,7 +6,7 @@ const CLAVE = "Demo-2026!";
 async function entrar(page: Page, correo: string) {
   await page.goto("/login");
   await page.getByLabel("Correo").fill(correo);
-  await page.getByLabel("Contraseña").fill(CLAVE);
+  await page.getByLabel("Contraseña", { exact: true }).fill(CLAVE);
   await page.getByRole("button", { name: "Iniciar sesión" }).click();
   await page.waitForURL("**/inicio");
 }
