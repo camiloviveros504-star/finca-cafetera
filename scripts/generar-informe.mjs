@@ -3,7 +3,13 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 const R = "docs/pruebas/resultados";
-const leer = (n) => (existsSync(`${R}/${n}`) ? JSON.parse(readFileSync(`${R}/${n}`, "utf8")) : null);
+const leer = (n) => {
+  if (!existsSync(`${R}/${n}`)) return null;
+  const j = JSON.parse(readFileSync(`${R}/${n}`, "utf8"));
+  if (j.startTime && !j.fecha) j.fecha = new Date(j.startTime).toISOString(); // vitest
+  if (j.stats?.startTime && !j.fecha) j.fecha = j.stats.startTime; // Playwright
+  return j;
+};
 const fmtFecha = (f) => (f ? f.replace("T", " ").slice(0, 16) + " UTC" : "—");
 
 // Pruebas automatizadas (vitest y Playwright) agrupadas por la etiqueta QA que llevan en el título.
