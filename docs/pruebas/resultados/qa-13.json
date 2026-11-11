@@ -1,0 +1,6 @@
+{
+  "id": "qa-13",
+  "fecha": "2026-11-11T12:15:27.141Z",
+  "resultado": "Se creó a propósito un import presentación → infraestructura; dependency-cruiser falló nombrando la regla presentacion-no-toca-infraestructura (1 de 1 violaciones detectadas)",
+  "cumple": true
+}

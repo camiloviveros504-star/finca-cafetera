@@ -16,5 +16,6 @@ export default function () {
 }
 
 export function handleSummary(datos) {
+  datos.fecha = new Date().toISOString();
   return { "docs/pruebas/resultados/k6-qa-10.json": JSON.stringify(datos, null, 2), stdout: "" };
 }

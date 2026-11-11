@@ -30,6 +30,7 @@ export default async function LayoutAplicacion({ children }: { children: React.R
     { href: "/compras", etiqueta: "Compras", icono: "⛟", permiso: "compra:ver" },
     { href: "/finanzas", etiqueta: "Finanzas", icono: "▤", permiso: "finanzas:ver" },
     { href: "/configuracion/general", etiqueta: "Ajustes", icono: "☰", permiso: "configuracion:ver" },
+    { href: "/reportes", etiqueta: "Reportes", icono: "⇩", permiso: "reporte:ver" },
     { href: "/usuarios", etiqueta: "Usuarios", icono: "♟", permiso: "usuario:ver" },
     { href: "/auditoria", etiqueta: "Auditoría", icono: "✓", permiso: "auditoria:ver" },
   ];

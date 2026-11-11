@@ -11,7 +11,7 @@ afterAll(async () => {
 });
 
 describe("QA-06 · fuerza bruta", () => {
-  it("bloquea tras 5 fallos y responde igual si el usuario existe o no", async () => {
+  it("QA-06: bloquea tras 5 fallos y responde igual si el usuario existe o no", async () => {
     const ip = "192.168.50.1";
     const mensajes = new Set<string>();
     for (let i = 0; i < 5; i++) {

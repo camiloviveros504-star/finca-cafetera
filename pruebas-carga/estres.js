@@ -21,5 +21,6 @@ export function escalon400() { iteracion("400"); }
 export function escalon800() { iteracion("800"); }
 
 export function handleSummary(datos) {
+  datos.fecha = new Date().toISOString();
   return { "docs/pruebas/resultados/k6-qa-11.json": JSON.stringify(datos, null, 2), stdout: "" };
 }

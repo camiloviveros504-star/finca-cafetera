@@ -1,0 +1,15 @@
+{
+  "id": "qa-01",
+  "fecha": "2026-11-11T12:09:58.930Z",
+  "entorno": "PostgreSQL 16 en Docker (local, Windows 11)",
+  "comando": "RONDAS_CONCURRENCIA=1000 vitest run tests/concurrencia",
+  "rondas": 1000,
+  "solicitudesPorRonda": 50,
+  "solicitudesTotales": 50000,
+  "confirmadas": 1000,
+  "rechazadas": 49000,
+  "saldosNegativos": 0,
+  "p95Ms": 109,
+  "maxRondaMs": 293,
+  "pool": 30
+}

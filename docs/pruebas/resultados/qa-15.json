@@ -1,0 +1,12 @@
+{
+  "id": "qa-15",
+  "fecha": "2026-11-11T12:12:21.541Z",
+  "entorno": "App en Docker (local) + Chrome instalado",
+  "comando": "npx playwright test tests/e2e/calidad.spec.ts",
+  "pasos": 4,
+  "segundosAutomatizado": 0.4,
+  "elementosInteractivosMedidos": 13,
+  "menoresDe44px": 0,
+  "detalleMenores": [],
+  "nota": "Tiempo medido con automatización (sin lectura humana); la meta ≤ 60 s para una persona se confirma con prueba de usuario, no medida aquí."
+}
