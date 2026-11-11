@@ -52,12 +52,15 @@ export function ProveedorSync({ csrfToken, children }: { csrfToken: string; chil
     // Al volver la red se sincroniza de inmediato (QA-08: 50 registros en ≤ 60 s).
     const alConectar = () => void sincronizarAhora();
     window.addEventListener("online", alConectar);
+    // Los formularios sin conexión avisan con este evento después de guardar en la cola local.
+    window.addEventListener("finca-sincronizar", alConectar);
     const temporizador = setInterval(() => {
       if (navigator.onLine) void sincronizar(csrfToken).then(recargar);
     }, 15_000);
     if (navigator.onLine) void sincronizar(csrfToken).then(recargar);
     return () => {
       window.removeEventListener("online", alConectar);
+      window.removeEventListener("finca-sincronizar", alConectar);
       clearInterval(temporizador);
     };
   }, [csrfToken, recargar, sincronizarAhora]);

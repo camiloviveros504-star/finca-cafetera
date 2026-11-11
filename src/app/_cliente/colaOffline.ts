@@ -1,11 +1,17 @@
 /**
- * Cola local de cosechas sin conexión (ADR-003). Solo cosechas: las ventas nunca se encolan.
+ * Cola local sin conexión (ADR-003). Solo operaciones que no comprometen existencias: cosechas, producción de
+ * trabajadores e inspecciones. Las ventas, reservas y salidas de inventario nunca se encolan.
  * Cada operación nace con un UUID (clave de idempotencia). Estados: pendiente → sincronizada | rechazada.
  */
 export type EstadoOperacion = "pendiente" | "sincronizada" | "rechazada";
+export type TipoOperacion = "cosecha" | "trabajo" | "inspeccion";
+
+/** Cada tipo se envía a su propio endpoint, que valida permisos y reglas en el servidor. */
+const RUTAS: Record<TipoOperacion, string> = { cosecha: "/api/cosechas", trabajo: "/api/trabajo", inspeccion: "/api/inspecciones" };
 
 export interface OperacionCola {
   id: string;
+  tipo?: TipoOperacion; // las operaciones guardadas antes de esta versión son cosechas
   payload: Record<string, string>;
   resumen: string;
   estado: EstadoOperacion;
@@ -43,9 +49,10 @@ export const listarCola = async (): Promise<OperacionCola[]> =>
   (await transaccion("readonly", (a) => a.getAll() as IDBRequest<OperacionCola[]>)).sort((x, y) => (x.creadaEn < y.creadaEn ? 1 : -1));
 export const quitar = (id: string) => transaccion("readwrite", (a) => a.delete(id));
 
-export function nuevaOperacion(payload: Record<string, string>, resumen: string): OperacionCola {
+export function nuevaOperacion(payload: Record<string, string>, resumen: string, tipo: TipoOperacion = "cosecha", id: string = crypto.randomUUID()): OperacionCola {
   return {
-    id: crypto.randomUUID(),
+    id,
+    tipo,
     payload: { ...payload, claveIdempotencia: "" },
     resumen,
     estado: "pendiente",
@@ -80,7 +87,7 @@ export async function sincronizar(csrfToken: string, forzar = false): Promise<Re
       await Promise.all(
         pendientes.slice(i, i + PARALELO).map(async (op) => {
           try {
-            const r = await fetch("/api/cosechas", {
+            const r = await fetch(RUTAS[op.tipo ?? "cosecha"], {
               method: "POST",
               headers: { "content-type": "application/json", "x-csrf-token": csrfToken },
               body: JSON.stringify({ ...op.payload, claveIdempotencia: op.id }),

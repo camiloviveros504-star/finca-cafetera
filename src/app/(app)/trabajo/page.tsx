@@ -3,10 +3,10 @@ import { EncabezadoModulo } from "../../_componentes/EncabezadoModulo";
 import { FormularioGenerico } from "../../_componentes/FormularioGenerico";
 import { cantidad, moneda } from "../../_servidor/formatos";
 import { exigirContexto } from "../../_servidor/sesion";
-import { accionRegistrarTrabajo, accionValidarTrabajo } from "../trabajadores/acciones";
+import { FormularioTrabajoOffline } from "../../_componentes/FormulariosOffline";
+import { accionValidarTrabajo } from "../trabajadores/acciones";
 
 export const metadata = { title: "Producción de trabajadores · Gestión de Finca Cafetera" };
-const hoy = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
 const ETIQUETA: Record<string, string> = { pendiente: "Pendiente de validar", validado: "Validado", rechazado: "Rechazado", liquidado: "Liquidado" };
 
 export default async function Trabajo() {
@@ -30,21 +30,12 @@ export default async function Trabajo() {
 
       {puedeRegistrar && (
         <details open className="rounded-xl border-2 border-cafe/20 bg-white p-4">
-          <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Registrar producción o jornada</summary>
+          <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Registrar producción o jornada (funciona sin conexión)</summary>
           <div className="mt-3">
-            <FormularioGenerico
-              accion={accionRegistrarTrabajo}
-              boton="Registrar"
-              conClave
-              campos={[
-                ...(terceros ? [{ nombre: "trabajadorId", etiqueta: "Trabajador", tipo: "select" as const, opciones: trabajadores.map((w) => ({ valor: w.id, texto: w.nombre })) }] : []),
-                { nombre: "fincaId", etiqueta: "Finca", tipo: "select", opciones: datos.fincas.map((f) => ({ valor: f.id, texto: f.nombre })) },
-                { nombre: "loteId", etiqueta: "Lote (opcional)", tipo: "select", opciones: [{ valor: "", texto: "Sin lote" }, ...datos.lotes.map((l) => ({ valor: l.id, texto: `${l.fincaNombre} · ${l.codigo}` }))] },
-                { nombre: "fecha", etiqueta: "Fecha", tipo: "date", requerido: true, valorInicial: hoy() },
-                { nombre: "cantidad", etiqueta: "Cantidad", tipo: "number", requerido: true },
-                { nombre: "unidad", etiqueta: "Unidad", tipo: "select", opciones: [{ valor: "kg", texto: "Kilogramos" }, { valor: "arroba", texto: "Arrobas" }, { valor: "jornada", texto: "Jornadas" }, { valor: "actividad", texto: "Actividades" }] },
-                { nombre: "actividad", etiqueta: "Actividad (si se paga por actividad)" },
-              ]}
+            <FormularioTrabajoOffline
+              fincas={datos.fincas.map((f) => ({ valor: f.id, texto: f.nombre }))}
+              lotes={datos.lotes.map((l) => ({ valor: l.id, texto: `${l.fincaNombre} · ${l.codigo}` }))}
+              trabajadores={terceros ? trabajadores.map((w) => ({ valor: w.id, texto: w.nombre })) : undefined}
             />
           </div>
         </details>

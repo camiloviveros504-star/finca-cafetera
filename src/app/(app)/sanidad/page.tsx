@@ -3,7 +3,8 @@ import { EncabezadoModulo } from "../../_componentes/EncabezadoModulo";
 import { FormularioGenerico } from "../../_componentes/FormularioGenerico";
 import { cantidad } from "../../_servidor/formatos";
 import { exigirContexto } from "../../_servidor/sesion";
-import { accionAmbiental, accionAplicacion, accionCrearAgroquimico, accionEntradaAgroquimico, accionInspeccion } from "./acciones";
+import { FormularioInspeccionOffline } from "../../_componentes/FormulariosOffline";
+import { accionAmbiental, accionAplicacion, accionCrearAgroquimico, accionEntradaAgroquimico } from "./acciones";
 
 export const metadata = { title: "Sanidad e inspecciones · Gestión de Finca Cafetera" };
 const hoy = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
@@ -29,17 +30,8 @@ export default async function Sanidad() {
       <EncabezadoModulo titulo="Sanidad e inspecciones" imagen="modulo-sanidad-inspeccion" alt="Agrónomo revisando con lupa las cerezas de una rama de café y tomando notas" />
       <div className="grid gap-4 xl:grid-cols-2">
         {p("inspeccion:registrar") && (
-          <Caja titulo="Registrar inspección" abierto>
-            <FormularioGenerico accion={accionInspeccion} boton="Registrar inspección" conClave campos={[
-              { nombre: "fincaId", etiqueta: "Finca", tipo: "select", opciones: fincas },
-              { nombre: "loteId", etiqueta: "Lote (opcional)", tipo: "select", opciones: [{ valor: "", texto: "Toda la finca" }, ...lotes] },
-              { nombre: "fecha", etiqueta: "Fecha", tipo: "date", requerido: true, valorInicial: hoy() },
-              { nombre: "tipo", etiqueta: "Tipo", tipo: "select", opciones: ["broca", "roya", "plaga", "enfermedad", "general"].map((v) => ({ valor: v, texto: v })) },
-              { nombre: "severidad", etiqueta: "Severidad", tipo: "select", opciones: ["ninguna", "baja", "media", "alta"].map((v) => ({ valor: v, texto: v })) },
-              { nombre: "infestacionPct", etiqueta: "Infestación (%)", tipo: "number" },
-              { nombre: "hallazgos", etiqueta: "Hallazgos", tipo: "textarea", requerido: true },
-              { nombre: "acciones", etiqueta: "Acciones recomendadas", tipo: "textarea" },
-            ]} />
+          <Caja titulo="Registrar inspección (funciona sin conexión)" abierto>
+            <FormularioInspeccionOffline fincas={fincas} lotes={lotes} />
           </Caja>
         )}
         {p("inspeccion:registrar") && (
