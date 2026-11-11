@@ -22,6 +22,9 @@ export default async function LayoutAplicacion({ children }: { children: React.R
     { href: "/trabajo", etiqueta: "Producción", icono: "⚒", permiso: "trabajo:validar" },
     { href: "/trabajo", etiqueta: "Mi producción", icono: "⚒", permiso: "trabajo:registrar_propio" },
     { href: "/liquidaciones", etiqueta: "Liquidaciones", icono: "¤", permiso: "liquidacion:ver" },
+    { href: "/cartera", etiqueta: "Cartera", icono: "◔", permiso: "pago:ver" },
+    { href: "/compras", etiqueta: "Compras", icono: "⛟", permiso: "compra:ver" },
+    { href: "/finanzas", etiqueta: "Finanzas", icono: "▤", permiso: "finanzas:ver" },
   ];
   const enlaces = todos.filter((e) => !e.permiso || ctx.permisos.has(e.permiso));
 

@@ -23,6 +23,10 @@ import { RepositorioTalentoPg } from "@/modules/talento/infrastructure/repositor
 import type { DependenciasTalento } from "@/modules/talento/application/talento";
 import { RepositorioBeneficioPg } from "@/modules/beneficio/infrastructure/repositorioBeneficioPg";
 import type { DependenciasBeneficio } from "@/modules/beneficio/application/beneficio";
+import { RepositorioFinanzasPg } from "@/modules/finanzas/infrastructure/repositorioFinanzasPg";
+import type { DependenciasFinanzas } from "@/modules/finanzas/application/finanzas";
+import { RepositorioPagosPg } from "@/modules/comercial/infrastructure/repositorioPagosPg";
+import type { DependenciasPagos } from "@/modules/comercial/application/pagosClientes";
 import { RepositorioTrazabilidadPg } from "@/modules/trazabilidad/infrastructure/repositorioTrazabilidadPg";
 import { hashDeRelleno, verificarContrasena } from "@/shared/infraestructura/contrasenas";
 import { obtenerPool, UnidadDeTrabajoPg } from "@/shared/infraestructura/baseDatos";
@@ -45,6 +49,8 @@ export interface Servicios {
   trazabilidad: DependenciasTrazabilidad;
   talento: DependenciasTalento;
   beneficio: DependenciasBeneficio;
+  finanzas: DependenciasFinanzas;
+  pagos: DependenciasPagos;
 }
 
 export function crearServicios(pool: Pool): Servicios {
@@ -63,6 +69,8 @@ export function crearServicios(pool: Pool): Servicios {
     inventario: { repo: inventarioRepo, uow, auditor },
     operaciones,
     beneficio: { repo: new RepositorioBeneficioPg(), operaciones, uow, auditor },
+    finanzas: { repo: new RepositorioFinanzasPg(), uow, auditor },
+    pagos: { repo: new RepositorioPagosPg(), uow, auditor },
     produccion: { produccion: new RepositorioProduccionPg(), inventario: inventarioRepo, configuracion, uow, auditor },
     trazabilidad: { repo: new RepositorioTrazabilidadPg(), uow, auditor },
     talento: { repo: new RepositorioTalentoPg(), configuracion, uow, auditor },
@@ -99,5 +107,11 @@ export {
   crearProcesoTipo, listarProcesos, ejecutarEtapa, listarRegistrosProceso,
   type FilaProceso, type FilaRegistroProceso, type EtapaProceso,
 } from "@/modules/beneficio/application/beneficio";
+export { registrarPagoCliente, listarCartera, type FilaCartera } from "@/modules/comercial/application/pagosClientes";
+export {
+  crearProveedor, listarProveedores, registrarCompra, recibirCompra, pagarCompra, listarCompras, registrarGasto, listarGastos,
+  obtenerResumenFinanciero, obtenerConciliacion,
+  type Conciliacion, type FilaCompra, type FilaGasto, type FilaProveedor, type MovimientoFinanciero, type ResumenFinanciero,
+} from "@/modules/finanzas/application/finanzas";
 export * from "@/shared/dominio/errores";
 export type { ContextoUsuario } from "@/shared/dominio/contexto";
