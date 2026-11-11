@@ -45,19 +45,19 @@ export default function Inicio() {
       <div className="relative">
         <header className="absolute inset-x-0 top-0 z-30 px-4 py-4 sm:px-6 lg:px-8">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
-            <span className="flex items-center gap-2.5 rounded-xl bg-white/95 py-1.5 pl-1.5 pr-4 text-sm font-extrabold text-tinta shadow"><Logo className="size-8" />Gestión de Finca Cafetera</span>
+            <span className="flex items-center gap-2.5 text-base font-extrabold text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.6),0_1px_3px_rgba(0,0,0,0.5)]"><Logo className="size-9" />Gestión de Finca Cafetera</span>
             <Link href="/login" className="inline-flex min-h-11 items-center rounded-lg bg-white px-5 text-sm font-bold text-tinta shadow hover:bg-arena">
               Iniciar sesión
             </Link>
           </div>
         </header>
         <HeroCarousel imagenes={IMAGENES}>
-          <div className="mx-auto max-w-xl rounded-2xl bg-tinta/85 p-6 text-center text-white shadow-xl md:mx-0 md:p-8 md:text-left">
+          <div className="mx-auto max-w-xl text-center text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.6),0_1px_3px_rgba(0,0,0,0.5)] md:mx-0 md:text-left">
             <h1 className="text-[clamp(1.9rem,5vw,3.25rem)] font-extrabold leading-tight">Del lote a la venta, cada kilo con su origen</h1>
             <p className="mt-3 text-[clamp(1rem,2.2vw,1.2rem)] text-white/90">
               Gestión de fincas cafeteras: producción, inventario, trabajadores, ventas y finanzas en un solo lugar, con trazabilidad completa.
             </p>
-            <Link href="/login" className="mt-6 inline-flex min-h-12 items-center rounded-lg bg-ambar px-8 text-base font-extrabold text-tinta hover:bg-white">
+            <Link href="/login" className="mt-6 inline-flex min-h-12 items-center rounded-lg bg-ambar px-8 text-base font-extrabold text-tinta shadow-lg [text-shadow:none] hover:bg-white">
               Ingresar al sistema
             </Link>
           </div>

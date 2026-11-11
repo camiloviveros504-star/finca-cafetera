@@ -70,8 +70,8 @@ export function HeroCarousel({ imagenes, children }: { imagenes: ImagenHero[]; c
           </picture>
         );
       })}
-      {/* Velo suave: la imagen se ve clara; el contraste del texto lo da el panel translúcido de abajo. */}
-      <div className="absolute inset-0 bg-gradient-to-t from-tinta/60 via-tinta/10 to-tinta/25" />
+      {/* Velo suave del lado del texto: la imagen se ve clara y las letras llevan sombra, sin cajas de color. */}
+      <div className="absolute inset-0 bg-gradient-to-r from-tinta/60 via-tinta/20 to-transparent max-md:bg-gradient-to-t max-md:from-tinta/65 max-md:via-tinta/25 max-md:to-tinta/10" />
 
       <div className="relative z-10 flex h-full flex-col justify-end px-4 pb-14 pt-24 sm:px-6 md:justify-center md:pb-0 lg:px-8">
         <div className="mx-auto w-full max-w-7xl">{children}</div>
