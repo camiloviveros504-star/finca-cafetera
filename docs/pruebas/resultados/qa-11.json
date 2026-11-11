@@ -1,0 +1,6 @@
+{
+  "id": "qa-11",
+  "fecha": "2026-11-11T12:39:32.605Z",
+  "saldosNegativos": 0,
+  "conclusion": "Punto de quiebre en este entorno (todo en un equipo): el rendimiento total se estanca cerca de 125 solicitudes/s; desde 200 usuarios virtuales el p95 supera 1,8 s por cola, a 400 aparece 3,4 % de errores y a 800 el 94,7 % falla con «connection refused» (el puerto publicado por Docker deja de aceptar conexiones). Con 200 usuarios la CPU medida fue ~105 % en el contenedor de la aplicación (un núcleo de Node saturado) y ~172 % en PostgreSQL; no se aisló un único culpable. Tras el estrés el saldo de cereza coincidía exactamente con la suma de sus movimientos. La degradación fue por latencia y rechazo de conexiones, nunca por inventario inconsistente."
+}

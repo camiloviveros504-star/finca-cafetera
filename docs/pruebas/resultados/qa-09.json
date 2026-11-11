@@ -1,0 +1,24 @@
+{
+  "id": "qa-09",
+  "fecha": "2026-11-11T12:40:47.875Z",
+  "entorno": "Compilación de producción en Docker (local) + Lighthouse 12 con Chrome instalado, móvil, red 4G simulada por Lighthouse (no es la CDN de Vercel)",
+  "comando": "npx lighthouse http://localhost:3000/ --form-factor=mobile (y /inicio con cookie de sesión)",
+  "resumen": "Home: Rendimiento 98, Accesibilidad 100, LCP 2.4 s, CLS 0.00, TBT 30 ms, 240 KiB. Dashboard (/inicio): Rendimiento 99, Accesibilidad 100, LCP 2.1 s, CLS 0.00, TBT 54 ms. INP no se mide en laboratorio (TBT como indicador)",
+  "cumple": true,
+  "home": {
+    "perf": 98,
+    "a11y": 100,
+    "lcp": 2.4387998,
+    "cls": 0,
+    "tbt": 30,
+    "peso": 240
+  },
+  "dashboard": {
+    "perf": 99,
+    "a11y": 100,
+    "lcp": 2.1351299,
+    "cls": 0,
+    "tbt": 54,
+    "peso": 165
+  }
+}

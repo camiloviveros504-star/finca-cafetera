@@ -1,0 +1,8 @@
+{
+  "id": "qa-14",
+  "fecha": "2026-11-11T12:41:22.599Z",
+  "entorno": "PostgreSQL 16 en Docker (local), no Render",
+  "comando": "npm run db:iniciar (base vacía + SEMBRAR_DEMO=si); pg_dump/pg_restore en formato custom",
+  "resumen": "PARCIAL. Parte automática medida: recreación desde cero (crear base + 7 migraciones + semilla DEMO) en 3,9 s; respaldo y restauración de una base con 40.260 cosechas (6,1 MB) en 5,5 s, con los mismos conteos en origen y destino. NO medido: los pasos manuales en los paneles de Render y Vercel (crear la base, copiar la URL, redesplegar). La meta de 15 min se confirma con el ensayo real contra Render antes de la sustentación",
+  "cumple": false
+}

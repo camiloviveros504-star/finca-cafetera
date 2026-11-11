@@ -9,7 +9,7 @@ const NOMBRE_COOKIE = __ENV.COOKIE || "__Host-sesion"; // en producción la cook
 function uuid() {
   const h = "0123456789abcdef";
   let s = "";
-  for (let i = 0; i < 36; i++) s += i === 8 || i === 13 || i === 18 || i === 23 ? "-" : i === 14 ? "4" : h[Math.floor(Math.random() * 16)];
+  for (let i = 0; i < 36; i++) s += i === 8 || i === 13 || i === 18 || i === 23 ? "-" : i === 14 ? "4" : i === 19 ? "89ab"[Math.floor(Math.random() * 4)] : h[Math.floor(Math.random() * 16)];
   return s;
 }
 
@@ -23,6 +23,7 @@ export function iteracion(etapa) {
     const ruta = PAGINAS_LECTURA[Math.floor(Math.random() * PAGINAS_LECTURA.length)];
     const r = http.get(`${BASE}${ruta}`, { headers: cabecera, tags: { tipo: "lectura", etapa } });
     check(r, { "lectura 200": (x) => x.status === 200 });
+    if (r.status !== 200 && __ENV.DEPURAR && Math.random() < 0.05) console.log(`lectura ${r.status} ${r.error_code} ${r.error}`);
   } else {
     const i = datos.ids;
     const r = http.post(
@@ -31,5 +32,6 @@ export function iteracion(etapa) {
       { headers: { ...cabecera, "content-type": "application/json", "x-csrf-token": s.csrf }, tags: { tipo: "escritura", etapa } },
     );
     check(r, { "escritura 201": (x) => x.status === 201 });
+    if (r.status !== 201 && __ENV.DEPURAR && Math.random() < 0.05) console.log(`escritura ${r.status} ${r.error_code} ${r.error} ${String(r.body).slice(0, 100)}`);
   }
 }
