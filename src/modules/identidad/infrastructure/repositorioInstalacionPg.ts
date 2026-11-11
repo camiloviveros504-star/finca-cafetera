@@ -31,7 +31,7 @@ const PRODUCTOS: [string, string, boolean][] = [
 
 /** Recomendaciones de manejo por edad (fuente: Cenicafé). Sin dosis de producción: la fija el análisis de suelo. */
 const FUENTE_LEVANTE = "Cenicafé: 58 g de nitrógeno por planta en 18 meses (7, 9, 12, 14 y 16 g)";
-const RECOMENDACIONES: [string, number, number | null, string, string, string, number | null, string][] = [
+export const RECOMENDACIONES: [string, number, number | null, string, string, string, number | null, string][] = [
   ["levante", 2, 2, "abonada", "Primera abonada (mes 2)", "Fertilizante con nitrógeno alrededor del árbol, al comenzar un período de lluvias.", 7, FUENTE_LEVANTE],
   ["levante", 6, 6, "abonada", "Segunda abonada (mes 6)", "Fertilizante con nitrógeno, al comenzar un período de lluvias.", 9, FUENTE_LEVANTE],
   ["levante", 10, 10, "abonada", "Tercera abonada (mes 10)", "Fertilizante con nitrógeno, al comenzar un período de lluvias.", 12, FUENTE_LEVANTE],

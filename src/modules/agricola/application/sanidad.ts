@@ -6,7 +6,7 @@
 import { z } from "zod";
 import { autorizar } from "@/shared/aplicacion/autorizar";
 import type { ContextoUsuario } from "@/shared/dominio/contexto";
-import { aEscala, ESCALA_CANTIDAD } from "@/shared/dominio/decimal";
+import { aEscala, deEscala, ESCALA_CANTIDAD } from "@/shared/dominio/decimal";
 import { ErrorNoEncontrado, ErrorRegla, ErrorValidacion } from "@/shared/dominio/errores";
 import { fechaColombia } from "@/shared/dominio/fechas";
 import { auditar, cantidadTxt, clave, fecha, sumarDias, uuid, validar, vacio, type DependenciasAgricola } from "./comun";
@@ -74,11 +74,13 @@ export async function listarAmbientales(deps: DependenciasAgricola, ctx: Context
 
 export async function crearAgroquimico(deps: DependenciasAgricola, ctx: ContextoUsuario, cruda: unknown) {
   const e = validar(
-    z.object({ nombre: z.string().trim().min(3, "Indique el nombre").max(100), unidad: z.string().trim().min(1).max(20), carenciaDias: z.preprocess((v) => (v === "" || v === undefined ? undefined : Number(v)), z.number().int().min(0).max(365).optional()) }),
+    z.object({ nombre: z.string().trim().min(3, "Indique el nombre").max(100), unidad: z.string().trim().min(1).max(20), tipo: z.enum(["fertilizante", "fumigante", "herbicida", "herramienta", "otro"], { message: "Tipo de insumo inválido" }).default("fertilizante"), gramosPorUnidad: z.preprocess(vacio, cantidadTxt.optional()), fincaId: z.preprocess(vacio, uuid.optional()), carenciaDias: z.preprocess((v) => (v === "" || v === undefined ? undefined : Number(v)), z.number().int().min(0).max(365).optional()) }),
     cruda,
     "Revise los datos del agroquímico",
   );
-  await autorizar(deps.auditor, ctx, "agroquimico:administrar", { accion: "agroquimico.crear", entidad: "agroquimico" });
+  if (e.gramosPorUnidad !== undefined && aEscala(e.gramosPorUnidad, ESCALA_CANTIDAD) <= 0n) throw new ErrorValidacion("Los gramos por unidad deben ser mayores que cero", { gramosPorUnidad: "Inválido" });
+  if (e.fincaId && !ctx.fincaIds.includes(e.fincaId)) throw new ErrorNoEncontrado("Finca");
+  await autorizar(deps.auditor, ctx, "agroquimico:administrar", { accion: "agroquimico.crear", entidad: "agroquimico", fincaId: e.fincaId });
   return deps.uow.ejecutar(async (tx) => {
     const id = await deps.repo.crearAgroquimico(tx, { organizacionId: ctx.organizacionId, ...e });
     await auditar(deps, ctx, tx, "agroquimico.crear", "agroquimico", id, { nombre: e.nombre });
@@ -86,7 +88,7 @@ export async function crearAgroquimico(deps: DependenciasAgricola, ctx: Contexto
   });
 }
 
-const esquemaEntrada = z.object({ fincaId: uuid, agroquimicoId: uuid, loteComercial: z.string().trim().min(1, "Indique el lote del proveedor").max(60), vencimiento: fecha, cantidad: cantidadTxt, nota: z.preprocess(vacio, z.string().trim().max(200).optional()) });
+const esquemaEntrada = z.object({ fincaId: uuid, agroquimicoId: uuid, loteComercial: z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? "Sin lote" : v), z.string().trim().min(1).max(60)), vencimiento: z.preprocess(vacio, fecha.optional()), cantidad: cantidadTxt, nota: z.preprocess(vacio, z.string().trim().max(200).optional()) });
 
 export async function registrarEntradaAgroquimico(deps: DependenciasAgricola, ctx: ContextoUsuario, cruda: unknown) {
   const e = validar(esquemaEntrada, cruda, "Revise los datos de la entrada");
@@ -94,18 +96,24 @@ export async function registrarEntradaAgroquimico(deps: DependenciasAgricola, ct
   await autorizar(deps.auditor, ctx, "agroquimico:administrar", { accion: "agroquimico.entrada", entidad: "agroquimico_stock", fincaId: e.fincaId });
   return deps.uow.ejecutar(async (tx) => {
     if (!(await deps.repo.agroquimicoExiste(tx, ctx.organizacionId, e.agroquimicoId))) throw new ErrorNoEncontrado("Agroquímico");
-    const id = await deps.repo.acreditarStock(tx, { organizacionId: ctx.organizacionId, fincaId: e.fincaId, agroquimicoId: e.agroquimicoId, loteComercial: e.loteComercial, vencimiento: e.vencimiento, cantidad: e.cantidad, usuarioId: ctx.usuarioId, nota: e.nota });
+    const id = await deps.repo.acreditarStock(tx, { organizacionId: ctx.organizacionId, fincaId: e.fincaId, agroquimicoId: e.agroquimicoId, loteComercial: e.loteComercial, vencimiento: e.vencimiento ?? null, cantidad: e.cantidad, usuarioId: ctx.usuarioId, nota: e.nota });
     await auditar(deps, ctx, tx, "agroquimico.entrada", "agroquimico_stock", id, { cantidad: e.cantidad, vencimiento: e.vencimiento });
     return { id };
   });
 }
 
-const esquemaAplicacion = z.object({ stockId: uuid, loteId: uuid, fecha, dosis: cantidadTxt, unidadDosis: z.string().trim().min(1).max(30), cantidadTotal: cantidadTxt, inspeccionId: z.preprocess(vacio, uuid.optional()), claveIdempotencia: clave });
+const esquemaAplicacion = z.object({ stockId: uuid, loteId: uuid, fecha, dosis: z.preprocess(vacio, cantidadTxt.optional()), unidadDosis: z.preprocess(vacio, z.string().trim().min(1).max(30).optional()), cantidadTotal: z.preprocess(vacio, cantidadTxt.optional()), gramosPorArbol: z.preprocess(vacio, cantidadTxt.optional()), inspeccionId: z.preprocess(vacio, uuid.optional()), claveIdempotencia: clave });
 
 /** Descuenta del stock con bloqueo de fila: dos aplicaciones simultáneas no pueden dejar el stock en negativo. */
 export async function registrarAplicacion(deps: DependenciasAgricola, ctx: ContextoUsuario, cruda: unknown) {
   const e = validar(esquemaAplicacion, cruda, "Revise los datos de la aplicación");
-  if (aEscala(e.cantidadTotal, ESCALA_CANTIDAD) <= 0n || aEscala(e.dosis, ESCALA_CANTIDAD) <= 0n) throw new ErrorValidacion("Dosis y cantidad deben ser mayores que cero", { cantidadTotal: "Inválida" });
+  const porArbol = e.gramosPorArbol !== undefined;
+  if (porArbol) {
+    if (aEscala(e.gramosPorArbol!, ESCALA_CANTIDAD) <= 0n) throw new ErrorValidacion("Los gramos por árbol deben ser mayores que cero", { gramosPorArbol: "Inválido" });
+  } else {
+    if (!e.dosis || !e.unidadDosis || !e.cantidadTotal) throw new ErrorValidacion("Indique gramos por árbol, o la dosis, su unidad y la cantidad usada", { dosis: "Obligatorio" });
+    if (aEscala(e.cantidadTotal, ESCALA_CANTIDAD) <= 0n || aEscala(e.dosis, ESCALA_CANTIDAD) <= 0n) throw new ErrorValidacion("Dosis y cantidad deben ser mayores que cero", { cantidadTotal: "Inválida" });
+  }
   await autorizar(deps.auditor, ctx, "aplicacion:registrar", { accion: "aplicacion.registrar", entidad: "aplicacion_agroquimica" });
   return deps.uow.ejecutar(async (tx) => {
     const previa = await deps.repo.buscarAplicacionPorClave(tx, ctx.organizacionId, e.claveIdempotencia);
@@ -113,21 +121,39 @@ export async function registrarAplicacion(deps: DependenciasAgricola, ctx: Conte
     const stock = await deps.repo.bloquearStock(tx, ctx.organizacionId, e.stockId);
     if (!stock || !ctx.fincaIds.includes(stock.fincaId)) throw new ErrorNoEncontrado("Existencia de agroquímico");
     if (!(await deps.repo.loteEsDeFinca(tx, ctx.organizacionId, e.loteId, stock.fincaId))) throw new ErrorRegla("El lote no pertenece a la finca de la existencia", "lote_invalido");
-    if (stock.vencimiento < e.fecha) throw new ErrorRegla(`El producto está vencido (vencía el ${stock.vencimiento}); no se puede aplicar`, "producto_vencido");
-    if (aEscala(stock.cantidad, ESCALA_CANTIDAD) < aEscala(e.cantidadTotal, ESCALA_CANTIDAD)) throw new ErrorRegla(`Existencias insuficientes: disponibles ${stock.cantidad} ${stock.unidad}`, "existencias_insuficientes");
+    // Abonada por árbol: cantidad = gramos por árbol × árboles del lote ÷ gramos de cada bulto (redondeo al milésimo).
+    let arboles: number | undefined;
+    let cantidadTotal = e.cantidadTotal ?? "0";
+    let dosis = e.dosis ?? "0";
+    let unidadDosis = e.unidadDosis ?? "";
+    if (porArbol) {
+      const n = await deps.repo.arbolesDelLote(tx, ctx.organizacionId, e.loteId);
+      if (!n) throw new ErrorRegla("El lote no tiene árboles registrados; siembre el lote o indique la cantidad manualmente", "lote_sin_arboles");
+      if (!stock.gramosPorUnidad) throw new ErrorRegla("Este insumo no tiene definidos los gramos por unidad (bulto); defínalos o indique la cantidad manualmente", "insumo_sin_gramos");
+      const g = aEscala(e.gramosPorArbol!, ESCALA_CANTIDAD);
+      const gpu = aEscala(stock.gramosPorUnidad, ESCALA_CANTIDAD);
+      const num = g * BigInt(n) * 1000n;
+      cantidadTotal = deEscala((num + gpu / 2n) / gpu, ESCALA_CANTIDAD);
+      if (aEscala(cantidadTotal, ESCALA_CANTIDAD) <= 0n) throw new ErrorValidacion("La cantidad calculada es cero", { gramosPorArbol: "Muy pequeña" });
+      arboles = n;
+      dosis = e.gramosPorArbol!;
+      unidadDosis = "g por árbol";
+    }
+    if (stock.vencimiento && stock.vencimiento < e.fecha) throw new ErrorRegla(`El producto está vencido (vencía el ${stock.vencimiento}); no se puede aplicar`, "producto_vencido");
+    if (aEscala(stock.cantidad, ESCALA_CANTIDAD) < aEscala(cantidadTotal, ESCALA_CANTIDAD)) throw new ErrorRegla(`Existencias insuficientes: disponibles ${stock.cantidad} ${stock.unidad}`, "existencias_insuficientes");
     const reingreso = stock.carenciaDias !== null ? sumarDias(e.fecha, stock.carenciaDias) : null;
-    await deps.repo.descontarStock(tx, stock.id, e.cantidadTotal);
-    const id = await deps.repo.insertarAplicacion(tx, { organizacionId: ctx.organizacionId, fincaId: stock.fincaId, loteId: e.loteId, stockId: stock.id, fecha: e.fecha, dosis: e.dosis, unidadDosis: e.unidadDosis, cantidadTotal: e.cantidadTotal, fechaReingreso: reingreso, inspeccionId: e.inspeccionId, responsableId: ctx.usuarioId, clave: e.claveIdempotencia });
-    await deps.repo.insertarMovimientoAgroquimico(tx, { organizacionId: ctx.organizacionId, stockId: stock.id, tipo: "aplicacion", delta: `-${e.cantidadTotal}`, origenId: id, usuarioId: ctx.usuarioId });
-    await auditar(deps, ctx, tx, "aplicacion.registrar", "aplicacion_agroquimica", id, { stockId: stock.id, cantidad: e.cantidadTotal, reingreso });
-    return { id, repetida: false, fechaReingreso: reingreso };
+    await deps.repo.descontarStock(tx, stock.id, cantidadTotal);
+    const id = await deps.repo.insertarAplicacion(tx, { organizacionId: ctx.organizacionId, fincaId: stock.fincaId, loteId: e.loteId, stockId: stock.id, fecha: e.fecha, dosis, unidadDosis, cantidadTotal, fechaReingreso: reingreso, inspeccionId: e.inspeccionId, responsableId: ctx.usuarioId, clave: e.claveIdempotencia, gramosPorArbol: e.gramosPorArbol, arboles });
+    await deps.repo.insertarMovimientoAgroquimico(tx, { organizacionId: ctx.organizacionId, stockId: stock.id, tipo: "aplicacion", delta: `-${cantidadTotal}`, origenId: id, usuarioId: ctx.usuarioId });
+    await auditar(deps, ctx, tx, "aplicacion.registrar", "aplicacion_agroquimica", id, { stockId: stock.id, cantidad: cantidadTotal, reingreso });
+    return { id, repetida: false, fechaReingreso: reingreso, cantidadTotal };
   });
 }
 
 export async function listarAgroquimicos(deps: DependenciasAgricola, ctx: ContextoUsuario) {
   await autorizar(deps.auditor, ctx, "agroquimico:ver", { accion: "agroquimico.listar", entidad: "agroquimico" });
   return deps.uow.consultar(async (tx) => ({
-    catalogo: await deps.repo.listarAgroquimicos(tx, ctx.organizacionId),
+    catalogo: await deps.repo.listarAgroquimicos(tx, ctx.organizacionId, ctx.fincaIds),
     stock: await deps.repo.listarStock(tx, ctx.organizacionId, ctx.fincaIds, fechaColombia()),
     aplicaciones: await deps.repo.listarAplicaciones(tx, ctx.organizacionId, ctx.fincaIds),
   }));

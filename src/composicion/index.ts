@@ -41,6 +41,7 @@ import type { DependenciasFinanzas } from "@/modules/finanzas/application/finanz
 import { RepositorioPagosPg } from "@/modules/comercial/infrastructure/repositorioPagosPg";
 import type { DependenciasPagos } from "@/modules/comercial/application/pagosClientes";
 import { RepositorioAgricolaPg } from "@/modules/agricola/infrastructure/repositorioAgricolaPg";
+import type { InsumosParaCompras } from "@/modules/finanzas/domain/puertos";
 import type { DependenciasAgricola } from "@/modules/agricola/application/comun";
 import { RepositorioAjustesPg } from "@/modules/configuracion/infrastructure/repositorioAjustesPg";
 import type { DependenciasAjustes } from "@/modules/configuracion/application/ajustes";
@@ -91,6 +92,14 @@ export function crearServicios(pool: Pool, opciones: { codigoInstalacion?: strin
   const auditor = new AuditorPg(pool);
   const identidadRepo = new RepositorioIdentidadPg(pool);
   const inventarioRepo = new RepositorioInventarioPg();
+  const agricolaRepo = new RepositorioAgricolaPg();
+  // Una compra recibida suma al inventario de insumos (el módulo financiero no conoce el agrícola: se conectan aquí).
+  const insumosParaCompras: InsumosParaCompras = {
+    nombre: async (tx, org, fincaId, insumoId) => (await agricolaRepo.listarAgroquimicos(tx, org, [fincaId])).find((x) => x.id === insumoId)?.nombre ?? null,
+    acreditar: async (tx, e) => {
+      await agricolaRepo.acreditarStock(tx, { organizacionId: e.organizacionId, fincaId: e.fincaId, agroquimicoId: e.insumoId, loteComercial: "Compras", vencimiento: null, cantidad: e.cantidad, usuarioId: e.usuarioId, nota: e.referencia });
+    },
+  };
   const configuracion = new RepositorioConfiguracionPg();
   const operaciones: DependenciasOperaciones = { repo: inventarioRepo, ops: new RepositorioOperacionesPg(), uow, auditor };
   return {
@@ -103,7 +112,7 @@ export function crearServicios(pool: Pool, opciones: { codigoInstalacion?: strin
     inventario: { repo: inventarioRepo, uow, auditor },
     operaciones,
     beneficio: { repo: new RepositorioBeneficioPg(), operaciones, uow, auditor },
-    finanzas: { repo: new RepositorioFinanzasPg(), uow, auditor },
+    finanzas: { repo: new RepositorioFinanzasPg(), insumos: insumosParaCompras, uow, auditor },
     pagos: { repo: new RepositorioPagosPg(), uow, auditor },
     invitaciones: { repo: new RepositorioUsuariosPg(), acceso: identidadRepo, cifrar: cifrarContrasena, uow, auditor },
     cultivo: { repo: new RepositorioCultivoPg(), configuracion, uow, auditor },
@@ -115,7 +124,7 @@ export function crearServicios(pool: Pool, opciones: { codigoInstalacion?: strin
     ajustes: { repo: new RepositorioAjustesPg(), uow, auditor },
     usuarios: { repo: new RepositorioUsuariosPg(), cifrar: cifrarContrasena, uow, auditor },
     auditoria: { consulta: new ConsultaAuditoriaPg(), uow, auditor },
-    agricola: { repo: new RepositorioAgricolaPg(), finanzas: { repo: new RepositorioFinanzasPg(), uow, auditor }, uow, auditor },
+    agricola: { repo: agricolaRepo, finanzas: { repo: new RepositorioFinanzasPg(), uow, auditor }, uow, auditor },
     produccion: { produccion: new RepositorioProduccionPg(), inventario: inventarioRepo, configuracion, uow, auditor },
     trazabilidad: { repo: new RepositorioTrazabilidadPg(), uow, auditor },
     talento: { repo: new RepositorioTalentoPg(), configuracion, uow, auditor },

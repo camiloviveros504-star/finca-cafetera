@@ -10,10 +10,12 @@ import type { ContextoUsuario } from "@/shared/dominio/contexto";
 import { aEscala, deEscala, ESCALA_CANTIDAD, ESCALA_MONTO, multiplicarCantidadPorPrecio } from "@/shared/dominio/decimal";
 import { mayorQue, restar, sumar } from "@/shared/dominio/dinero";
 import { ErrorNoEncontrado, ErrorRegla, ErrorValidacion } from "@/shared/dominio/errores";
-import type { LineaCompra, RepositorioFinanzas } from "../domain/puertos";
+import type { InsumosParaCompras, LineaCompra, RepositorioFinanzas } from "../domain/puertos";
 
 export interface DependenciasFinanzas {
   repo: RepositorioFinanzas;
+  /** Inventario de insumos: si está presente, recibir una compra suma lo comprado a las existencias. */
+  insumos?: InsumosParaCompras;
   uow: UnidadDeTrabajo;
   auditor: Auditor;
 }
@@ -67,7 +69,7 @@ const esquemaCompra = z.object({
   nota: z.preprocess(vacio, z.string().trim().max(300).optional()),
   claveIdempotencia: z.string().min(8).max(100),
   lineas: z
-    .array(z.object({ descripcion: z.string().trim().min(2, "Describa el insumo").max(150), cantidad: cantidadTxt, unidad: z.string().trim().min(1).max(20), costoUnitario: montoTxt }))
+    .array(z.object({ insumoId: z.preprocess(vacio, uuid.optional()), descripcion: z.preprocess(vacio, z.string().trim().min(2, "Describa el insumo").max(150).optional()), cantidad: cantidadTxt, unidad: z.string().trim().min(1).max(20), costoUnitario: montoTxt }))
     .min(1, "Agregue al menos un insumo")
     .max(50),
 });
@@ -75,10 +77,11 @@ const esquemaCompra = z.object({
 export async function registrarCompra(deps: DependenciasFinanzas, ctx: ContextoUsuario, cruda: unknown) {
   const e = validar(esquemaCompra, cruda, "Revise los datos de la compra");
   await autorizar(deps.auditor, ctx, "compra:crear", { accion: "compra.crear", entidad: "compra", fincaId: e.fincaId });
+  for (const l of e.lineas) if (!l.insumoId && !l.descripcion) throw new ErrorValidacion("Elija el insumo o describa lo que compró", { lineas: "Falta el insumo" });
   const lineas: LineaCompra[] = e.lineas.map((l) => {
     const cantidad = aEscala(l.cantidad, ESCALA_CANTIDAD);
     if (cantidad <= 0n) throw new ErrorValidacion("La cantidad debe ser mayor que cero", { lineas: "Cantidad inválida" });
-    return { descripcion: l.descripcion, cantidad: l.cantidad, unidad: l.unidad, costoUnitario: l.costoUnitario, subtotal: deEscala(multiplicarCantidadPorPrecio(cantidad, aEscala(l.costoUnitario, ESCALA_MONTO)), ESCALA_MONTO) };
+    return { insumoId: l.insumoId, descripcion: l.descripcion ?? "", cantidad: l.cantidad, unidad: l.unidad, costoUnitario: l.costoUnitario, subtotal: deEscala(multiplicarCantidadPorPrecio(cantidad, aEscala(l.costoUnitario, ESCALA_MONTO)), ESCALA_MONTO) };
   });
   const total = sumar(lineas.map((l) => l.subtotal));
   if (!mayorQue(total, "0.00")) throw new ErrorValidacion("El total de la compra debe ser mayor que cero", { lineas: "Total en cero" });
@@ -86,6 +89,12 @@ export async function registrarCompra(deps: DependenciasFinanzas, ctx: ContextoU
     const previa = await deps.repo.buscarCompraPorClave(tx, ctx.organizacionId, e.claveIdempotencia);
     if (previa) return { id: previa, total, repetida: true };
     if (!(await deps.repo.proveedorExiste(tx, ctx.organizacionId, e.proveedorId))) throw new ErrorNoEncontrado("Proveedor");
+    for (const l of lineas) {
+      if (!l.insumoId) continue;
+      const nombre = deps.insumos ? await deps.insumos.nombre(tx, ctx.organizacionId, e.fincaId, l.insumoId) : null;
+      if (!nombre) throw new ErrorRegla("El insumo no existe en esta finca", "insumo_invalido");
+      if (!l.descripcion) l.descripcion = nombre;
+    }
     const id = await deps.repo.insertarCompra(tx, { organizacionId: ctx.organizacionId, fincaId: e.fincaId, proveedorId: e.proveedorId, fecha: e.fecha, total, clave: e.claveIdempotencia, creadoPor: ctx.usuarioId, nota: e.nota, lineas });
     await auditar(deps, ctx, tx, "compra.crear", "compra", id, { proveedorId: e.proveedorId, total, lineas: lineas.length });
     return { id, total, repetida: false };
@@ -101,6 +110,12 @@ export async function recibirCompra(deps: DependenciasFinanzas, ctx: ContextoUsu
     if (!c || !ctx.fincaIds.includes(c.fincaId)) throw new ErrorNoEncontrado("Compra");
     if (c.estado !== "pedida") throw new ErrorRegla("La compra ya fue recibida", "compra_ya_recibida");
     await deps.repo.marcarRecibida(tx, c.id, e.fecha, ctx.usuarioId);
+    // Lo comprado entra al inventario de insumos de la finca (bultos, litros, unidades).
+    if (deps.insumos) {
+      for (const l of await deps.repo.lineasDeInsumo(tx, c.id)) {
+        await deps.insumos.acreditar(tx, { organizacionId: ctx.organizacionId, fincaId: c.fincaId, insumoId: l.insumoId, cantidad: l.cantidad, fecha: e.fecha, referencia: `Compra recibida el ${e.fecha}`, usuarioId: ctx.usuarioId });
+      }
+    }
     await auditar(deps, ctx, tx, "compra.recibir", "compra", c.id, { fecha: e.fecha, total: c.total });
     return { id: c.id };
   });

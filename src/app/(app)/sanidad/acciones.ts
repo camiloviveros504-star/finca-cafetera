@@ -37,7 +37,7 @@ export async function accionAmbiental(_p: EstadoFormulario, d: FormData) {
 
 export async function accionCrearAgroquimico(_p: EstadoFormulario, d: FormData) {
   const ctx = await exigirContexto();
-  return ejecutar(["/sanidad"], "Agroquímico creado.", () => crearAgroquimico(servicios().agricola, ctx, { nombre: t(d, "nombre"), unidad: t(d, "unidad"), carenciaDias: t(d, "carenciaDias") }));
+  return ejecutar(["/sanidad"], "Insumo creado.", () => crearAgroquimico(servicios().agricola, ctx, { nombre: t(d, "nombre"), unidad: t(d, "unidad"), tipo: t(d, "tipo") || "fertilizante", gramosPorUnidad: dec(d, "gramosPorUnidad"), fincaId: t(d, "fincaId"), carenciaDias: t(d, "carenciaDias") }));
 }
 
 export async function accionEntradaAgroquimico(_p: EstadoFormulario, d: FormData) {
@@ -49,8 +49,8 @@ export async function accionEntradaAgroquimico(_p: EstadoFormulario, d: FormData
 
 export async function accionAplicacion(_p: EstadoFormulario, d: FormData) {
   const ctx = await exigirContexto();
-  return ejecutar(["/sanidad"], (r) => `Aplicación registrada${(r as { fechaReingreso?: string | null }).fechaReingreso ? `. Reingreso/cosecha segura desde ${(r as { fechaReingreso: string }).fechaReingreso}` : ""}.`, () =>
-    registrarAplicacion(servicios().agricola, ctx, { stockId: t(d, "stockId"), loteId: t(d, "loteId"), fecha: t(d, "fecha"), dosis: dec(d, "dosis"), unidadDosis: t(d, "unidadDosis"), cantidadTotal: dec(d, "cantidadTotal"), claveIdempotencia: t(d, "claveIdempotencia") }),
+  return ejecutar(["/sanidad"], (r) => `Aplicación registrada${(r as { cantidadTotal?: string }).cantidadTotal ? `: se descontaron ${(r as { cantidadTotal: string }).cantidadTotal} del inventario` : ""}${(r as { fechaReingreso?: string | null }).fechaReingreso ? `. Reingreso/cosecha segura desde ${(r as { fechaReingreso: string }).fechaReingreso}` : ""}.`, () =>
+    registrarAplicacion(servicios().agricola, ctx, { stockId: t(d, "stockId"), loteId: t(d, "loteId"), fecha: t(d, "fecha"), dosis: dec(d, "dosis"), unidadDosis: t(d, "unidadDosis"), cantidadTotal: dec(d, "cantidadTotal"), gramosPorArbol: dec(d, "gramosPorArbol"), claveIdempotencia: t(d, "claveIdempotencia") }),
   );
 }
 

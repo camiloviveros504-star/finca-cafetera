@@ -7,16 +7,16 @@ export interface FilaInspeccion {
 export interface FilaRegistroAmbiental {
   id: string; fecha: string; fincaNombre: string; tipo: string; descripcion: string; cantidad: string | null; unidad: string | null; responsable: string;
 }
-export interface FilaAgroquimico { id: string; nombre: string; unidad: string; carenciaDias: number | null }
+export interface FilaAgroquimico { id: string; nombre: string; unidad: string; carenciaDias: number | null; tipo: string; gramosPorUnidad: string | null; fincaId: string | null }
 export interface FilaStockAgroquimico {
   id: string; fincaId: string; fincaNombre: string; agroquimicoId: string; nombre: string; unidad: string; loteComercial: string;
-  vencimiento: string; cantidad: string; vencido: boolean; porVencer: boolean;
+  vencimiento: string | null; cantidad: string; vencido: boolean; porVencer: boolean; gramosPorUnidad: string | null;
 }
 export interface FilaAplicacion {
   id: string; fecha: string; fincaNombre: string; loteCodigo: string; agroquimico: string; loteComercial: string; dosis: string; unidadDosis: string;
-  cantidadTotal: string; fechaReingreso: string | null; responsable: string;
+  cantidadTotal: string; fechaReingreso: string | null; responsable: string; gramosPorArbol: string | null; arboles: number | null;
 }
-export interface StockParaAplicar { id: string; fincaId: string; agroquimicoId: string; cantidad: string; vencimiento: string; carenciaDias: number | null; unidad: string }
+export interface StockParaAplicar { id: string; fincaId: string; agroquimicoId: string; cantidad: string; vencimiento: string | null; carenciaDias: number | null; unidad: string; gramosPorUnidad: string | null }
 
 export interface FilaActividad {
   id: string; fincaId: string; fincaNombre: string; loteCodigo: string | null; tipo: string; titulo: string; fechaProgramada: string;
@@ -41,15 +41,16 @@ export interface RepositorioAgricola {
   buscarAmbientalPorClave(tx: Transaccion, organizacionId: string, clave: string): Promise<string | null>;
   insertarAmbiental(tx: Transaccion, r: { organizacionId: string; fincaId: string; fecha: string; tipo: string; descripcion: string; cantidad?: string; unidad?: string; clave: string; responsableId: string }): Promise<string>;
   listarAmbientales(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]): Promise<FilaRegistroAmbiental[]>;
-  crearAgroquimico(tx: Transaccion, a: { organizacionId: string; nombre: string; unidad: string; carenciaDias?: number }): Promise<string>;
-  listarAgroquimicos(tx: Transaccion, organizacionId: string): Promise<FilaAgroquimico[]>;
+  crearAgroquimico(tx: Transaccion, a: { organizacionId: string; nombre: string; unidad: string; carenciaDias?: number; tipo: string; gramosPorUnidad?: string; fincaId?: string }): Promise<string>;
+  listarAgroquimicos(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]): Promise<FilaAgroquimico[]>;
   agroquimicoExiste(tx: Transaccion, organizacionId: string, id: string): Promise<boolean>;
-  acreditarStock(tx: Transaccion, s: { organizacionId: string; fincaId: string; agroquimicoId: string; loteComercial: string; vencimiento: string; cantidad: string; usuarioId: string; nota?: string }): Promise<string>;
+  arbolesDelLote(tx: Transaccion, organizacionId: string, loteId: string): Promise<number | null>;
+  acreditarStock(tx: Transaccion, s: { organizacionId: string; fincaId: string; agroquimicoId: string; loteComercial: string; vencimiento: string | null; cantidad: string; usuarioId: string; nota?: string }): Promise<string>;
   bloquearStock(tx: Transaccion, organizacionId: string, stockId: string): Promise<StockParaAplicar | null>;
   descontarStock(tx: Transaccion, stockId: string, cantidad: string): Promise<void>;
   insertarMovimientoAgroquimico(tx: Transaccion, m: { organizacionId: string; stockId: string; tipo: "entrada" | "aplicacion" | "baja"; delta: string; origenId?: string; usuarioId: string; nota?: string }): Promise<void>;
   buscarAplicacionPorClave(tx: Transaccion, organizacionId: string, clave: string): Promise<string | null>;
-  insertarAplicacion(tx: Transaccion, a: { organizacionId: string; fincaId: string; loteId: string; stockId: string; fecha: string; dosis: string; unidadDosis: string; cantidadTotal: string; fechaReingreso: string | null; inspeccionId?: string; responsableId: string; clave: string }): Promise<string>;
+  insertarAplicacion(tx: Transaccion, a: { organizacionId: string; fincaId: string; loteId: string; stockId: string; fecha: string; dosis: string; unidadDosis: string; cantidadTotal: string; fechaReingreso: string | null; inspeccionId?: string; responsableId: string; clave: string; gramosPorArbol?: string; arboles?: number }): Promise<string>;
   listarStock(tx: Transaccion, organizacionId: string, fincaIds: readonly string[], hoy: string): Promise<FilaStockAgroquimico[]>;
   listarAplicaciones(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]): Promise<FilaAplicacion[]>;
   // Planificación

@@ -3,6 +3,7 @@
  * Los precios y equivalencias NO son valores comerciales reales.
  */
 import type { Client } from "pg";
+import { RECOMENDACIONES } from "../src/modules/identidad/infrastructure/repositorioInstalacionPg";
 import { cifrarContrasena } from "../src/shared/infraestructura/contrasenas";
 
 export const CONTRASENA_DEMO = "Demo-2026!";
@@ -17,6 +18,9 @@ export async function sembrar(c: Client): Promise<void> {
   await c.query("BEGIN");
   try {
     const org = await uno(c, "INSERT INTO organizacion (nombre, es_demo) VALUES ('Organización DEMO', true) RETURNING id");
+    for (const [etapa, desde, hasta, labor, titulo, detalle, gramos, fuente] of RECOMENDACIONES) {
+      await c.query("INSERT INTO recomendacion_cultivo (organizacion_id, etapa, edad_desde_meses, edad_hasta_meses, labor, titulo, detalle, gramos_por_planta, fuente) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)", [org.id, etapa, desde, hasta, labor, titulo, detalle, gramos, fuente]);
+    }
     const f1 = await uno(c, "INSERT INTO finca (organizacion_id, nombre, ubicacion, area_ha) VALUES ($1,'Finca El Mirador DEMO','Vereda ilustrativa',12.5) RETURNING id", [org.id]);
     const f2 = await uno(c, "INSERT INTO finca (organizacion_id, nombre, ubicacion, area_ha) VALUES ($1,'Finca La Esperanza DEMO','Vereda ilustrativa',8) RETURNING id", [org.id]);
 

@@ -48,9 +48,14 @@ export class RepositorioFinanzasPg implements RepositorioFinanzas {
     );
     const id = r.rows[0].id as string;
     for (const l of c.lineas) {
-      await cl.query("INSERT INTO compra_detalle (compra_id, descripcion, cantidad, unidad, costo_unitario, subtotal) VALUES ($1,$2,$3,$4,$5,$6)", [id, l.descripcion, l.cantidad, l.unidad, l.costoUnitario, l.subtotal]);
+      await cl.query("INSERT INTO compra_detalle (compra_id, descripcion, cantidad, unidad, costo_unitario, subtotal, insumo_id) VALUES ($1,$2,$3,$4,$5,$6,$7)", [id, l.descripcion, l.cantidad, l.unidad, l.costoUnitario, l.subtotal, l.insumoId ?? null]);
     }
     return id;
+  }
+
+  async lineasDeInsumo(tx: Transaccion, compraId: string) {
+    const r = await clienteDe(tx).query("SELECT insumo_id, cantidad FROM compra_detalle WHERE compra_id = $1 AND insumo_id IS NOT NULL", [compraId]);
+    return r.rows.map((x) => ({ insumoId: x.insumo_id as string, cantidad: x.cantidad as string }));
   }
 
   async bloquearCompra(tx: Transaccion, organizacionId: string, compraId: string): Promise<CompraParaMovimiento | null> {

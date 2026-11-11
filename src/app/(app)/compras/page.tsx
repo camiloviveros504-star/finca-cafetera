@@ -1,11 +1,11 @@
-import { ErrorProhibido, listarCompras, listarFincasYLotes, listarProveedores, servicios } from "@/composicion";
+import { ErrorProhibido, listarAgroquimicos, listarCompras, listarFincasYLotes, listarProveedores, servicios } from "@/composicion";
 import { EncabezadoModulo } from "../../_componentes/EncabezadoModulo";
 import { FormularioGenerico } from "../../_componentes/FormularioGenerico";
 import { cantidad, moneda } from "../../_servidor/formatos";
 import { exigirContexto } from "../../_servidor/sesion";
 import { accionCrearProveedor, accionPagarCompra, accionRecibirCompra, accionRegistrarCompra } from "../finanzas/acciones";
 
-export const metadata = { title: "Compras · Gestión de Finca Cafetera" };
+export const metadata = { title: "Compra de insumos · Gestión de Finca Cafetera" };
 const hoy = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
 
 export default async function Compras() {
@@ -19,11 +19,12 @@ export default async function Compras() {
     if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para consultar compras.</p>;
     throw error;
   }
+  const insumos = ctx.permisos.has("agroquimico:ver") ? await listarAgroquimicos(servicios().agricola, ctx).then((d) => d.catalogo).catch(() => []) : [];
   const fincas = await listarFincasYLotes(servicios().fincasLotes, ctx).then((d) => d.fincas).catch(() => []);
   const p = (x: string) => ctx.permisos.has(x);
   return (
     <section className="space-y-6">
-      <EncabezadoModulo titulo="Compras y cuentas por pagar" detalle="Pedido → recepción → cuenta por pagar → pagos." />
+      <EncabezadoModulo titulo="Compra de insumos" detalle="Pedido → recepción (suma al inventario de insumos) → cuenta por pagar → pagos." />
       <div className="grid gap-4 xl:grid-cols-2">
         {p("proveedor:administrar") && (
           <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
@@ -38,14 +39,15 @@ export default async function Compras() {
         )}
         {p("compra:crear") && (
           <details open className="rounded-xl border-2 border-tinta/20 bg-white p-4">
-            <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nuevo pedido de compra (hasta 3 insumos)</summary>
+            <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nueva compra de insumos (hasta 3 productos)</summary>
             <div className="mt-3">
               <FormularioGenerico accion={accionRegistrarCompra} boton="Registrar pedido" conClave campos={[
                 { nombre: "fincaId", etiqueta: "Finca", tipo: "select", opciones: fincas.map((f) => ({ valor: f.id, texto: f.nombre })) },
                 { nombre: "proveedorId", etiqueta: "Proveedor", tipo: "select", opciones: proveedores.map((x) => ({ valor: x.id, texto: x.nombre })) },
                 { nombre: "fecha", etiqueta: "Fecha", tipo: "date", requerido: true, valorInicial: hoy() },
                 ...[1, 2, 3].flatMap((n) => [
-                  { nombre: `descripcion${n}`, etiqueta: `Insumo ${n}`, requerido: n === 1 },
+                  { nombre: `insumoId${n}`, etiqueta: `Insumo ${n}`, tipo: "select" as const, opciones: [{ valor: "", texto: n === 1 ? "Elija un insumo…" : "— ninguno —" }, ...insumos.map((i) => ({ valor: i.id, texto: `${i.nombre} (${i.unidad})` })), { valor: "otro", texto: "Otro (no va al inventario)" }] },
+                  { nombre: `descripcion${n}`, etiqueta: `Si es otro, qué compró ${n}` },
                   { nombre: `cantidad${n}`, etiqueta: `Cantidad ${n}`, tipo: "number" as const, requerido: n === 1 },
                   { nombre: `unidad${n}`, etiqueta: `Unidad ${n}`, placeholder: "bulto, litro, unidad" },
                   { nombre: `costo${n}`, etiqueta: `Costo unitario ${n} (COP)`, tipo: "number" as const, requerido: n === 1 },

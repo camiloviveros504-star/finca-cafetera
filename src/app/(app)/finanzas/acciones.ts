@@ -35,8 +35,8 @@ export async function accionCrearProveedor(_p: EstadoFormulario, d: FormData) {
 export async function accionRegistrarCompra(_p: EstadoFormulario, d: FormData) {
   const ctx = await exigirContexto();
   const lineas = [1, 2, 3]
-    .filter((n) => t(d, `descripcion${n}`) !== "")
-    .map((n) => ({ descripcion: t(d, `descripcion${n}`), cantidad: dec(d, `cantidad${n}`), unidad: t(d, `unidad${n}`) || "unidad", costoUnitario: dec(d, `costo${n}`) }));
+    .filter((n) => t(d, `insumoId${n}`) !== "" || t(d, `descripcion${n}`) !== "")
+    .map((n) => ({ insumoId: t(d, `insumoId${n}`) === "otro" ? "" : t(d, `insumoId${n}`), descripcion: t(d, `descripcion${n}`), cantidad: dec(d, `cantidad${n}`), unidad: t(d, `unidad${n}`) || "unidad", costoUnitario: dec(d, `costo${n}`) }));
   return ejecutar(["/compras", "/finanzas"], "Pedido de compra registrado.", () =>
     registrarCompra(servicios().finanzas, ctx, { fincaId: t(d, "fincaId"), proveedorId: t(d, "proveedorId"), fecha: t(d, "fecha"), nota: t(d, "nota"), claveIdempotencia: t(d, "claveIdempotencia"), lineas }),
   );

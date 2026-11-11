@@ -9,7 +9,14 @@ export interface FilaProveedor {
   porPagar: string;
 }
 
+/** Puerto hacia el inventario de insumos: una compra recibida suma a las existencias del insumo comprado. */
+export interface InsumosParaCompras {
+  nombre(tx: Transaccion, organizacionId: string, fincaId: string, insumoId: string): Promise<string | null>;
+  acreditar(tx: Transaccion, e: { organizacionId: string; fincaId: string; insumoId: string; cantidad: string; fecha: string; referencia: string; usuarioId: string }): Promise<void>;
+}
+
 export interface LineaCompra {
+  insumoId?: string;
   descripcion: string;
   cantidad: string;
   unidad: string;
@@ -97,6 +104,7 @@ export interface RepositorioFinanzas {
   buscarCompraPorClave(tx: Transaccion, organizacionId: string, clave: string): Promise<string | null>;
   insertarCompra(tx: Transaccion, c: { organizacionId: string; fincaId: string; proveedorId: string; fecha: string; total: string; clave: string; creadoPor: string; nota?: string; lineas: LineaCompra[] }): Promise<string>;
   bloquearCompra(tx: Transaccion, organizacionId: string, compraId: string): Promise<CompraParaMovimiento | null>;
+  lineasDeInsumo(tx: Transaccion, compraId: string): Promise<{ insumoId: string; cantidad: string }[]>;
   marcarRecibida(tx: Transaccion, compraId: string, fecha: string, usuarioId: string): Promise<void>;
   buscarPagoProveedorPorClave(tx: Transaccion, organizacionId: string, clave: string): Promise<string | null>;
   insertarPagoProveedor(tx: Transaccion, p: { organizacionId: string; compraId: string; monto: string; metodo: string; fecha: string; clave: string; registradoPor: string }): Promise<string>;

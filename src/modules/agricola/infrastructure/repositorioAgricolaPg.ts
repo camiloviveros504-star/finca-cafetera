@@ -55,16 +55,21 @@ export class RepositorioAgricolaPg implements RepositorioAgricola {
   }
   async crearAgroquimico(tx: Transaccion, a: Parameters<RepositorioAgricola["crearAgroquimico"]>[1]) {
     try {
-      const r = await clienteDe(tx).query("INSERT INTO agroquimico (organizacion_id, nombre, unidad, carencia_dias) VALUES ($1,$2,$3,$4) RETURNING id", [a.organizacionId, a.nombre, a.unidad, a.carenciaDias ?? null]);
+      const r = await clienteDe(tx).query("INSERT INTO agroquimico (organizacion_id, nombre, unidad, carencia_dias, tipo, gramos_por_unidad, finca_id) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id", [a.organizacionId, a.nombre, a.unidad, a.carenciaDias ?? null, a.tipo, a.gramosPorUnidad ?? null, a.fincaId ?? null]);
       return r.rows[0].id as string;
     } catch (error) {
       if (codigoError(error) === "23505") throw new ErrorRegla("Ya existe un agroquímico con ese nombre", "agroquimico_duplicado");
       throw error;
     }
   }
-  async listarAgroquimicos(tx: Transaccion, o: string): Promise<FilaAgroquimico[]> {
-    const r = await clienteDe(tx).query("SELECT id, nombre, unidad, carencia_dias FROM agroquimico WHERE organizacion_id = $1 AND activo ORDER BY nombre", [o]);
-    return r.rows.map((x) => ({ id: x.id, nombre: x.nombre, unidad: x.unidad, carenciaDias: x.carencia_dias }));
+  async listarAgroquimicos(tx: Transaccion, o: string, fincaIds: readonly string[]): Promise<FilaAgroquimico[]> {
+    // Cada finca ve sus propios insumos y los compartidos de la organización (sin finca).
+    const r = await clienteDe(tx).query("SELECT id, nombre, unidad, carencia_dias, tipo, gramos_por_unidad, finca_id FROM agroquimico WHERE organizacion_id = $1 AND activo AND (finca_id IS NULL OR finca_id = ANY($2::uuid[])) ORDER BY tipo, nombre", [o, fincaIds]);
+    return r.rows.map((x) => ({ id: x.id, nombre: x.nombre, unidad: x.unidad, carenciaDias: x.carencia_dias, tipo: x.tipo, gramosPorUnidad: x.gramos_por_unidad, fincaId: x.finca_id }));
+  }
+  async arbolesDelLote(tx: Transaccion, o: string, loteId: string) {
+    const r = await clienteDe(tx).query("SELECT numero_arboles FROM lote WHERE id = $1 AND organizacion_id = $2", [loteId, o]);
+    return r.rows[0] ? (r.rows[0].numero_arboles as number | null) : null;
   }
   async agroquimicoExiste(tx: Transaccion, o: string, id: string) {
     return (await clienteDe(tx).query("SELECT 1 FROM agroquimico WHERE id = $1 AND organizacion_id = $2 AND activo", [id, o])).rowCount === 1;
@@ -82,12 +87,12 @@ export class RepositorioAgricolaPg implements RepositorioAgricola {
   }
   async bloquearStock(tx: Transaccion, o: string, stockId: string): Promise<StockParaAplicar | null> {
     const r = await clienteDe(tx).query(
-      `SELECT s.id, s.finca_id, s.agroquimico_id, s.cantidad, s.vencimiento::text AS vencimiento, a.carencia_dias, a.unidad
+      `SELECT s.id, s.finca_id, s.agroquimico_id, s.cantidad, s.vencimiento::text AS vencimiento, a.carencia_dias, a.unidad, a.gramos_por_unidad
          FROM agroquimico_stock s JOIN agroquimico a ON a.id = s.agroquimico_id WHERE s.id = $1 AND s.organizacion_id = $2 FOR UPDATE OF s`,
       [stockId, o],
     );
     const x = r.rows[0];
-    return x ? { id: x.id, fincaId: x.finca_id, agroquimicoId: x.agroquimico_id, cantidad: x.cantidad, vencimiento: x.vencimiento, carenciaDias: x.carencia_dias, unidad: x.unidad } : null;
+    return x ? { id: x.id, fincaId: x.finca_id, agroquimicoId: x.agroquimico_id, cantidad: x.cantidad, vencimiento: x.vencimiento, carenciaDias: x.carencia_dias, unidad: x.unidad, gramosPorUnidad: x.gramos_por_unidad } : null;
   }
   async descontarStock(tx: Transaccion, stockId: string, cantidad: string) {
     await clienteDe(tx).query("UPDATE agroquimico_stock SET cantidad = cantidad - $2 WHERE id = $1", [stockId, cantidad]);
@@ -100,32 +105,32 @@ export class RepositorioAgricolaPg implements RepositorioAgricola {
   }
   async insertarAplicacion(tx: Transaccion, a: Parameters<RepositorioAgricola["insertarAplicacion"]>[1]) {
     const r = await clienteDe(tx).query(
-      `INSERT INTO aplicacion_agroquimica (organizacion_id, finca_id, lote_id, stock_id, fecha, dosis, unidad_dosis, cantidad_total, fecha_reingreso, inspeccion_id, responsable_id, clave_idempotencia)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,
-      [a.organizacionId, a.fincaId, a.loteId, a.stockId, a.fecha, a.dosis, a.unidadDosis, a.cantidadTotal, a.fechaReingreso, a.inspeccionId ?? null, a.responsableId, a.clave],
+      `INSERT INTO aplicacion_agroquimica (organizacion_id, finca_id, lote_id, stock_id, fecha, dosis, unidad_dosis, cantidad_total, fecha_reingreso, inspeccion_id, responsable_id, clave_idempotencia, gramos_por_arbol, arboles)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
+      [a.organizacionId, a.fincaId, a.loteId, a.stockId, a.fecha, a.dosis, a.unidadDosis, a.cantidadTotal, a.fechaReingreso, a.inspeccionId ?? null, a.responsableId, a.clave, a.gramosPorArbol ?? null, a.arboles ?? null],
     );
     return r.rows[0].id as string;
   }
   async listarStock(tx: Transaccion, o: string, fincaIds: readonly string[], hoy: string): Promise<FilaStockAgroquimico[]> {
     const r = await clienteDe(tx).query(
-      `SELECT s.id, s.finca_id, f.nombre AS finca, a.id AS agro_id, a.nombre, a.unidad, s.lote_comercial, s.vencimiento::text AS vencimiento, s.cantidad,
-              (s.vencimiento < $3::date) AS vencido, (s.vencimiento >= $3::date AND s.vencimiento <= $3::date + 30) AS por_vencer
+      `SELECT s.id, s.finca_id, f.nombre AS finca, a.id AS agro_id, a.nombre, a.unidad, s.lote_comercial, s.vencimiento::text AS vencimiento, s.cantidad, a.gramos_por_unidad,
+              coalesce(s.vencimiento < $3::date, false) AS vencido, coalesce(s.vencimiento >= $3::date AND s.vencimiento <= $3::date + 30, false) AS por_vencer
          FROM agroquimico_stock s JOIN agroquimico a ON a.id = s.agroquimico_id JOIN finca f ON f.id = s.finca_id
         WHERE s.organizacion_id = $1 AND s.finca_id = ANY($2::uuid[]) ORDER BY s.vencimiento, a.nombre`,
       [o, fincaIds, hoy],
     );
-    return r.rows.map((x) => ({ id: x.id, fincaId: x.finca_id, fincaNombre: x.finca, agroquimicoId: x.agro_id, nombre: x.nombre, unidad: x.unidad, loteComercial: x.lote_comercial, vencimiento: x.vencimiento, cantidad: x.cantidad, vencido: x.vencido, porVencer: x.por_vencer }));
+    return r.rows.map((x) => ({ id: x.id, fincaId: x.finca_id, fincaNombre: x.finca, agroquimicoId: x.agro_id, nombre: x.nombre, unidad: x.unidad, loteComercial: x.lote_comercial, vencimiento: x.vencimiento, cantidad: x.cantidad, vencido: x.vencido, porVencer: x.por_vencer, gramosPorUnidad: x.gramos_por_unidad }));
   }
   async listarAplicaciones(tx: Transaccion, o: string, fincaIds: readonly string[]): Promise<FilaAplicacion[]> {
     const r = await clienteDe(tx).query(
       `SELECT p.id, p.fecha::text AS fecha, f.nombre AS finca, l.codigo AS lote, a.nombre AS agro, s.lote_comercial, p.dosis, p.unidad_dosis, p.cantidad_total,
-              p.fecha_reingreso::text AS reingreso, u.nombre AS responsable
+              p.fecha_reingreso::text AS reingreso, u.nombre AS responsable, p.gramos_por_arbol, p.arboles
          FROM aplicacion_agroquimica p JOIN finca f ON f.id = p.finca_id JOIN lote l ON l.id = p.lote_id JOIN agroquimico_stock s ON s.id = p.stock_id
          JOIN agroquimico a ON a.id = s.agroquimico_id JOIN usuario u ON u.id = p.responsable_id
         WHERE p.organizacion_id = $1 AND p.finca_id = ANY($2::uuid[]) ORDER BY p.fecha DESC, p.creado_en DESC LIMIT 200`,
       [o, fincaIds],
     );
-    return r.rows.map((x) => ({ id: x.id, fecha: x.fecha, fincaNombre: x.finca, loteCodigo: x.lote, agroquimico: x.agro, loteComercial: x.lote_comercial, dosis: x.dosis, unidadDosis: x.unidad_dosis, cantidadTotal: x.cantidad_total, fechaReingreso: x.reingreso, responsable: x.responsable }));
+    return r.rows.map((x) => ({ id: x.id, fecha: x.fecha, fincaNombre: x.finca, loteCodigo: x.lote, agroquimico: x.agro, loteComercial: x.lote_comercial, dosis: x.dosis, unidadDosis: x.unidad_dosis, cantidadTotal: x.cantidad_total, fechaReingreso: x.reingreso, responsable: x.responsable, gramosPorArbol: x.gramos_por_arbol, arboles: x.arboles }));
   }
 
   // ── Planificación ──

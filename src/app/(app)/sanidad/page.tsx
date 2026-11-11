@@ -6,7 +6,7 @@ import { exigirContexto } from "../../_servidor/sesion";
 import { FormularioInspeccionOffline } from "../../_componentes/FormulariosOffline";
 import { accionAmbiental, accionAplicacion, accionCrearAgroquimico, accionEntradaAgroquimico } from "./acciones";
 
-export const metadata = { title: "Sanidad e inspecciones · Gestión de Finca Cafetera" };
+export const metadata = { title: "Insumos y sanidad · Gestión de Finca Cafetera" };
 const hoy = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
 const Caja = ({ titulo, abierto, children }: { titulo: string; abierto?: boolean; children: React.ReactNode }) => (
   <details open={abierto} className="rounded-xl border-2 border-tinta/20 bg-white p-4">
@@ -27,7 +27,7 @@ export default async function Sanidad() {
   const lotes = datos.lotes.map((l) => ({ valor: l.id, texto: `${l.fincaNombre} · ${l.codigo}` }));
   return (
     <section className="space-y-6">
-      <EncabezadoModulo titulo="Sanidad e inspecciones" imagen="modulo-sanidad-inspeccion" alt="Agrónomo revisando con lupa las cerezas de una rama de café y tomando notas" />
+      <EncabezadoModulo titulo="Insumos, abonos y sanidad" imagen="modulo-sanidad-inspeccion" alt="Agrónomo revisando con lupa las cerezas de una rama de café y tomando notas" />
       <div className="grid gap-4 xl:grid-cols-2">
         {p("inspeccion:registrar") && (
           <Caja titulo="Registrar inspección (funciona sin conexión)" abierto>
@@ -47,28 +47,37 @@ export default async function Sanidad() {
           </Caja>
         )}
         {p("agroquimico:administrar") && agro && (
-          <Caja titulo="Agroquímicos: nuevo producto y entrada de existencias">
+          <Caja titulo="Insumos: crear y registrar entradas al inventario">
             <div className="space-y-4">
-              <FormularioGenerico accion={accionCrearAgroquimico} boton="Crear producto" campos={[{ nombre: "nombre", etiqueta: "Nombre", requerido: true }, { nombre: "unidad", etiqueta: "Unidad", requerido: true, placeholder: "litro" }, { nombre: "carenciaDias", etiqueta: "Carencia (días, dato del producto)", tipo: "number", inputMode: "numeric" }]} />
+              <FormularioGenerico accion={accionCrearAgroquimico} boton="Crear insumo" campos={[
+                { nombre: "tipo", etiqueta: "Tipo", tipo: "select", opciones: [{ valor: "fertilizante", texto: "Fertilizante o abono" }, { valor: "fumigante", texto: "Fumigante (insecticida, fungicida)" }, { valor: "herbicida", texto: "Herbicida" }, { valor: "herramienta", texto: "Herramienta o material" }, { valor: "otro", texto: "Otro" }] },
+                { nombre: "nombre", etiqueta: "Nombre", requerido: true, placeholder: "Triple 15, Urea…" },
+                { nombre: "unidad", etiqueta: "Se maneja por", requerido: true, placeholder: "bulto, litro, kilo" },
+                { nombre: "gramosPorUnidad", etiqueta: "Gramos por bulto o unidad (para abonos)", tipo: "number", placeholder: "50000 = bulto de 50 kg" },
+                { nombre: "fincaId", etiqueta: "Finca", tipo: "select", opciones: [{ valor: "", texto: "Todas mis fincas" }, ...fincas] },
+                { nombre: "carenciaDias", etiqueta: "Carencia en días (solo fumigantes)", tipo: "number", inputMode: "numeric" },
+              ]} />
               <FormularioGenerico accion={accionEntradaAgroquimico} boton="Registrar entrada" campos={[
                 { nombre: "fincaId", etiqueta: "Finca", tipo: "select", opciones: fincas },
-                { nombre: "agroquimicoId", etiqueta: "Producto", tipo: "select", opciones: agro.catalogo.map((a) => ({ valor: a.id, texto: a.nombre })) },
-                { nombre: "loteComercial", etiqueta: "Lote del proveedor", requerido: true },
-                { nombre: "vencimiento", etiqueta: "Vencimiento", tipo: "date", requerido: true },
+                { nombre: "agroquimicoId", etiqueta: "Insumo", tipo: "select", opciones: agro.catalogo.map((a) => ({ valor: a.id, texto: a.nombre })) },
+                { nombre: "loteComercial", etiqueta: "Lote del proveedor (opcional)" },
+                { nombre: "vencimiento", etiqueta: "Vencimiento (opcional)", tipo: "date" },
                 { nombre: "cantidad", etiqueta: "Cantidad", tipo: "number", requerido: true },
               ]} />
             </div>
           </Caja>
         )}
         {p("aplicacion:registrar") && agro && (
-          <Caja titulo="Registrar aplicación">
+          <Caja titulo="Registrar abonada o fumigación">
+            <p className="mb-2 text-sm">Para abonar, escriba los gramos por árbol: el sistema calcula cuántos bultos salen según los árboles del lote y los gramos de cada bulto. Para fumigar, use dosis y cantidad.</p>
             <FormularioGenerico accion={accionAplicacion} boton="Registrar aplicación" conClave campos={[
               { nombre: "stockId", etiqueta: "Existencia", tipo: "select", opciones: agro.stock.filter((s) => !s.vencido).map((s) => ({ valor: s.id, texto: `${s.nombre} · ${s.loteComercial} (${cantidad(s.cantidad)} ${s.unidad})` })) },
               { nombre: "loteId", etiqueta: "Lote", tipo: "select", opciones: lotes },
               { nombre: "fecha", etiqueta: "Fecha", tipo: "date", requerido: true, valorInicial: hoy() },
-              { nombre: "dosis", etiqueta: "Dosis", tipo: "number", requerido: true },
-              { nombre: "unidadDosis", etiqueta: "Unidad de la dosis", requerido: true, placeholder: "litro/ha" },
-              { nombre: "cantidadTotal", etiqueta: "Cantidad total usada", tipo: "number", requerido: true },
+              { nombre: "gramosPorArbol", etiqueta: "Abono: gramos por árbol", tipo: "number" },
+              { nombre: "dosis", etiqueta: "Fumigante: dosis", tipo: "number" },
+              { nombre: "unidadDosis", etiqueta: "Unidad de la dosis", placeholder: "litro/ha" },
+              { nombre: "cantidadTotal", etiqueta: "Cantidad total usada", tipo: "number" },
             ]} />
           </Caja>
         )}
@@ -76,19 +85,19 @@ export default async function Sanidad() {
 
       {agro && (
         <>
-          <h2 className="text-xl font-extrabold">Existencias de agroquímicos</h2>
+          <h2 className="text-xl font-extrabold">Inventario de insumos</h2>
           <ul className="grid gap-2 md:grid-cols-2">
             {agro.stock.map((s) => (
               <li key={s.id} className={`rounded-xl border-2 bg-white p-3 text-sm ${s.vencido ? "border-alerta" : s.porVencer ? "border-ambar" : "border-tinta/20"}`}>
                 <strong>{s.nombre}</strong> · lote {s.loteComercial} · {s.fincaNombre}<br />
-                {cantidad(s.cantidad)} {s.unidad} · vence {s.vencimiento}{s.vencido ? " · VENCIDO" : s.porVencer ? " · vence en menos de 30 días" : ""}
+                {cantidad(s.cantidad)} {s.unidad}{s.gramosPorUnidad ? ` (${cantidad(s.gramosPorUnidad)} g cada uno)` : ""}{s.vencimiento ? ` · vence ${s.vencimiento}` : ""}{s.vencido ? " · VENCIDO" : s.porVencer ? " · vence en menos de 30 días" : ""}
               </li>
             ))}
             {agro.stock.length === 0 && <li>Sin existencias registradas.</li>}
           </ul>
-          <h2 className="text-xl font-extrabold">Aplicaciones</h2>
+          <h2 className="text-xl font-extrabold">Abonadas y fumigaciones</h2>
           <ul className="space-y-1 text-sm">
-            {agro.aplicaciones.map((a) => <li key={a.id} className="rounded-lg bg-white px-3 py-2">{a.fecha} · {a.fincaNombre} · {a.loteCodigo} · {a.agroquimico} ({a.loteComercial}) · dosis {cantidad(a.dosis)} {a.unidadDosis} · total {cantidad(a.cantidadTotal)} · {a.responsable}{a.fechaReingreso ? ` · cosecha segura desde ${a.fechaReingreso}` : ""}</li>)}
+            {agro.aplicaciones.map((a) => <li key={a.id} className="rounded-lg bg-white px-3 py-2">{a.fecha} · {a.fincaNombre} · {a.loteCodigo} · {a.agroquimico} ({a.loteComercial}) · {a.gramosPorArbol ? `${cantidad(a.gramosPorArbol)} g por árbol × ${a.arboles} árboles` : `dosis ${cantidad(a.dosis)} ${a.unidadDosis}`} · total {cantidad(a.cantidadTotal)} · {a.responsable}{a.fechaReingreso ? ` · cosecha segura desde ${a.fechaReingreso}` : ""}</li>)}
           </ul>
         </>
       )}
