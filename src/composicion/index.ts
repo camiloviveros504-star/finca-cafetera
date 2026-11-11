@@ -29,6 +29,13 @@ import { RepositorioPagosPg } from "@/modules/comercial/infrastructure/repositor
 import type { DependenciasPagos } from "@/modules/comercial/application/pagosClientes";
 import { RepositorioAgricolaPg } from "@/modules/agricola/infrastructure/repositorioAgricolaPg";
 import type { DependenciasAgricola } from "@/modules/agricola/application/comun";
+import { RepositorioAjustesPg } from "@/modules/configuracion/infrastructure/repositorioAjustesPg";
+import type { DependenciasAjustes } from "@/modules/configuracion/application/ajustes";
+import { RepositorioUsuariosPg } from "@/modules/identidad/infrastructure/repositorioUsuariosPg";
+import type { DependenciasUsuarios } from "@/modules/identidad/application/usuarios";
+import { ConsultaAuditoriaPg } from "@/modules/auditoria/infrastructure/consultaAuditoriaPg";
+import type { DependenciasAuditoria } from "@/modules/auditoria/application/consultarAuditoria";
+import { cifrarContrasena } from "@/shared/infraestructura/contrasenas";
 import { RepositorioTrazabilidadPg } from "@/modules/trazabilidad/infrastructure/repositorioTrazabilidadPg";
 import { hashDeRelleno, verificarContrasena } from "@/shared/infraestructura/contrasenas";
 import { obtenerPool, UnidadDeTrabajoPg } from "@/shared/infraestructura/baseDatos";
@@ -54,6 +61,9 @@ export interface Servicios {
   finanzas: DependenciasFinanzas;
   pagos: DependenciasPagos;
   agricola: DependenciasAgricola;
+  ajustes: DependenciasAjustes;
+  usuarios: DependenciasUsuarios;
+  auditoria: DependenciasAuditoria;
 }
 
 export function crearServicios(pool: Pool): Servicios {
@@ -74,6 +84,9 @@ export function crearServicios(pool: Pool): Servicios {
     beneficio: { repo: new RepositorioBeneficioPg(), operaciones, uow, auditor },
     finanzas: { repo: new RepositorioFinanzasPg(), uow, auditor },
     pagos: { repo: new RepositorioPagosPg(), uow, auditor },
+    ajustes: { repo: new RepositorioAjustesPg(), uow, auditor },
+    usuarios: { repo: new RepositorioUsuariosPg(), cifrar: cifrarContrasena, uow, auditor },
+    auditoria: { consulta: new ConsultaAuditoriaPg(), uow, auditor },
     agricola: { repo: new RepositorioAgricolaPg(), finanzas: { repo: new RepositorioFinanzasPg(), uow, auditor }, uow, auditor },
     produccion: { produccion: new RepositorioProduccionPg(), inventario: inventarioRepo, configuracion, uow, auditor },
     trazabilidad: { repo: new RepositorioTrazabilidadPg(), uow, auditor },
@@ -125,5 +138,11 @@ export { crearEquipo, registrarUsoEquipo, registrarMantenimiento, listarEquipos 
 export type {
   FilaActividad, FilaAgroquimico, FilaAplicacion, FilaEquipo, FilaInspeccion, FilaMantenimiento, FilaProyeccion, FilaRegistroAmbiental, FilaStockAgroquimico,
 } from "@/modules/agricola/domain/puertos";
+export {
+  obtenerAjustes, crearValorCatalogo, cambiarEstadoValorCatalogo, crearEquivalencia, crearTemporada, guardarParametro,
+  type Equivalencia, type ParametroConfigurado, type Temporada, type ValorCatalogo,
+} from "@/modules/configuracion/application/ajustes";
+export { listarUsuarios, crearUsuario, asignarRolesYFincas, cambiarEstadoUsuario, restablecerContrasena, cambiarPermisoExtra, type FilaPermiso, type FilaRol, type FilaUsuario } from "@/modules/identidad/application/usuarios";
+export { consultarAuditoria, type FilaAuditoria, type FiltroAuditoria } from "@/modules/auditoria/application/consultarAuditoria";
 export * from "@/shared/dominio/errores";
 export type { ContextoUsuario } from "@/shared/dominio/contexto";

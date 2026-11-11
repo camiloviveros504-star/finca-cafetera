@@ -29,6 +29,9 @@ export default async function LayoutAplicacion({ children }: { children: React.R
     { href: "/cartera", etiqueta: "Cartera", icono: "◔", permiso: "pago:ver" },
     { href: "/compras", etiqueta: "Compras", icono: "⛟", permiso: "compra:ver" },
     { href: "/finanzas", etiqueta: "Finanzas", icono: "▤", permiso: "finanzas:ver" },
+    { href: "/configuracion/general", etiqueta: "Ajustes", icono: "☰", permiso: "configuracion:ver" },
+    { href: "/usuarios", etiqueta: "Usuarios", icono: "♟", permiso: "usuario:ver" },
+    { href: "/auditoria", etiqueta: "Auditoría", icono: "✓", permiso: "auditoria:ver" },
   ];
   const vistos = new Set<string>();
   const enlaces = todos.filter((e) => {

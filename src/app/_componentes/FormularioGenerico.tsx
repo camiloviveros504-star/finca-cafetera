@@ -5,7 +5,7 @@ import { useActionState, useState } from "react";
 export interface CampoFormulario {
   nombre: string;
   etiqueta: string;
-  tipo?: "text" | "number" | "date" | "select" | "textarea" | "checkbox";
+  tipo?: "text" | "number" | "date" | "select" | "textarea" | "checkbox" | "multiple" | "password";
   opciones?: { valor: string; texto: string }[];
   requerido?: boolean;
   placeholder?: string;
@@ -55,9 +55,23 @@ export function FormularioGenerico({
         <input key={k} type="hidden" name={k} value={v} />
       ))}
       {conClave && <input type="hidden" name="claveIdempotencia" value={clave} />}
-      {campos.map((c) => (
-        <label key={c.nombre} className={`block text-sm font-semibold ${c.tipo === "textarea" ? "sm:col-span-2" : ""}`}>
-          {c.tipo === "checkbox" ? (
+      {campos.map((c) => {
+        const Env = c.tipo === "multiple" ? "div" : "label";
+        return (
+        <Env key={c.nombre} className={`block text-sm font-semibold ${c.tipo === "textarea" || c.tipo === "multiple" ? "sm:col-span-2" : ""}`}>
+          {c.tipo === "multiple" ? (
+            <fieldset className="rounded-lg border-2 border-cafe/30 p-2">
+              <legend className="px-1">{c.etiqueta}</legend>
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {c.opciones?.map((o) => (
+                  <span key={o.valor} className="flex min-h-11 items-center gap-2 font-normal">
+                    <input id={`${c.nombre}-${o.valor}`} type="checkbox" name={c.nombre} value={o.valor} defaultChecked={c.valorInicial?.split(",").includes(o.valor)} className="size-5" />
+                    <label htmlFor={`${c.nombre}-${o.valor}`}>{o.texto}</label>
+                  </span>
+                ))}
+              </div>
+            </fieldset>
+          ) : c.tipo === "checkbox" ? (
             <span className="flex min-h-11 items-center gap-2">
               <input type="checkbox" name={c.nombre} className="size-5" required={c.requerido} />
               {c.etiqueta}
@@ -76,7 +90,8 @@ export function FormularioGenerico({
               ) : (
                 <input
                   name={c.nombre}
-                  type={c.tipo === "date" ? "date" : "text"}
+                  type={c.tipo === "date" ? "date" : c.tipo === "password" ? "password" : "text"}
+                  autoComplete={c.tipo === "password" ? "new-password" : undefined}
                   inputMode={c.inputMode ?? (c.tipo === "number" ? "decimal" : undefined)}
                   required={c.requerido}
                   placeholder={c.placeholder}
@@ -86,8 +101,9 @@ export function FormularioGenerico({
               )}
             </>
           )}
-        </label>
-      ))}
+        </Env>
+        );
+      })}
       <button disabled={pendiente} className="min-h-11 self-end rounded-lg bg-cafetal px-4 font-bold text-white disabled:opacity-60">
         {pendiente ? "Guardando…" : boton}
       </button>
