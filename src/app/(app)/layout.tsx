@@ -8,6 +8,7 @@ export default async function LayoutAplicacion({ children }: { children: React.R
   // El menú solo muestra lo permitido; la validación real está en el servidor (cada caso de uso).
   const todos: Array<EnlaceNav & { permiso?: string }> = [
     { href: "/inicio", etiqueta: "Inicio", icono: "⌂" },
+    { href: "/lotes", etiqueta: "Lotes", icono: "◩", permiso: "lote:ver" },
     { href: "/cosechas", etiqueta: "Cosechas", icono: "☘", permiso: "cosecha:ver" },
     { href: "/inventario", etiqueta: "Inventario", icono: "▦", permiso: "inventario:ver" },
     { href: "/ventas", etiqueta: "Ventas", icono: "$", permiso: "venta:ver" },

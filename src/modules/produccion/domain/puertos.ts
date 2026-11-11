@@ -54,3 +54,29 @@ export interface RepositorioProduccion {
   ): Promise<{ filas: CosechaRegistrada[]; total: number }>;
   opcionesRegistro(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]): Promise<OpcionesRegistro>;
 }
+
+export interface FilaLote {
+  id: string;
+  fincaId: string;
+  fincaNombre: string;
+  codigo: string;
+  nombre: string;
+  areaHa: string | null;
+  variedad: string | null;
+  estadoProductivo: string;
+  cosechadoKg: string;
+}
+
+export interface RepositorioFincasLotes {
+  crearFinca(tx: Transaccion, f: { organizacionId: string; nombre: string; ubicacion?: string; areaHa?: string; creadoPor: string }): Promise<string>;
+  crearLote(
+    tx: Transaccion,
+    l: { organizacionId: string; fincaId: string; codigo: string; nombre: string; areaHa?: string; variedad?: string; numeroArboles?: number },
+  ): Promise<string>;
+  listarFincas(
+    tx: Transaccion,
+    organizacionId: string,
+    fincaIds: readonly string[],
+  ): Promise<{ id: string; nombre: string; ubicacion: string | null; areaHa: string | null; lotes: number }[]>;
+  listarLotes(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]): Promise<FilaLote[]>;
+}

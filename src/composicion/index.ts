@@ -17,6 +17,8 @@ import { RepositorioPanelPg } from "@/modules/panel/infrastructure/repositorioPa
 import type { DependenciasClientes } from "@/modules/comercial/application/clientesPedidos";
 import type { DependenciasPanel } from "@/modules/panel/application/obtenerPanel";
 import { RepositorioProduccionPg } from "@/modules/produccion/infrastructure/repositorioProduccionPg";
+import { RepositorioFincasLotesPg } from "@/modules/produccion/infrastructure/repositorioFincasLotesPg";
+import type { DependenciasFincasLotes } from "@/modules/produccion/application/fincasLotes";
 import { RepositorioTrazabilidadPg } from "@/modules/trazabilidad/infrastructure/repositorioTrazabilidadPg";
 import { hashDeRelleno, verificarContrasena } from "@/shared/infraestructura/contrasenas";
 import { obtenerPool, UnidadDeTrabajoPg } from "@/shared/infraestructura/baseDatos";
@@ -34,6 +36,7 @@ export interface Servicios {
   tarifas: DependenciasTarifas;
   clientes: DependenciasClientes;
   panel: DependenciasPanel;
+  fincasLotes: DependenciasFincasLotes;
   produccion: DependenciasProduccion;
   trazabilidad: DependenciasTrazabilidad;
 }
@@ -57,6 +60,7 @@ export function crearServicios(pool: Pool): Servicios {
     tarifas: { repo: new RepositorioTarifasPg(), uow, auditor },
     clientes: { repo: new RepositorioClientesPg(), uow, auditor },
     panel: { repo: new RepositorioPanelPg(), uow },
+    fincasLotes: { repo: new RepositorioFincasLotesPg(), uow, auditor },
   };
 }
 
@@ -72,6 +76,7 @@ export { registrarVenta, listarVentas, obtenerOpcionesVenta } from "@/modules/co
 export { crearVersionTarifa, listarTarifas, historialTarifa } from "@/modules/configuracion/application/tarifas";
 export { crearCliente, listarClientes, crearPedido, listarPedidos } from "@/modules/comercial/application/clientesPedidos";
 export { obtenerPanel, type ResumenPanel } from "@/modules/panel/application/obtenerPanel";
+export { crearFinca, crearLote, listarFincasYLotes } from "@/modules/produccion/application/fincasLotes";
 export { consultarSaldos } from "@/modules/inventario/application/movimientos";
 export { registrarAjuste, trasladar, transformar, reversarMovimiento, listarMovimientos } from "@/modules/inventario/application/operaciones";
 export { registrarCosecha, listarCosechas, obtenerOpcionesRegistro } from "@/modules/produccion/application/cosechas";
