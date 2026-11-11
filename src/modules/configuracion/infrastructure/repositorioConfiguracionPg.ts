@@ -3,6 +3,22 @@ import { clienteDe } from "@/shared/infraestructura/baseDatos";
 import type { PrecioVigente, RepositorioConfiguracion } from "../domain/puertos";
 
 export class RepositorioConfiguracionPg implements RepositorioConfiguracion {
+  async tarifaPagoVigente(tx: Transaccion, organizacionId: string, fincaId: string, trabajadorId: string, tipo: string, fecha: string): Promise<PrecioVigente | null> {
+    const r = await clienteDe(tx).query(
+      `SELECT v.valor, v.id
+         FROM tarifa t JOIN tarifa_version v ON v.tarifa_id = t.id
+        WHERE t.organizacion_id = $1 AND t.tipo = $2 AND t.estado = 'activa'
+          AND (t.trabajador_id = $3 OR t.trabajador_id IS NULL)
+          AND (t.finca_id = $4 OR t.finca_id IS NULL)
+          AND v.vigencia @> $5::date
+        ORDER BY (t.trabajador_id IS NULL), (t.finca_id IS NULL)
+        LIMIT 1`,
+      [organizacionId, tipo, trabajadorId, fincaId, fecha],
+    );
+    const f = r.rows[0];
+    return f ? { valor: f.valor as string, tarifaVersionId: f.id as string } : null;
+  }
+
   async precioVigente(
     tx: Transaccion,
     organizacionId: string,

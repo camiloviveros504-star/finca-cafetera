@@ -1,8 +1,18 @@
 import type { Transaccion } from "@/shared/dominio/contexto";
 import { clienteDe } from "@/shared/infraestructura/baseDatos";
-import type { FilaTarifa, RepositorioTarifas } from "../domain/puertos";
+import type { FilaTarifa, NuevaTarifa, RepositorioTarifas } from "../domain/puertos";
 
 export class RepositorioTarifasPg implements RepositorioTarifas {
+  async insertarTarifa(tx: Transaccion, t: NuevaTarifa): Promise<string> {
+    const r = await clienteDe(tx).query(
+      `INSERT INTO tarifa (organizacion_id, finca_id, trabajador_id, producto_id, codigo, tipo, unidad_id)
+       SELECT $1,$2,$3,$4,$5,$6,u.id FROM unidad u WHERE u.codigo = $7 RETURNING id`,
+      [t.organizacionId, t.fincaId ?? null, t.trabajadorId ?? null, t.productoId ?? null, t.codigo, t.tipo, t.unidadCodigo],
+    );
+    if (!r.rows[0]) throw new Error("Unidad inexistente");
+    return r.rows[0].id as string;
+  }
+
   async bloquearTarifa(tx: Transaccion, organizacionId: string, tarifaId: string): Promise<boolean> {
     const r = await clienteDe(tx).query("SELECT 1 FROM tarifa WHERE id = $1 AND organizacion_id = $2 FOR UPDATE", [tarifaId, organizacionId]);
     return r.rowCount === 1;

@@ -28,6 +28,11 @@ export async function sembrar(c: Client): Promise<void> {
       ["produccion@demo.local", "Encargado de producción DEMO", "encargado_produccion", [f1.id]],
       ["comercial@demo.local", "Responsable comercial DEMO", "responsable_comercial", [f1.id]],
       ["comercial2@demo.local", "Responsable comercial finca 2 DEMO", "responsable_comercial", [f2.id]],
+      ["supervisor@demo.local", "Supervisor de campo DEMO", "supervisor_campo", [f1.id]],
+      ["recolector@demo.local", "Recolector DEMO", "recolector", [f1.id]],
+      ["financiero@demo.local", "Responsable financiero DEMO", "responsable_financiero", [f1.id, f2.id]],
+      ["bodega@demo.local", "Responsable de bodega DEMO", "responsable_bodega", [f1.id]],
+      ["auditor@demo.local", "Auditor DEMO", "auditor", [f1.id, f2.id]],
     ];
     const idUsuario: Record<string, string> = {};
     for (const [correo, nombre, rol, fincas] of usuarios) {
@@ -57,6 +62,11 @@ export async function sembrar(c: Client): Promise<void> {
       ["tipo_cafe", "caturra", "Caturra"],
       ["tipo_cafe", "castillo", "Castillo"],
       ["categoria_producto", "cafe", "Café"],
+      ["tipo_gasto", "insumos", "Insumos agrícolas"],
+      ["tipo_gasto", "mano_obra", "Mano de obra"],
+      ["tipo_gasto", "administrativo", "Gasto administrativo"],
+      ["tipo_gasto", "mantenimiento", "Mantenimiento de maquinaria"],
+      ["tipo_gasto", "combustible", "Combustible"],
     ]) {
       await c.query("INSERT INTO catalogo_valor (organizacion_id, catalogo, codigo, nombre) VALUES ($1,$2,$3,$4)", [org.id, catalogo, codigo, nombre]);
     }
@@ -110,6 +120,20 @@ export async function sembrar(c: Client): Promise<void> {
         "INSERT INTO saldo_inventario (organizacion_id, finca_id, bodega_id, producto_id, lote_id, cantidad) VALUES ($1,$2,$3,$4,$5,$6)",
         [org.id, fid, bid, prod[codigo], loteId, cantidad],
       );
+    }
+
+    // Trabajadores y tarifas de pago de DEMOSTRACIÓN (no son valores comerciales ni legales).
+    for (const [codigo, tipo, unidad, valor] of [["pago_kg", "pago_kg", "kg", 1500], ["pago_jornada", "pago_jornada", "jornada", 60000]] as const) {
+      const t = await uno(c, "INSERT INTO tarifa (organizacion_id, codigo, tipo, unidad_id) VALUES ($1,$2,$3,$4) RETURNING id", [org.id, codigo, tipo, unidades[unidad]]);
+      await c.query("INSERT INTO tarifa_version (tarifa_id, version, valor, vigencia, es_demo, creada_por) VALUES ($1,1,$2,'[2026-01-01,)', true, $3)", [t.id, valor, idUsuario["admin@demo.local"]]);
+    }
+    for (const [doc, nombres, apellidos, modalidad, correo] of [
+      ["1000000001", "Recolector", "DEMO Uno", "kg", "recolector@demo.local"],
+      ["1000000002", "Recolectora", "DEMO Dos", "arroba", null],
+      ["1000000003", "Obrero", "DEMO Tres", "jornada", null],
+    ] as const) {
+      const w = await uno(c, "INSERT INTO trabajador (organizacion_id, usuario_id, numero_documento, nombres, apellidos, autorizo_tratamiento_en, finalidad_tratamiento) VALUES ($1,$2,$3,$4,$5, now(), 'Registro de producción y pago (DEMO)') RETURNING id", [org.id, correo ? idUsuario[correo] : null, doc, nombres, apellidos]);
+      await c.query("INSERT INTO vinculacion (organizacion_id, trabajador_id, finca_id, modalidad, vigencia) VALUES ($1,$2,$3,$4,'[2026-01-01,)')", [org.id, w.id, f1.id, modalidad]);
     }
 
     for (const [nombre, doc] of [["Cliente DEMO Tostadora Andina", "900000001"], ["Cliente DEMO Exportadora del Valle", "900000002"]]) {

@@ -6,6 +6,15 @@ export interface PrecioVigente {
 }
 
 export interface RepositorioConfiguracion {
+  /** Tarifa de pago vigente en la fecha. Prefiere la del trabajador, luego la de la finca y por último la general. */
+  tarifaPagoVigente(
+    tx: Transaccion,
+    organizacionId: string,
+    fincaId: string,
+    trabajadorId: string,
+    tipo: string,
+    fecha: string,
+  ): Promise<PrecioVigente | null>;
   precioVigente(
     tx: Transaccion,
     organizacionId: string,
@@ -39,7 +48,18 @@ export interface FilaTarifa {
   esDemo: boolean;
 }
 
+export interface NuevaTarifa {
+  organizacionId: string;
+  fincaId?: string;
+  trabajadorId?: string;
+  productoId?: string;
+  codigo: string;
+  tipo: string;
+  unidadCodigo: string;
+}
+
 export interface RepositorioTarifas {
+  insertarTarifa(tx: Transaccion, t: NuevaTarifa): Promise<string>;
   bloquearTarifa(tx: Transaccion, organizacionId: string, tarifaId: string): Promise<boolean>;
   ultimaVersion(
     tx: Transaccion,

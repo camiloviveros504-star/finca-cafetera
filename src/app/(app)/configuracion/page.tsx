@@ -1,4 +1,6 @@
-import { ErrorProhibido, listarTarifas, servicios } from "@/composicion";
+import { ErrorProhibido, listarFincasYLotes, listarTarifas, listarTrabajadores, servicios } from "@/composicion";
+import { FormularioGenerico } from "../../_componentes/FormularioGenerico";
+import { accionCrearTarifa } from "./acciones";
 import { moneda } from "../../_servidor/formatos";
 import { exigirContexto } from "../../_servidor/sesion";
 import { FormularioTarifa } from "./FormularioTarifa";
@@ -16,12 +18,34 @@ export default async function Configuracion() {
   }
   const hoy = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
   const puedeModificar = ctx.permisos.has("tarifa:modificar");
+  const fincas = puedeModificar ? await listarFincasYLotes(servicios().fincasLotes, ctx).then((d) => d.fincas).catch(() => []) : [];
+  const trabajadores = puedeModificar ? await listarTrabajadores(servicios().talento, ctx).catch(() => []) : [];
   return (
     <section>
       <h1 className="text-2xl font-extrabold">Tarifas y precios</h1>
       <p className="mb-4 text-sm">
         Los precios no están en el código: cada cambio crea una versión nueva con su vigencia. Las ventas ya registradas conservan el valor con el que se hicieron.
       </p>
+      {puedeModificar && (
+        <details className="mb-4 rounded-xl border-2 border-cafe/20 bg-white p-4">
+          <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nueva tarifa (precio, compra o pago)</summary>
+          <div className="mt-3">
+            <FormularioGenerico
+              accion={accionCrearTarifa}
+              boton="Crear tarifa"
+              campos={[
+                { nombre: "codigo", etiqueta: "Código", requerido: true, placeholder: "pago_kg_finca" },
+                { nombre: "tipo", etiqueta: "Tipo", tipo: "select", opciones: [["pago_kg", "Pago por kg"], ["pago_arroba", "Pago por arroba"], ["pago_jornada", "Pago por jornada"], ["pago_actividad", "Pago por actividad"], ["precio_compra", "Precio de compra"], ["especial", "Tarifa especial"]].map(([valor, texto]) => ({ valor, texto })) },
+                { nombre: "unidadCodigo", etiqueta: "Unidad", tipo: "select", opciones: ["kg", "arroba", "jornada", "actividad", "saco", "carga"].map((v) => ({ valor: v, texto: v })) },
+                { nombre: "fincaId", etiqueta: "Finca (opcional)", tipo: "select", opciones: [{ valor: "", texto: "General" }, ...fincas.map((f) => ({ valor: f.id, texto: f.nombre }))] },
+                { nombre: "trabajadorId", etiqueta: "Trabajador (opcional)", tipo: "select", opciones: [{ valor: "", texto: "Todos" }, ...trabajadores.map((w) => ({ valor: w.id, texto: w.nombre }))] },
+                { nombre: "valor", etiqueta: "Valor (COP)", tipo: "number", requerido: true },
+                { nombre: "desde", etiqueta: "Vigente desde", tipo: "date", requerido: true, valorInicial: hoy },
+              ]}
+            />
+          </div>
+        </details>
+      )}
       <ul className="space-y-4">
         {tarifas.map((t) => (
           <li key={t.tarifaId} className="rounded-xl border-2 border-cafe/20 bg-white p-4">

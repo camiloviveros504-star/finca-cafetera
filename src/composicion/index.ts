@@ -19,6 +19,8 @@ import type { DependenciasPanel } from "@/modules/panel/application/obtenerPanel
 import { RepositorioProduccionPg } from "@/modules/produccion/infrastructure/repositorioProduccionPg";
 import { RepositorioFincasLotesPg } from "@/modules/produccion/infrastructure/repositorioFincasLotesPg";
 import type { DependenciasFincasLotes } from "@/modules/produccion/application/fincasLotes";
+import { RepositorioTalentoPg } from "@/modules/talento/infrastructure/repositorioTalentoPg";
+import type { DependenciasTalento } from "@/modules/talento/application/talento";
 import { RepositorioTrazabilidadPg } from "@/modules/trazabilidad/infrastructure/repositorioTrazabilidadPg";
 import { hashDeRelleno, verificarContrasena } from "@/shared/infraestructura/contrasenas";
 import { obtenerPool, UnidadDeTrabajoPg } from "@/shared/infraestructura/baseDatos";
@@ -39,6 +41,7 @@ export interface Servicios {
   fincasLotes: DependenciasFincasLotes;
   produccion: DependenciasProduccion;
   trazabilidad: DependenciasTrazabilidad;
+  talento: DependenciasTalento;
 }
 
 export function crearServicios(pool: Pool): Servicios {
@@ -57,6 +60,7 @@ export function crearServicios(pool: Pool): Servicios {
     operaciones: { repo: inventarioRepo, ops: new RepositorioOperacionesPg(), uow, auditor },
     produccion: { produccion: new RepositorioProduccionPg(), inventario: inventarioRepo, configuracion, uow, auditor },
     trazabilidad: { repo: new RepositorioTrazabilidadPg(), uow, auditor },
+    talento: { repo: new RepositorioTalentoPg(), configuracion, uow, auditor },
     tarifas: { repo: new RepositorioTarifasPg(), uow, auditor },
     clientes: { repo: new RepositorioClientesPg(), uow, auditor },
     panel: { repo: new RepositorioPanelPg(), uow },
@@ -73,7 +77,7 @@ export function servicios(): Servicios {
 
 export { iniciarSesion, obtenerContexto, cerrarSesion } from "@/modules/identidad/application/sesiones";
 export { registrarVenta, listarVentas, obtenerOpcionesVenta } from "@/modules/comercial/application/registrarVenta";
-export { crearVersionTarifa, listarTarifas, historialTarifa } from "@/modules/configuracion/application/tarifas";
+export { crearVersionTarifa, crearTarifa, listarTarifas, historialTarifa } from "@/modules/configuracion/application/tarifas";
 export { crearCliente, listarClientes, crearPedido, listarPedidos } from "@/modules/comercial/application/clientesPedidos";
 export { obtenerPanel, type ResumenPanel } from "@/modules/panel/application/obtenerPanel";
 export { crearFinca, crearLote, listarFincasYLotes } from "@/modules/produccion/application/fincasLotes";
@@ -81,5 +85,10 @@ export { consultarSaldos } from "@/modules/inventario/application/movimientos";
 export { registrarAjuste, trasladar, transformar, reversarMovimiento, listarMovimientos } from "@/modules/inventario/application/operaciones";
 export { registrarCosecha, listarCosechas, obtenerOpcionesRegistro } from "@/modules/produccion/application/cosechas";
 export { consultarTrazabilidadVenta } from "@/modules/trazabilidad/application/consultarTrazabilidad";
+export {
+  crearTrabajador, crearVinculacion, listarTrabajadores, registrarTrabajo, validarTrabajo, listarTrabajos,
+  registrarAnticipo, liquidarPeriodo, registrarPagoTrabajador, listarLiquidaciones,
+  type FilaLiquidacion, type FilaRegistroTrabajo, type FilaTrabajador, type Modalidad,
+} from "@/modules/talento/application/talento";
 export * from "@/shared/dominio/errores";
 export type { ContextoUsuario } from "@/shared/dominio/contexto";

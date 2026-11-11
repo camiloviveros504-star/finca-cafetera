@@ -79,3 +79,46 @@ export async function historialTarifa(deps: DependenciasTarifas, ctx: ContextoUs
   await autorizar(deps.auditor, ctx, "tarifa:ver", { accion: "tarifa.historial", entidad: "tarifa" });
   return deps.uow.consultar((tx) => deps.repo.historial(tx, ctx.organizacionId, tarifaId));
 }
+
+const TIPOS = ["precio_venta", "precio_compra", "pago_kg", "pago_arroba", "pago_jornada", "pago_actividad", "especial"] as const;
+const UNIDAD_POR_TIPO: Record<string, string[]> = {
+  precio_venta: ["kg"], precio_compra: ["kg", "saco", "arroba", "carga"], pago_kg: ["kg"], pago_arroba: ["arroba"],
+  pago_jornada: ["jornada"], pago_actividad: ["actividad"], especial: ["kg", "arroba", "jornada", "actividad"],
+};
+const esquemaNueva = z.object({
+  codigo: z.string().trim().min(3, "Indique un código").max(60),
+  tipo: z.enum(TIPOS, { message: "Tipo de tarifa inválido" }),
+  unidadCodigo: z.string().trim().min(1),
+  fincaId: z.preprocess((v) => (v === "" ? undefined : v), z.string().uuid().optional()),
+  trabajadorId: z.preprocess((v) => (v === "" ? undefined : v), z.string().uuid().optional()),
+  productoId: z.preprocess((v) => (v === "" ? undefined : v), z.string().uuid().optional()),
+  valor: z.string().regex(/^\d{1,11}(\.\d{1,2})?$/, "Valor inválido (máximo 2 decimales)"),
+  desde: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida"),
+});
+
+/**
+ * Crea una tarifa con su primera versión. Las tarifas de pago pueden ser generales, de una finca o de un trabajador.
+ * La primera versión puede tener vigencia pasada porque aún no existe historial que reescribir.
+ */
+export async function crearTarifa(deps: DependenciasTarifas, ctx: ContextoUsuario, cruda: unknown) {
+  const r = esquemaNueva.safeParse(cruda);
+  if (!r.success) {
+    const campos: Record<string, string> = {};
+    for (const p of r.error.issues) campos[p.path.join(".")] = p.message;
+    throw new ErrorValidacion("Revise los datos de la tarifa", campos);
+  }
+  const e = r.data;
+  await autorizar(deps.auditor, ctx, "tarifa:modificar", { accion: "tarifa.crear", entidad: "tarifa", fincaId: e.fincaId });
+  if (!UNIDAD_POR_TIPO[e.tipo].includes(e.unidadCodigo)) {
+    throw new ErrorRegla(`La unidad ${e.unidadCodigo} no corresponde al tipo de tarifa ${e.tipo}`, "unidad_no_corresponde");
+  }
+  return deps.uow.ejecutar(async (tx) => {
+    const tarifaId = await deps.repo.insertarTarifa(tx, { organizacionId: ctx.organizacionId, ...e });
+    const versionId = await deps.repo.insertarVersion(tx, { tarifaId, version: 1, valor: e.valor, desde: e.desde, creadaPor: ctx.usuarioId });
+    await deps.auditor.registrar(
+      { organizacionId: ctx.organizacionId, usuarioId: ctx.usuarioId, accion: "tarifa.crear", entidad: "tarifa", entidadId: tarifaId, resultado: "ok", despues: { codigo: e.codigo, tipo: e.tipo, valor: e.valor, desde: e.desde }, ip: ctx.ip },
+      tx,
+    );
+    return { tarifaId, versionId };
+  });
+}
