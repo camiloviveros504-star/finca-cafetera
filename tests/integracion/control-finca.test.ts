@@ -118,6 +118,23 @@ describe("insumos: compra → inventario → abonada por gramos por árbol", () 
     expect(Number((await stock())[0].cantidad)).toBe(8);
   });
 
+  it("asignar bultos a un lote es lo único obligatorio: sin dosis ni gramos por árbol, y no pasa de lo que hay", async () => {
+    const dueno = await e.contexto("propietario@demo.local");
+    const { id: insumoId } = await crearAgroquimico(e.servicios.agricola, dueno, { nombre: "Urea de prueba", unidad: "bulto", fincaId: e.ids.finca1 });
+    const { id: proveedorId } = await crearProveedor(e.servicios.finanzas, dueno, { nombre: "Proveedor de urea" });
+    const compra = await registrarCompra(e.servicios.finanzas, dueno, { fincaId: e.ids.finca1, proveedorId, fecha: hoy, claveIdempotencia: k(), lineas: [{ insumoId, cantidad: "5", unidad: "bulto", costoUnitario: "120000" }] });
+    await recibirCompra(e.servicios.finanzas, dueno, { compraId: compra.id, fecha: hoy });
+    const stock = async () => (await listarAgroquimicos(e.servicios.agricola, dueno)).stock.find((s) => s.agroquimicoId === insumoId)!;
+    const { id: loteId } = await crearLote(e.servicios.fincasLotes, dueno, { fincaId: e.ids.finca1, codigo: "T-06", nombre: "Lote de urea", areaHa: "1" });
+
+    const r = await registrarAplicacion(e.servicios.agricola, dueno, { stockId: (await stock()).id, loteId, fecha: hoy, cantidadTotal: "3", claveIdempotencia: k() });
+    expect(Number(r.cantidadTotal)).toBe(3);
+    expect(Number((await stock()).cantidad)).toBe(2);
+    await expect(registrarAplicacion(e.servicios.agricola, dueno, { stockId: (await stock()).id, loteId, fecha: hoy, claveIdempotencia: k() })).rejects.toThrow(ErrorValidacion); // sin cantidad ni gramos por árbol
+    await expect(registrarAplicacion(e.servicios.agricola, dueno, { stockId: (await stock()).id, loteId, fecha: hoy, cantidadTotal: "9", claveIdempotencia: k() })).rejects.toThrow(ErrorRegla); // solo quedan 2
+    expect(Number((await stock()).cantidad)).toBe(2);
+  });
+
   it("cada finca tiene sus propios insumos: no se crean ni se compran insumos de una finca ajena", async () => {
     const dueno = await e.contexto("propietario@demo.local"); // solo tiene la finca 1
     await expect(crearAgroquimico(e.servicios.agricola, dueno, { nombre: "Insumo ajeno", unidad: "bulto", fincaId: e.ids.finca2 })).rejects.toThrow(ErrorNoEncontrado);

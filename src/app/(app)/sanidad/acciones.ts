@@ -50,7 +50,7 @@ export async function accionEntradaAgroquimico(_p: EstadoFormulario, d: FormData
 export async function accionAplicacion(_p: EstadoFormulario, d: FormData) {
   const ctx = await exigirContexto();
   return ejecutar(["/sanidad"], (r) => `Aplicación registrada${(r as { cantidadTotal?: string }).cantidadTotal ? `: se descontaron ${(r as { cantidadTotal: string }).cantidadTotal} del inventario` : ""}${(r as { fechaReingreso?: string | null }).fechaReingreso ? `. Reingreso/cosecha segura desde ${(r as { fechaReingreso: string }).fechaReingreso}` : ""}.`, () =>
-    registrarAplicacion(servicios().agricola, ctx, { stockId: t(d, "stockId"), loteId: t(d, "loteId"), fecha: t(d, "fecha"), dosis: dec(d, "dosis"), unidadDosis: t(d, "unidadDosis"), cantidadTotal: dec(d, "cantidadTotal"), gramosPorArbol: dec(d, "gramosPorArbol"), claveIdempotencia: t(d, "claveIdempotencia") }),
+    registrarAplicacion(servicios().agricola, ctx, { stockId: t(d, "stockId"), loteId: t(d, "loteId"), fecha: t(d, "fecha"), cantidadTotal: dec(d, "cantidadTotal"), gramosPorArbol: dec(d, "gramosPorArbol"), claveIdempotencia: t(d, "claveIdempotencia") }),
   );
 }
 

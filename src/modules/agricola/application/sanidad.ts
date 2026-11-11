@@ -111,8 +111,9 @@ export async function registrarAplicacion(deps: DependenciasAgricola, ctx: Conte
   if (porArbol) {
     if (aEscala(e.gramosPorArbol!, ESCALA_CANTIDAD) <= 0n) throw new ErrorValidacion("Los gramos por árbol deben ser mayores que cero", { gramosPorArbol: "Inválido" });
   } else {
-    if (!e.dosis || !e.unidadDosis || !e.cantidadTotal) throw new ErrorValidacion("Indique gramos por árbol, o la dosis, su unidad y la cantidad usada", { dosis: "Obligatorio" });
-    if (aEscala(e.cantidadTotal, ESCALA_CANTIDAD) <= 0n || aEscala(e.dosis, ESCALA_CANTIDAD) <= 0n) throw new ErrorValidacion("Dosis y cantidad deben ser mayores que cero", { cantidadTotal: "Inválida" });
+    // Asignar bultos (o litros, kilos…) al lote es lo mínimo; la dosis es opcional y, si se omite, queda igual a la cantidad.
+    if (!e.cantidadTotal) throw new ErrorValidacion("Indique cuántos bultos (o unidades) se asignan al lote, o los gramos por árbol", { cantidadTotal: "Obligatorio" });
+    if (aEscala(e.cantidadTotal, ESCALA_CANTIDAD) <= 0n || (e.dosis !== undefined && aEscala(e.dosis, ESCALA_CANTIDAD) <= 0n)) throw new ErrorValidacion("La cantidad debe ser mayor que cero", { cantidadTotal: "Inválida" });
   }
   await autorizar(deps.auditor, ctx, "aplicacion:registrar", { accion: "aplicacion.registrar", entidad: "aplicacion_agroquimica" });
   return deps.uow.ejecutar(async (tx) => {
@@ -124,8 +125,8 @@ export async function registrarAplicacion(deps: DependenciasAgricola, ctx: Conte
     // Abonada por árbol: cantidad = gramos por árbol × árboles del lote ÷ gramos de cada bulto (redondeo al milésimo).
     let arboles: number | undefined;
     let cantidadTotal = e.cantidadTotal ?? "0";
-    let dosis = e.dosis ?? "0";
-    let unidadDosis = e.unidadDosis ?? "";
+    let dosis = e.dosis ?? cantidadTotal;
+    let unidadDosis = e.unidadDosis ?? stock.unidad;
     if (porArbol) {
       const n = await deps.repo.arbolesDelLote(tx, ctx.organizacionId, e.loteId);
       if (!n) throw new ErrorRegla("El lote no tiene árboles registrados; siembre el lote o indique la cantidad manualmente", "lote_sin_arboles");

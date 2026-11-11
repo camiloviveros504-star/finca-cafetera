@@ -69,16 +69,14 @@ export default async function Sanidad() {
           </Caja>
         )}
         {p("aplicacion:registrar") && agro && (
-          <Caja titulo="Registrar abonada o fumigación">
-            <p className="mb-2 text-sm">Para abonar, escriba los gramos por árbol: el sistema calcula cuántos bultos salen según los árboles del lote y los gramos de cada bulto. Para fumigar, use dosis y cantidad.</p>
-            <FormularioGenerico accion={accionAplicacion} boton="Registrar aplicación" conClave campos={[
-              { nombre: "stockId", etiqueta: "Existencia", tipo: "select", opciones: agro.stock.filter((s) => !s.vencido).map((s) => ({ valor: s.id, texto: `${s.nombre} · ${s.loteComercial} (${cantidad(s.cantidad)} ${s.unidad})` })) },
+          <Caja titulo="Asignar insumo a un lote (abonada, fumigación)">
+            <p className="mb-2 text-sm">Elija el insumo, el lote y cuántos bultos (o unidades) le asigna. Es lo único obligatorio. Si prefiere, deje la cantidad vacía y escriba los gramos por árbol: el sistema calcula los bultos con los árboles del lote y los gramos de cada bulto.</p>
+            <FormularioGenerico accion={accionAplicacion} boton="Asignar al lote" conClave campos={[
+              { nombre: "stockId", etiqueta: "Insumo en inventario", tipo: "select", opciones: agro.stock.filter((s) => !s.vencido).map((s) => ({ valor: s.id, texto: `${s.nombre} · ${s.loteComercial} (${cantidad(s.cantidad)} ${s.unidad})` })) },
               { nombre: "loteId", etiqueta: "Lote", tipo: "select", opciones: lotes },
               { nombre: "fecha", etiqueta: "Fecha", tipo: "date", requerido: true, valorInicial: hoy() },
-              { nombre: "gramosPorArbol", etiqueta: "Abono: gramos por árbol", tipo: "number" },
-              { nombre: "dosis", etiqueta: "Fumigante: dosis", tipo: "number" },
-              { nombre: "unidadDosis", etiqueta: "Unidad de la dosis", placeholder: "litro/ha" },
-              { nombre: "cantidadTotal", etiqueta: "Cantidad total usada", tipo: "number" },
+              { nombre: "cantidadTotal", etiqueta: "Bultos o unidades asignadas al lote", tipo: "number" },
+              { nombre: "gramosPorArbol", etiqueta: "O gramos por árbol (opcional)", tipo: "number" },
             ]} />
           </Caja>
         )}
@@ -108,7 +106,7 @@ export default async function Sanidad() {
           </ul>
           <h2 className="text-xl font-extrabold">Abonadas y fumigaciones</h2>
           <ul className="space-y-1 text-sm">
-            {agro.aplicaciones.map((a) => <li key={a.id} className="rounded-lg bg-white px-3 py-2">{a.fecha} · {a.fincaNombre} · {a.loteCodigo} · {a.agroquimico} ({a.loteComercial}) · {a.gramosPorArbol ? `${cantidad(a.gramosPorArbol)} g por árbol × ${a.arboles} árboles` : `dosis ${cantidad(a.dosis)} ${a.unidadDosis}`} · total {cantidad(a.cantidadTotal)} · {a.responsable}{a.fechaReingreso ? ` · cosecha segura desde ${a.fechaReingreso}` : ""}</li>)}
+            {agro.aplicaciones.map((a) => <li key={a.id} className="rounded-lg bg-white px-3 py-2">{a.fecha} · {a.fincaNombre} · {a.loteCodigo} · {a.agroquimico} ({a.loteComercial}) · {a.gramosPorArbol ? `${cantidad(a.gramosPorArbol)} g por árbol × ${a.arboles} árboles` : "asignado por bultos"} · total {cantidad(a.cantidadTotal)} · {a.responsable}{a.fechaReingreso ? ` · cosecha segura desde ${a.fechaReingreso}` : ""}</li>)}
           </ul>
         </>
       )}
