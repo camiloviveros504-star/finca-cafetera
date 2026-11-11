@@ -9,29 +9,34 @@ export default async function LayoutAplicacion({ children }: { children: React.R
   // El menú solo muestra lo permitido; la validación real está en el servidor (cada caso de uso).
   const todos: Array<EnlaceNav & { permiso?: string }> = [
     { href: "/inicio", etiqueta: "Inicio", icono: "⌂" },
-    { href: "/lotes", etiqueta: "Lotes", icono: "◩", permiso: "lote:ver" },
-    { href: "/cosechas", etiqueta: "Recolección", icono: "☘", permiso: "cosecha:ver" },
-    { href: "/inventario", etiqueta: "Café en bodega", icono: "▦", permiso: "inventario:ver" },
-    { href: "/ventas", etiqueta: "Ventas", icono: "$", permiso: "venta:ver" },
-    { href: "/clientes", etiqueta: "Compradores", icono: "☺", permiso: "cliente:ver" },
-    { href: "/inventario/operaciones", etiqueta: "Ajustes de inventario", icono: "⇄", permiso: "inventario:ajustar" },
-    { href: "/beneficio", etiqueta: "Beneficio", icono: "≋", permiso: "proceso:ver" },
-    { href: "/sanidad", etiqueta: "Insumos y sanidad", icono: "✚", permiso: "inspeccion:ver" },
-    { href: "/sanidad", etiqueta: "Agroquímicos", icono: "✚", permiso: "agroquimico:ver" },
-    { href: "/planificacion", etiqueta: "Planificación", icono: "◷", permiso: "planificacion:ver" },
-    { href: "/maquinaria", etiqueta: "Maquinaria", icono: "⚙", permiso: "equipo:ver" },
-    { href: "/trabajadores", etiqueta: "Equipo", icono: "☻", permiso: "trabajador:ver" },
-    { href: "/trabajadores", etiqueta: "Mis kilos y pagos", icono: "☻", permiso: "trabajador:ver_propio" },
-    { href: "/trabajo", etiqueta: "Labores", icono: "⚒", permiso: "trabajo:validar" },
-    { href: "/trabajo", etiqueta: "Mi producción", icono: "⚒", permiso: "trabajo:registrar_propio" },
-    { href: "/liquidaciones", etiqueta: "Liquidaciones", icono: "¤", permiso: "liquidacion:ver" },
-    { href: "/cartera", etiqueta: "Cartera", icono: "◔", permiso: "pago:ver" },
-    { href: "/compras", etiqueta: "Compra de insumos", icono: "⛟", permiso: "compra:ver" },
-    { href: "/finanzas", etiqueta: "Finanzas", icono: "▤", permiso: "finanzas:ver" },
-    { href: "/configuracion/general", etiqueta: "Ajustes", icono: "☰", permiso: "configuracion:ver" },
-    { href: "/reportes", etiqueta: "Reportes", icono: "⇩", permiso: "reporte:ver" },
-    { href: "/usuarios", etiqueta: "Usuarios", icono: "♟", permiso: "usuario:ver" },
-    { href: "/auditoria", etiqueta: "Auditoría", icono: "✓", permiso: "auditoria:ver" },
+    // Mi finca: lo que se hace día a día en los lotes y con el personal.
+    { href: "/lotes", etiqueta: "Lotes", icono: "◩", permiso: "lote:ver", grupo: "Mi finca" },
+    { href: "/cosechas", etiqueta: "Recolección", icono: "☘", permiso: "cosecha:ver", grupo: "Mi finca" },
+    { href: "/trabajo", etiqueta: "Labores", icono: "⚒", permiso: "trabajo:validar", grupo: "Mi finca" },
+    { href: "/trabajo", etiqueta: "Mi producción", icono: "⚒", permiso: "trabajo:registrar_propio", grupo: "Mi finca" },
+    { href: "/trabajadores", etiqueta: "Equipo", icono: "☻", permiso: "trabajador:ver", grupo: "Mi finca" },
+    { href: "/trabajadores", etiqueta: "Mis kilos y pagos", icono: "☻", permiso: "trabajador:ver_propio", grupo: "Mi finca" },
+    { href: "/planificacion", etiqueta: "Planificación", icono: "◷", permiso: "planificacion:ver", grupo: "Mi finca" },
+    // Insumos y maquinaria.
+    { href: "/sanidad", etiqueta: "Insumos y sanidad", icono: "✚", permiso: "inspeccion:ver", grupo: "Insumos" },
+    { href: "/sanidad", etiqueta: "Insumos", icono: "✚", permiso: "agroquimico:ver", grupo: "Insumos" },
+    { href: "/compras", etiqueta: "Compra de insumos", icono: "⛟", permiso: "compra:ver", grupo: "Insumos" },
+    { href: "/maquinaria", etiqueta: "Maquinaria", icono: "⚙", permiso: "equipo:ver", grupo: "Insumos" },
+    // Café, ventas y cobros.
+    { href: "/inventario", etiqueta: "Café en bodega", icono: "▦", permiso: "inventario:ver", grupo: "Café y ventas" },
+    { href: "/beneficio", etiqueta: "Beneficio", icono: "≋", permiso: "proceso:ver", grupo: "Café y ventas" },
+    { href: "/ventas", etiqueta: "Ventas", icono: "$", permiso: "venta:ver", grupo: "Café y ventas" },
+    { href: "/clientes", etiqueta: "Compradores", icono: "☺", permiso: "cliente:ver", grupo: "Café y ventas" },
+    { href: "/cartera", etiqueta: "Cartera", icono: "◔", permiso: "pago:ver", grupo: "Café y ventas" },
+    { href: "/inventario/operaciones", etiqueta: "Ajustes de inventario", icono: "⇄", permiso: "inventario:ajustar", grupo: "Café y ventas" },
+    // Dinero.
+    { href: "/finanzas", etiqueta: "Gastos y fletes", icono: "▤", permiso: "finanzas:ver", grupo: "Dinero" },
+    { href: "/liquidaciones", etiqueta: "Pagos a trabajadores", icono: "¤", permiso: "liquidacion:ver", grupo: "Dinero" },
+    { href: "/reportes", etiqueta: "Reportes", icono: "⇩", permiso: "reporte:ver", grupo: "Dinero" },
+    // Administración.
+    { href: "/usuarios", etiqueta: "Cuentas", icono: "♟", permiso: "usuario:ver", grupo: "Administración" },
+    { href: "/configuracion/general", etiqueta: "Ajustes", icono: "☰", permiso: "configuracion:ver", grupo: "Administración" },
+    { href: "/auditoria", etiqueta: "Auditoría", icono: "✓", permiso: "auditoria:ver", grupo: "Administración" },
   ];
   const vistos = new Set<string>();
   const enlaces = todos.filter((e) => {

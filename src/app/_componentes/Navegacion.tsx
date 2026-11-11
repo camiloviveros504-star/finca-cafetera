@@ -8,6 +8,18 @@ export interface EnlaceNav {
   href: string;
   etiqueta: string;
   icono: string;
+  /** Sección del menú (Mi finca, Insumos, Café y ventas…): se muestra como título sobre sus opciones. */
+  grupo?: string;
+}
+
+/** Inserta el título de cada sección cuando cambia el grupo. */
+function conTitulos(enlaces: EnlaceNav[]) {
+  let anterior: string | undefined;
+  return enlaces.map((e) => {
+    const titulo = e.grupo && e.grupo !== anterior ? e.grupo : undefined;
+    anterior = e.grupo;
+    return { e, titulo };
+  });
 }
 
 function activo(ruta: string, href: string) {
@@ -27,8 +39,9 @@ export function BarraInferior({ enlaces }: { enlaces: EnlaceNav[] }) {
           <button aria-label="Cerrar" className="absolute inset-0 bg-tinta/60" onClick={() => setAbierto(false)} />
           <div className="absolute inset-x-0 bottom-0 rounded-t-2xl bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
             <ul className="space-y-1">
-              {resto.map((e) => (
+              {conTitulos(resto).map(({ e, titulo }) => (
                 <li key={e.href}>
+                  {titulo && <p className="px-3 pb-1 pt-3 text-xs font-extrabold uppercase tracking-wide text-tinta/60">{titulo}</p>}
                   <Link href={e.href} onClick={() => setAbierto(false)} className="flex min-h-12 items-center gap-3 rounded-lg px-3 font-semibold hover:bg-arena">
                     <span aria-hidden>{e.icono}</span>
                     {e.etiqueta}
@@ -67,18 +80,20 @@ export function BarraLateral({ enlaces }: { enlaces: EnlaceNav[] }) {
   const ruta = usePathname();
   return (
     <nav aria-label="Principal" className="hidden w-60 shrink-0 flex-col gap-1 p-3 lg:flex">
-      {enlaces.map((e) => (
-        <Link
-          key={e.href}
-          href={e.href}
-          aria-current={activo(ruta, e.href) ? "page" : undefined}
-          className={`flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold ${
-            activo(ruta, e.href) ? "bg-bosque text-white" : "hover:bg-arena"
-          }`}
-        >
-          <span aria-hidden>{e.icono}</span>
-          {e.etiqueta}
-        </Link>
+      {conTitulos(enlaces).map(({ e, titulo }) => (
+        <div key={e.href} className="contents">
+          {titulo && <p className="px-3 pb-1 pt-4 text-xs font-extrabold uppercase tracking-wide text-tinta/60">{titulo}</p>}
+          <Link
+            href={e.href}
+            aria-current={activo(ruta, e.href) ? "page" : undefined}
+            className={`flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold ${
+              activo(ruta, e.href) ? "bg-bosque text-white" : "hover:bg-arena"
+            }`}
+          >
+            <span aria-hidden>{e.icono}</span>
+            {e.etiqueta}
+          </Link>
+        </div>
       ))}
     </nav>
   );

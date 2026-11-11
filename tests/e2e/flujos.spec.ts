@@ -3,6 +3,14 @@ import { Client } from "pg";
 
 const CLAVE = "Demo-2026!";
 
+/** Llena la venta por tipo de café: tipo, kilos y precio por kilo (el precio lo fija quien vende). */
+async function llenarVenta(page: Page, kg: string) {
+  await page.locator('select[name="clienteId"]').selectOption({ index: 1 });
+  await page.locator('select[name="productoId1"]').selectOption({ label: "Pergamino seco DEMO" });
+  await page.locator('input[name="kg1"]').fill(kg);
+  await page.locator('input[name="precio1"]').fill("10000");
+}
+
 async function entrar(page: Page, correo: string) {
   await page.goto("/login");
   await page.getByLabel("Correo").fill(correo);
@@ -16,7 +24,7 @@ test.describe("flujos con roles", () => {
     await entrar(page, "comercial@demo.local");
     await expect(page.getByRole("link", { name: "Ventas" }).first()).toBeVisible();
     await page.goto("/ventas/nueva");
-    await page.getByLabel("Cantidad (kg)").fill("1");
+    await llenarVenta(page, "1");
     await page.getByRole("button", { name: "Registrar venta" }).click();
     await page.waitForURL("**/trazabilidad/**");
     await expect(page.getByText("Lote de origen").first()).toBeVisible();
@@ -26,7 +34,7 @@ test.describe("flujos con roles", () => {
   test("una venta mayor que las existencias se rechaza con mensaje claro", async ({ page }) => {
     await entrar(page, "comercial@demo.local");
     await page.goto("/ventas/nueva");
-    await page.getByLabel("Cantidad (kg)").fill("999999");
+    await llenarVenta(page, "999999");
     await page.getByRole("button", { name: "Registrar venta" }).click();
     await expect(page.locator("main [role=alert]")).toContainText("Existencias insuficientes");
   });
