@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gestión de Finca Cafetera
 
-## Getting Started
+Sistema para administrar lotes, cosechas, inventario por movimientos y ventas de una finca cafetera, con trazabilidad del lote a la venta. Proyecto académico de arquitectura de software (monolito modular por capas).
 
-First, run the development server:
+**Los tres drivers del Driver:** D1 consistencia del inventario, D2 trazabilidad de la producción, D3 seguridad y control de acceso. Restricciones: protección de datos personales y conectividad limitada.
+
+> Los datos que trae la demo están marcados **DEMO**: precios, equivalencias y personas son ilustrativos y no son valores comerciales. Las imágenes son ilustrativas, generadas con IA.
+
+## Requisitos
+
+- Node.js 22 o superior y npm.
+- Para la base de datos, **una** de estas dos opciones:
+  - **Sin Docker:** nada más (el paquete `embedded-postgres` trae PostgreSQL real).
+  - **Con Docker:** Docker Desktop.
+- Google Chrome (solo para las pruebas E2E con Playwright).
+
+## Arranque con un solo comando
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run demo          # sin Docker: PostgreSQL real + migraciones + datos DEMO + aplicación
+# o bien
+docker compose up     # con Docker: contenedores `app` y `db`
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abra http://localhost:3000. Usuarios DEMO (contraseña `Demo-2026!`):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Correo | Rol |
+|---|---|
+| admin@demo.local | Administrador |
+| produccion@demo.local | Encargado de producción |
+| comercial@demo.local | Responsable comercial |
+| comercial2@demo.local | Responsable comercial de la otra finca (para probar el aislamiento) |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Configuración
 
-## Learn More
+Copie `.env.example` a `.env`. Los secretos solo viven en variables de entorno, nunca en el repositorio.
 
-To learn more about Next.js, take a look at the following resources:
+| Variable | Para qué sirve |
+|---|---|
+| `DATABASE_URL` | Cadena de conexión de PostgreSQL. En Render: la URL **externa**, con `?sslmode=require`. |
+| `SESSION_SECRET` | Cadena aleatoria de 32 o más caracteres. |
+| `APP_URL` | URL pública de la aplicación. |
+| `PG_POOL_MAX` | Conexiones por instancia (por defecto 5; Render Free no tiene pool propio). |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Comandos de base de datos: `npm run db:local` (PostgreSQL local), `npm run db:migrar`, `npm run db:reset` (borra, migra y siembra DEMO; bloqueado en producción).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Pruebas
 
-## Deploy on Vercel
+```bash
+npm run db:local &     # PostgreSQL real para las pruebas (o use el servicio de CI)
+npm test               # unitarias + integración + concurrencia contra PostgreSQL real
+npm run capas          # regla de dependencias entre capas (evidencia del criterio 4)
+npm run e2e            # Playwright: flujos con roles, sin conexión y 5 tamaños de pantalla
+npm run tipos          # TypeScript estricto
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Las pruebas crean una base temporal por archivo y la borran al terminar. Los resultados con fecha y comando están en `docs/pruebas/`. No se reporta ningún resultado que no se haya ejecutado.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Arquitectura (la que está implementada)
+
+Un solo proceso de aplicación (Next.js) y una sola base PostgreSQL, tal como muestra el C4 nivel 2 (`docs/entregable-1/07-diagramas-c4.md`).
+
+```
+src/app          Presentación: páginas, Server Actions y Route Handlers
+src/composicion  Raíz de composición: conecta casos de uso con la infraestructura
+src/modules/<contexto>/
+   domain          Entidades, reglas puras y puertos (interfaces)
+   application     Casos de uso: autorizan, validan y orquestan
+   infrastructure  Repositorios PostgreSQL
+src/shared       Errores tipados, decimales exactos, autorización, base de datos
+db/              Migraciones SQL, semilla DEMO, utilidades
+tests/           unitarias, integración, concurrencia, e2e
+```
+
+Dependencias en una sola dirección: `presentación → composición → aplicación → dominio ← infraestructura`. **`npm run capas` falla si alguien salta una capa** (por ejemplo, importar `pg` desde `src/app`); corre en CI.
+
+Documentación: `docs/entregable-1/` (drivers, árbol de utilidad, escenarios, estilo, contextos, tácticas, C4, tres ADR, riesgos), `docs/modelo-datos/` (ER, diccionario, matriz rol-permiso), `docs/sustentacion/`, `docs/pruebas/`.
+
+## Qué implementa y qué no
+
+El estado real de cada requisito está en `docs/matriz-trazabilidad.md` (columna **Estado**: implementado, parcial o trabajo futuro). Lo que no figura como implementado no debe presentarse como hecho.
+
+## Despliegue
+
+Vercel (Hobby) + Render Postgres (Free). Pasos y limitaciones en `docs/despliegue.md`. URL desplegada: se agrega aquí cuando esté verificada.
+
+## Uso
+
+Proyecto académico. Vercel Hobby es solo para uso no comercial.
