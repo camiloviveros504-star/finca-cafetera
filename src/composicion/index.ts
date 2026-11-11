@@ -7,6 +7,8 @@ import { AuditorPg } from "@/modules/auditoria/infrastructure/auditorPg";
 import { RepositorioConfiguracionPg } from "@/modules/configuracion/infrastructure/repositorioConfiguracionPg";
 import { RepositorioIdentidadPg } from "@/modules/identidad/infrastructure/repositorioIdentidadPg";
 import { RepositorioInventarioPg } from "@/modules/inventario/infrastructure/repositorioInventarioPg";
+import { RepositorioOperacionesPg } from "@/modules/inventario/infrastructure/repositorioOperacionesPg";
+import type { DependenciasOperaciones } from "@/modules/inventario/application/operaciones";
 import { RepositorioVentasPg } from "@/modules/comercial/infrastructure/repositorioVentasPg";
 import { RepositorioProduccionPg } from "@/modules/produccion/infrastructure/repositorioProduccionPg";
 import { RepositorioTrazabilidadPg } from "@/modules/trazabilidad/infrastructure/repositorioTrazabilidadPg";
@@ -22,6 +24,7 @@ export interface Servicios {
   sesion: DependenciasSesion;
   comercial: DependenciasComercial;
   inventario: DependenciasInventario;
+  operaciones: DependenciasOperaciones;
   produccion: DependenciasProduccion;
   trazabilidad: DependenciasTrazabilidad;
 }
@@ -39,6 +42,7 @@ export function crearServicios(pool: Pool): Servicios {
     },
     comercial: { ventas: new RepositorioVentasPg(), inventario: inventarioRepo, configuracion, uow, auditor },
     inventario: { repo: inventarioRepo, uow, auditor },
+    operaciones: { repo: inventarioRepo, ops: new RepositorioOperacionesPg(), uow, auditor },
     produccion: { produccion: new RepositorioProduccionPg(), inventario: inventarioRepo, configuracion, uow, auditor },
     trazabilidad: { repo: new RepositorioTrazabilidadPg(), uow, auditor },
   };
@@ -54,6 +58,7 @@ export function servicios(): Servicios {
 export { iniciarSesion, obtenerContexto, cerrarSesion } from "@/modules/identidad/application/sesiones";
 export { registrarVenta, listarVentas, obtenerOpcionesVenta } from "@/modules/comercial/application/registrarVenta";
 export { consultarSaldos } from "@/modules/inventario/application/movimientos";
+export { registrarAjuste, trasladar, transformar, reversarMovimiento, listarMovimientos } from "@/modules/inventario/application/operaciones";
 export { registrarCosecha, listarCosechas, obtenerOpcionesRegistro } from "@/modules/produccion/application/cosechas";
 export { consultarTrazabilidadVenta } from "@/modules/trazabilidad/application/consultarTrazabilidad";
 export * from "@/shared/dominio/errores";
