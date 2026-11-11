@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 export interface EnlaceNav {
   href: string;
@@ -13,30 +14,51 @@ function activo(ruta: string, href: string) {
   return ruta === href || ruta.startsWith(href + "/");
 }
 
-/** Barra inferior en celular (< lg). */
+/** Barra inferior en celular (< lg): hasta 4 accesos y un botón "Más" con el resto. */
 export function BarraInferior({ enlaces }: { enlaces: EnlaceNav[] }) {
   const ruta = usePathname();
+  const [abierto, setAbierto] = useState(false);
+  const principales = enlaces.length > 5 ? enlaces.slice(0, 4) : enlaces;
+  const resto = enlaces.length > 5 ? enlaces.slice(4) : [];
   return (
-    <nav
-      aria-label="Principal"
-      className="fixed inset-x-0 bottom-0 z-30 flex border-t-2 border-cafe/20 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden"
-    >
-      {enlaces.map((e) => (
-        <Link
-          key={e.href}
-          href={e.href}
-          aria-current={activo(ruta, e.href) ? "page" : undefined}
-          className={`flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold ${
-            activo(ruta, e.href) ? "bg-cafetal text-white" : "text-cafe"
-          }`}
-        >
-          <span aria-hidden className="text-lg leading-none">
-            {e.icono}
-          </span>
-          {e.etiqueta}
-        </Link>
-      ))}
-    </nav>
+    <>
+      {abierto && (
+        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Más opciones">
+          <button aria-label="Cerrar" className="absolute inset-0 bg-cafe/60" onClick={() => setAbierto(false)} />
+          <div className="absolute inset-x-0 bottom-0 rounded-t-2xl bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            <ul className="space-y-1">
+              {resto.map((e) => (
+                <li key={e.href}>
+                  <Link href={e.href} onClick={() => setAbierto(false)} className="flex min-h-12 items-center gap-3 rounded-lg px-3 font-semibold hover:bg-pergamino">
+                    <span aria-hidden>{e.icono}</span>
+                    {e.etiqueta}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+      <nav aria-label="Principal" className="fixed inset-x-0 bottom-0 z-30 flex border-t-2 border-cafe/20 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
+        {principales.map((e) => (
+          <Link
+            key={e.href}
+            href={e.href}
+            aria-current={activo(ruta, e.href) ? "page" : undefined}
+            className={`flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold ${activo(ruta, e.href) ? "bg-cafetal text-white" : "text-cafe"}`}
+          >
+            <span aria-hidden className="text-lg leading-none">{e.icono}</span>
+            {e.etiqueta}
+          </Link>
+        ))}
+        {resto.length > 0 && (
+          <button onClick={() => setAbierto(true)} aria-haspopup="dialog" className="flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold text-cafe">
+            <span aria-hidden className="text-lg leading-none">⋯</span>
+            Más
+          </button>
+        )}
+      </nav>
+    </>
   );
 }
 

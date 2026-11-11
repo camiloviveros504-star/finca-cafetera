@@ -73,3 +73,62 @@ export interface RepositorioVentas {
     desplazamiento: number,
   ): Promise<{ filas: FilaVenta[]; total: number }>;
 }
+
+export interface ClienteRegistrado {
+  id: string;
+  nombre: string;
+  documento: string | null;
+  telefono: string | null;
+  correo: string | null;
+  direccion: string | null;
+  autorizoEn: string | null;
+}
+
+export interface NuevoCliente {
+  organizacionId: string;
+  nombre: string;
+  documento?: string;
+  telefono?: string;
+  correo?: string;
+  direccion?: string;
+}
+
+export interface FilaPedido {
+  id: string;
+  fecha: string;
+  estado: string;
+  clienteNombre: string;
+  fincaNombre: string;
+  resumen: string;
+}
+
+export interface RepositorioClientesPedidos {
+  crearCliente(tx: Transaccion, c: NuevoCliente): Promise<string>;
+  listarClientes(
+    tx: Transaccion,
+    organizacionId: string,
+    busqueda: string | null,
+    limite: number,
+    desplazamiento: number,
+  ): Promise<{ filas: ClienteRegistrado[]; total: number }>;
+  crearPedido(
+    tx: Transaccion,
+    p: {
+      organizacionId: string;
+      fincaId: string;
+      clienteId: string;
+      creadoPor: string;
+      nota?: string;
+      items: { productoId: string; cantidad: string }[];
+    },
+  ): Promise<string>;
+  clienteExiste(tx: Transaccion, organizacionId: string, clienteId: string): Promise<boolean>;
+  productosVendibles(tx: Transaccion, organizacionId: string, ids: string[]): Promise<number>;
+  listarPedidos(
+    tx: Transaccion,
+    organizacionId: string,
+    fincaIds: readonly string[],
+    limite: number,
+    desplazamiento: number,
+  ): Promise<{ filas: FilaPedido[]; total: number }>;
+}
