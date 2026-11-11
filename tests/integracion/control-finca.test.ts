@@ -12,6 +12,7 @@ import {
   registrarRecoleccion,
   consultarSaldos,
   eliminarRegistro,
+  obtenerPanel,
   listarTrabajadores,
   listarProveedores,
   registrarComprador,
@@ -231,4 +232,29 @@ describe("eliminar lo que no sirve: se borra si no tiene historial y se archiva 
   async function recibirCafeParaVender(dueno: Awaited<ReturnType<Entorno["contexto"]>>) {
     await registrarRecoleccion(e.servicios, dueno, { fincaId: e.ids.finca1, loteId: e.ids.lote1_01, productoId: e.ids.CER, fecha: hoy, claveIdempotencia: k(), kgTotal: "50", lineas: [] });
   }
+});
+
+describe("panel por rol", () => {
+  it("el dueño ve recolección por lote, gastos, cartera y alertas de su finca; solo el administrador ve los totales de la plataforma", async () => {
+    const dueno = await e.contexto("propietario@demo.local");
+    const admin = await e.contexto("admin@demo.local");
+    const p = await obtenerPanel(e.servicios.panel, dueno);
+    expect(p.plataforma).toBeUndefined();
+    expect(p.recoleccionPorLote?.length).toBeGreaterThan(0);
+    expect(p.recoleccionPorMes).toHaveLength(12);
+    expect(p.gastos30d).toBeDefined();
+    expect(p.porCobrar).toBeDefined();
+    expect(typeof p.insumosPorVencer).toBe("number");
+
+    const a = await obtenerPanel(e.servicios.panel, admin);
+    expect(a.plataforma).toMatchObject({ fincas: 2 });
+    expect(a.plataforma!.usuarios).toBeGreaterThan(3);
+
+    // El trabajador no ve cifras de la finca.
+    const obrero = await e.contexto("trabajador@demo.local");
+    const o = await obtenerPanel(e.servicios.panel, obrero);
+    expect(o.ventas30d).toBeUndefined();
+    expect(o.gastos30d).toBeUndefined();
+    expect(o.plataforma).toBeUndefined();
+  });
 });
