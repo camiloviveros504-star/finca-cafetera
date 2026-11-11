@@ -1,10 +1,10 @@
 {
   "id": "qa-08",
-  "fecha": "2026-11-11T12:12:20.283Z",
+  "fecha": "2026-11-11T13:29:09.519Z",
   "entorno": "App en Docker (local) + Chrome instalado",
   "comando": "npx playwright test tests/e2e/calidad.spec.ts",
   "operaciones": 50,
-  "sincronizadasEnSegundos": 0.8,
+  "sincronizadasEnSegundos": 1.3,
   "perdidas": 0,
   "duplicados": 0,
   "meta": "≤ 60 s"

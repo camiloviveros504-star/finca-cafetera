@@ -5,6 +5,8 @@ import { contextoActual } from "../_servidor/sesion";
 import { FormularioLogin } from "./FormularioLogin";
 
 export const metadata = { title: "Iniciar sesión · Gestión de Finca Cafetera" };
+// Consulta la base (estado de la instalación): nunca se prerenderiza al compilar.
+export const dynamic = "force-dynamic";
 
 export default async function PaginaLogin({ searchParams }: { searchParams: Promise<{ instalado?: string }> }) {
   if (await contextoActual()) redirect("/inicio");

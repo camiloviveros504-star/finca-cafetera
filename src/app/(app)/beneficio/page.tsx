@@ -27,7 +27,7 @@ export default async function Beneficio() {
   return (
     <section className="space-y-6">
       <EncabezadoModulo titulo="Beneficio y poscosecha" imagen="hero-4-beneficio-lavado" alt="Tanque de lavado con café en pergamino recién despulpado" />
-      <p className="text-sm">Cada etapa registra entrada, salida, pérdida, responsable, fecha y lote de origen. Los flujos son configurables: no todo el café pasa por las mismas etapas. Los porcentajes de merma de los flujos DEMO son valores ilustrativos.</p>
+      <p className="text-sm">Cada etapa registra entrada, salida, pérdida, responsable, fecha y lote de origen. Los flujos son configurables: no todo el café pasa por las mismas etapas. La merma esperada de cada etapa la define el administrador.</p>
 
       {registra && o && (
         <details open className="rounded-xl border-2 border-tinta/20 bg-white p-4">

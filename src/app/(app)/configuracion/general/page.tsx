@@ -23,7 +23,7 @@ export default async function ConfiguracionGeneral() {
   const porCatalogo = Object.groupBy(a.catalogos, (c) => c.catalogo);
   return (
     <section className="space-y-6">
-      <EncabezadoModulo titulo="Configuración general" detalle="Unidades, equivalencias, catálogos, temporadas y parámetros. Los valores de demostración están marcados DEMO." />
+      <EncabezadoModulo titulo="Configuración general" detalle="Unidades, equivalencias, catálogos, temporadas y parámetros." />
       <p className="text-sm"><Link className="font-semibold underline" href="/configuracion">Ir a tarifas y precios</Link></p>
 
       <h2 className="text-xl font-extrabold">Equivalencias de unidades</h2>

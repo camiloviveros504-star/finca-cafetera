@@ -46,7 +46,7 @@ export default async function LayoutAplicacion({ children }: { children: React.R
     <ProveedorSync csrfToken={ctx.csrfToken}>
       <div className="min-h-svh">
         <header className="sticky top-0 z-20 flex items-center justify-between gap-3 bg-tinta px-4 py-2 text-white sm:px-6">
-          <span className="text-base font-extrabold tracking-tight">Gestión de Finca Cafetera</span>
+          <span className="min-w-0 truncate text-base font-extrabold tracking-tight"><span className="sm:hidden">Finca Cafetera</span><span className="hidden sm:inline">Gestión de Finca Cafetera</span></span>
           <div className="flex items-center gap-3 text-sm">
             <IndicadorSync />
             <MenuUsuario nombre={ctx.nombre} correo={ctx.correo} roles={[...ctx.roles]} />

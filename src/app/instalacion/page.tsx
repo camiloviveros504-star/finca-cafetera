@@ -5,6 +5,8 @@ import { MarcoAcceso } from "../_componentes/MarcoAcceso";
 import { accionInstalar } from "./acciones";
 
 export const metadata = { title: "Instalación · Gestión de Finca Cafetera" };
+// Consulta la base (estado de la instalación): nunca se prerenderiza al compilar.
+export const dynamic = "force-dynamic";
 
 export default async function Instalacion() {
   const estado = await obtenerEstadoInstalacion(servicios().instalacion);
