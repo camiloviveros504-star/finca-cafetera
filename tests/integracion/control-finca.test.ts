@@ -13,6 +13,10 @@ import {
   consultarSaldos,
   eliminarRegistro,
   obtenerPanel,
+  reportarCasoSanitario,
+  registrarSeguimientoCaso,
+  listarCasosSanitarios,
+  registrarEntradaAgroquimico,
   registrarGasto,
   registrarPagoCliente,
   listarTrabajadores,
@@ -298,5 +302,54 @@ describe("billetera: se llena sola con cobros, fletes y gastos", () => {
     expect(Number(despues.salidas) - Number(antes.salidas)).toBe(8000);
     expect(Number(despues.fletes) - Number(antes.fletes)).toBe(8000);
     expect(Number(despues.saldo) - Number(antes.saldo)).toBe(42000);
+  });
+});
+
+describe("control de plagas por lote", () => {
+  it("se reporta, se trata con una fumigación del mismo lote, mejora, se controla y puede reabrirse; todo queda en el historial", async () => {
+    const capataz = await e.contexto("capataz@demo.local");
+    const dueno = await e.contexto("propietario@demo.local");
+    const clave = k();
+    const reporte = { loteId: e.ids.lote1_01, tipo: "broca", severidad: "media", afectacionPct: "4.5", descripcion: "Cerezas brocadas en la parte baja; revisar y aplicar control", fecha: "2026-11-01", claveIdempotencia: clave };
+    const { id } = await reportarCasoSanitario(e.servicios.casosSanitarios, capataz, reporte);
+    expect(await reportarCasoSanitario(e.servicios.casosSanitarios, capataz, reporte)).toEqual({ id, repetido: true });
+
+    // Fumigación registrada en Insumos para ese mismo lote.
+    const { id: insumoId } = await crearAgroquimico(e.servicios.agricola, dueno, { nombre: "Insecticida de prueba", unidad: "litro", tipo: "fumigante", fincaId: e.ids.finca1, carenciaDias: "15" });
+    const { id: stockId } = await registrarEntradaAgroquimico(e.servicios.agricola, dueno, { fincaId: e.ids.finca1, agroquimicoId: insumoId, cantidad: "10" });
+    const aplicacion = await registrarAplicacion(e.servicios.agricola, dueno, { stockId, loteId: e.ids.lote1_01, fecha: "2026-11-03", cantidadTotal: "2", claveIdempotencia: k() });
+    const otraLote = await registrarAplicacion(e.servicios.agricola, dueno, { stockId, loteId: e.ids.lote1_02, fecha: "2026-11-03", cantidadTotal: "1", claveIdempotencia: k() });
+
+    await expect(registrarSeguimientoCaso(e.servicios.casosSanitarios, capataz, { casoId: id, estado: "en_tratamiento", nota: "Fumigado", fecha: "2026-11-03", aplicacionId: otraLote.id })).rejects.toThrow(ErrorRegla);
+    await expect(registrarSeguimientoCaso(e.servicios.casosSanitarios, capataz, { casoId: id, estado: "en_tratamiento", nota: "Antes de detectar", fecha: "2026-10-01" })).rejects.toThrow(ErrorValidacion);
+    await registrarSeguimientoCaso(e.servicios.casosSanitarios, capataz, { casoId: id, estado: "en_tratamiento", nota: "Fumigado con insecticida", fecha: "2026-11-03", aplicacionId: aplicacion.id });
+    await registrarSeguimientoCaso(e.servicios.casosSanitarios, capataz, { casoId: id, estado: "mejorando", nota: "Menos cerezas brocadas", fecha: "2026-11-08" });
+    await registrarSeguimientoCaso(e.servicios.casosSanitarios, dueno, { casoId: id, estado: "controlado", nota: "Infestación bajo el 2 %", fecha: "2026-11-10" });
+
+    const caso = (await listarCasosSanitarios(e.servicios.casosSanitarios, dueno)).find((c) => c.id === id)!;
+    expect(caso).toMatchObject({ estado: "controlado", controladoEn: "2026-11-10", nombre: "Broca", loteCodigo: "L-01", diasAbierto: 9 });
+    expect(caso.seguimientos.map((x) => x.estado)).toEqual(["controlado", "mejorando", "en_tratamiento", "detectado"]);
+    expect(caso.seguimientos.find((x) => x.estado === "en_tratamiento")!.aplicacion).toMatch(/Insecticida de prueba/);
+    expect((await listarCasosSanitarios(e.servicios.casosSanitarios, dueno, { soloAbiertos: true })).some((c) => c.id === id)).toBe(false);
+
+    // Vuelve a aparecer: se reabre y conserva su historial.
+    expect(await registrarSeguimientoCaso(e.servicios.casosSanitarios, capataz, { casoId: id, estado: "detectado", nota: "Reapareció en el borde del lote", fecha: hoy })).toMatchObject({ reabierto: true });
+    const reabierto = (await listarCasosSanitarios(e.servicios.casosSanitarios, dueno, { soloAbiertos: true })).find((c) => c.id === id)!;
+    expect(reabierto).toMatchObject({ estado: "detectado", controladoEn: null });
+    expect(reabierto.seguimientos).toHaveLength(5);
+    // El inicio avisa que hay plagas sin controlar.
+    expect((await obtenerPanel(e.servicios.panel, dueno)).plagasActivas!.casos).toBeGreaterThan(0);
+  });
+
+  it("solo quien trabaja la finca reporta y sigue plagas; se valida el tipo y la fecha", async () => {
+    const obrero = await e.contexto("trabajador@demo.local");
+    const dueno = await e.contexto("propietario@demo.local"); // solo finca 1
+    const base = { loteId: e.ids.lote1_01, tipo: "roya", severidad: "alta", descripcion: "Hojas con pústulas naranja", fecha: hoy, claveIdempotencia: k() };
+    await expect(reportarCasoSanitario(e.servicios.casosSanitarios, obrero, base)).rejects.toThrow(ErrorProhibido);
+    await expect(reportarCasoSanitario(e.servicios.casosSanitarios, dueno, { ...base, claveIdempotencia: k(), loteId: e.ids.lote2_01 })).rejects.toThrow(ErrorNoEncontrado);
+    await expect(reportarCasoSanitario(e.servicios.casosSanitarios, dueno, { ...base, claveIdempotencia: k(), tipo: "otra" })).rejects.toThrow(ErrorValidacion); // "otra" pide nombre
+    await expect(reportarCasoSanitario(e.servicios.casosSanitarios, dueno, { ...base, claveIdempotencia: k(), fecha: "2099-01-01" })).rejects.toThrow(ErrorValidacion);
+    const { id } = await reportarCasoSanitario(e.servicios.casosSanitarios, dueno, { ...base, claveIdempotencia: k(), tipo: "otra", otroNombre: "Arañita roja" });
+    expect((await listarCasosSanitarios(e.servicios.casosSanitarios, dueno)).find((c) => c.id === id)!.nombre).toBe("Arañita roja");
   });
 });

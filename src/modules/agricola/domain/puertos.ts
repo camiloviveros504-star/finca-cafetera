@@ -13,7 +13,7 @@ export interface FilaStockAgroquimico {
   vencimiento: string | null; cantidad: string; vencido: boolean; porVencer: boolean; gramosPorUnidad: string | null;
 }
 export interface FilaAplicacion {
-  id: string; fecha: string; fincaNombre: string; loteCodigo: string; agroquimico: string; loteComercial: string; dosis: string; unidadDosis: string;
+  id: string; loteId: string; fecha: string; fincaNombre: string; loteCodigo: string; agroquimico: string; loteComercial: string; dosis: string; unidadDosis: string;
   cantidadTotal: string; fechaReingreso: string | null; responsable: string; gramosPorArbol: string | null; arboles: number | null;
 }
 export interface StockParaAplicar { id: string; fincaId: string; agroquimicoId: string; cantidad: string; vencimiento: string | null; carenciaDias: number | null; unidad: string; gramosPorUnidad: string | null }

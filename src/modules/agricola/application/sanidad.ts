@@ -88,7 +88,7 @@ export async function crearAgroquimico(deps: DependenciasAgricola, ctx: Contexto
   });
 }
 
-const esquemaEntrada = z.object({ fincaId: uuid, agroquimicoId: uuid, loteComercial: z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? "Sin lote" : v), z.string().trim().min(1).max(60)), vencimiento: z.preprocess(vacio, fecha.optional()), cantidad: cantidadTxt, nota: z.preprocess(vacio, z.string().trim().max(200).optional()) });
+const esquemaEntrada = z.object({ fincaId: uuid, agroquimicoId: uuid, loteComercial: z.preprocess((v) => (v === undefined || v === null || (typeof v === "string" && v.trim() === "") ? "Sin lote" : v), z.string().trim().min(1).max(60)), vencimiento: z.preprocess(vacio, fecha.optional()), cantidad: cantidadTxt, nota: z.preprocess(vacio, z.string().trim().max(200).optional()) });
 
 export async function registrarEntradaAgroquimico(deps: DependenciasAgricola, ctx: ContextoUsuario, cruda: unknown) {
   const e = validar(esquemaEntrada, cruda, "Revise los datos de la entrada");

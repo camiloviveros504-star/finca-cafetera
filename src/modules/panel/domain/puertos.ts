@@ -26,6 +26,8 @@ export interface ResumenPanel {
   porCobrar?: { total: string; ventas: number };
   /** Lo que se debe a proveedores y a trabajadores. */
   porPagar?: { proveedores: string; trabajadores: string };
+  /** Plagas o enfermedades sin controlar: lotes afectados y cuántos casos son de severidad alta. */
+  plagasActivas?: { lotes: number; casos: number; altas: number };
   /** Insumos vencidos o por vencer en 30 días. */
   insumosPorVencer?: number;
   /** Totales de toda la plataforma: solo para quien administra las cuentas. */
@@ -43,5 +45,6 @@ export interface RepositorioPanel {
   porCobrar(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]): Promise<NonNullable<ResumenPanel["porCobrar"]>>;
   porPagar(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]): Promise<NonNullable<ResumenPanel["porPagar"]>>;
   insumosPorVencer(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]): Promise<number>;
+  plagasActivas(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]): Promise<NonNullable<ResumenPanel["plagasActivas"]>>;
   plataforma(tx: Transaccion, organizacionId: string): Promise<NonNullable<ResumenPanel["plataforma"]>>;
 }

@@ -25,6 +25,7 @@ export async function obtenerPanel(deps: DependenciasPanel, ctx: ContextoUsuario
       r.porPagar = await deps.repo.porPagar(tx, o, f);
     }
     if (ctx.permisos.has("pago:ver")) r.porCobrar = await deps.repo.porCobrar(tx, o, f);
+    if (ctx.permisos.has("inspeccion:ver")) r.plagasActivas = await deps.repo.plagasActivas(tx, o, f);
     if (ctx.permisos.has("agroquimico:ver")) r.insumosPorVencer = await deps.repo.insumosPorVencer(tx, o, f);
     // Totales de la plataforma: solo quien administra fincas y cuentas.
     if (ctx.permisos.has("finca:administrar") && ctx.permisos.has("usuario:administrar")) r.plataforma = await deps.repo.plataforma(tx, o);

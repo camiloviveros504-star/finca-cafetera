@@ -123,14 +123,14 @@ export class RepositorioAgricolaPg implements RepositorioAgricola {
   }
   async listarAplicaciones(tx: Transaccion, o: string, fincaIds: readonly string[]): Promise<FilaAplicacion[]> {
     const r = await clienteDe(tx).query(
-      `SELECT p.id, p.fecha::text AS fecha, f.nombre AS finca, l.codigo AS lote, a.nombre AS agro, s.lote_comercial, p.dosis, p.unidad_dosis, p.cantidad_total,
+      `SELECT p.id, p.lote_id, p.fecha::text AS fecha, f.nombre AS finca, l.codigo AS lote, a.nombre AS agro, s.lote_comercial, p.dosis, p.unidad_dosis, p.cantidad_total,
               p.fecha_reingreso::text AS reingreso, u.nombre AS responsable, p.gramos_por_arbol, p.arboles
          FROM aplicacion_agroquimica p JOIN finca f ON f.id = p.finca_id JOIN lote l ON l.id = p.lote_id JOIN agroquimico_stock s ON s.id = p.stock_id
          JOIN agroquimico a ON a.id = s.agroquimico_id JOIN usuario u ON u.id = p.responsable_id
         WHERE p.organizacion_id = $1 AND p.finca_id = ANY($2::uuid[]) ORDER BY p.fecha DESC, p.creado_en DESC LIMIT 200`,
       [o, fincaIds],
     );
-    return r.rows.map((x) => ({ id: x.id, fecha: x.fecha, fincaNombre: x.finca, loteCodigo: x.lote, agroquimico: x.agro, loteComercial: x.lote_comercial, dosis: x.dosis, unidadDosis: x.unidad_dosis, cantidadTotal: x.cantidad_total, fechaReingreso: x.reingreso, responsable: x.responsable, gramosPorArbol: x.gramos_por_arbol, arboles: x.arboles }));
+    return r.rows.map((x) => ({ id: x.id, loteId: x.lote_id, fecha: x.fecha, fincaNombre: x.finca, loteCodigo: x.lote, agroquimico: x.agro, loteComercial: x.lote_comercial, dosis: x.dosis, unidadDosis: x.unidad_dosis, cantidadTotal: x.cantidad_total, fechaReingreso: x.reingreso, responsable: x.responsable, gramosPorArbol: x.gramos_por_arbol, arboles: x.arboles }));
   }
 
   // ── Planificación ──

@@ -82,6 +82,29 @@ test.describe("flujos con roles", () => {
     await expect(admin.locator("option", { hasText: /^Capataz$/ })).toHaveCount(0);
   });
 
+  test("plagas: el propietario reporta roya en un lote, la ve activa y la marca como controlada", async ({ page }) => {
+    await entrar(page, "propietario@demo.local");
+    await page.goto("/sanidad?ver=sanidad");
+    const reporte = page.locator("section", { hasText: "Reportar una plaga" });
+    await reporte.locator('select[name="tipo"]').selectOption("roya");
+    await reporte.locator('select[name="severidad"]').selectOption("alta");
+    const nota = `Pústulas naranja en el envés ${Date.now()}`;
+    await reporte.locator('textarea[name="descripcion"]').fill(nota);
+    await reporte.getByRole("button", { name: "Reportar" }).click();
+    await expect(reporte.getByText("Plaga reportada en el lote.")).toBeVisible({ timeout: 15000 });
+    await page.reload();
+    const caso = page.locator("div.rounded-lg", { hasText: nota }).first();
+    await expect(caso.getByText("Detectada")).toBeVisible();
+    await caso.getByText("Registrar avance").click();
+    await caso.locator('select[name="estado"]').selectOption("controlado");
+    await caso.locator('textarea[name="nota"]').fill("Se aplicó fungicida y ya no hay pústulas nuevas");
+    await caso.getByRole("button", { name: "Guardar" }).click();
+    // Al controlarse, el caso sale de las activas y queda en el historial de controladas.
+    const controladas = page.locator("details", { hasText: /Plagas controladas/ });
+    await expect(controladas.getByText(nota)).toBeAttached({ timeout: 15000 });
+    await expect(controladas.locator("div.rounded-lg", { hasText: nota }).first().locator("span", { hasText: /^Controlada$/ })).toBeAttached();
+  });
+
   test("encargado de producción: el menú no muestra Ventas y el servidor rechaza el acceso directo", async ({ page }) => {
     await entrar(page, "produccion@demo.local");
     await expect(page.getByRole("link", { name: "Ventas" })).toHaveCount(0);

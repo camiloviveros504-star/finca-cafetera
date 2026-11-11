@@ -161,6 +161,13 @@ export default async function Inicio() {
         </div>
       </section>
 
+      {panel.plagasActivas && panel.plagasActivas.casos > 0 && (
+        <Link href="/lotes" role="alert" className={`flex items-center gap-3 rounded-xl border p-4 text-sm font-medium text-tinta ${panel.plagasActivas.altas > 0 ? "border-alerta/40 bg-alerta/5 hover:bg-alerta/10" : "border-ambar/40 bg-ambar/5 hover:bg-ambar/10"}`}>
+          <Icono nombre="alerta" className={`size-5 shrink-0 ${panel.plagasActivas.altas > 0 ? "text-alerta" : "text-ambar"}`} />
+          {panel.plagasActivas.lotes} lote(s) con plagas o enfermedades sin controlar{panel.plagasActivas.altas > 0 ? `, ${panel.plagasActivas.altas} de severidad alta` : ""}. Vea el tratamiento en Lotes.
+        </Link>
+      )}
+
       {(panel.insumosPorVencer ?? 0) > 0 && (
         <Link href="/sanidad" role="alert" className="flex items-center gap-3 rounded-xl border border-ambar/40 bg-ambar/5 p-4 text-sm font-medium text-tinta hover:bg-ambar/10">
           <Icono nombre="alerta" className="size-5 shrink-0 text-ambar" />

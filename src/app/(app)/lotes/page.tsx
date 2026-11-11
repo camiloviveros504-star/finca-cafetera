@@ -1,4 +1,5 @@
-import { consultarCultivo, DENSIDAD_POR_DEFECTO, ErrorProhibido, listarFincasYLotes, servicios, type LoteConPlan } from "@/composicion";
+import { consultarCultivo, DENSIDAD_POR_DEFECTO, ErrorProhibido, listarAgroquimicos, listarCasosSanitarios, listarFincasYLotes, servicios, type CasoSanitario, type LoteConPlan } from "@/composicion";
+import { AvisoPlaga, FormularioReportarPlaga, TarjetaCaso } from "../../_componentes/CasosSanitarios";
 import { cantidad } from "../../_servidor/formatos";
 import { EncabezadoModulo } from "../../_componentes/EncabezadoModulo";
 import { exigirContexto } from "../../_servidor/sesion";
@@ -22,7 +23,11 @@ function edad(meses: number | null) {
 
 const NOMBRE_EVENTO: Record<string, string> = { siembra: "Siembra", resiembra: "Resiembra", zoca: "Zoca", tumba: "Tumba", observacion: "Nota" };
 
-function TarjetaLote({ l, puedeAdministrar, variasFincas }: { l: LoteConPlan; puedeAdministrar: boolean; variasFincas: boolean }) {
+interface Sanidad { casos: CasoSanitario[]; aplicaciones: { id: string; texto: string }[]; ve: boolean; registra: boolean }
+
+function TarjetaLote({ l, puedeAdministrar, variasFincas, sanidad }: { l: LoteConPlan; puedeAdministrar: boolean; variasFincas: boolean; sanidad: Sanidad }) {
+  const abiertos = sanidad.casos.filter((c) => c.estado !== "controlado");
+  const controlados = sanidad.casos.length - abiertos.length;
   const o = ORIGEN[l.origen];
   const proxima = l.plan.find((p) => p.estado === "proxima");
   return (
@@ -32,7 +37,10 @@ function TarjetaLote({ l, puedeAdministrar, variasFincas }: { l: LoteConPlan; pu
           <p className="text-base font-semibold">{l.codigo} · {l.nombre}</p>
           <p className="text-sm text-suave">{variasFincas ? `${l.fincaNombre} · ` : ""}{l.areaHa ?? "—"} ha{l.variedad ? ` · ${l.variedad}` : ""}</p>
         </div>
-        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${o.clase}`}>{o.texto}</span>
+        <div className="flex flex-wrap justify-end gap-1.5">
+          <AvisoPlaga casos={sanidad.casos} />
+          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${o.clase}`}>{o.texto}</span>
+        </div>
       </div>
 
       <dl className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
@@ -48,6 +56,22 @@ function TarjetaLote({ l, puedeAdministrar, variasFincas }: { l: LoteConPlan; pu
         <p className="mt-3 rounded-lg border border-ambar/30 bg-ambar/5 p-3 text-sm">
           Este café ya cumplió su ciclo productivo. Opciones: hacer <strong>zoca</strong> (cortar y dejar rebrotar, menor costo) o <strong>tumbar y resembrar</strong> (permite cambiar variedad y densidad).
         </p>
+      )}
+
+      {sanidad.ve && l.etapa !== "sin_sembrar" && (
+        <div className="mt-3 border-t border-borde pt-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-medium">Plagas y enfermedades</p>
+            {abiertos.length === 0 && <span className="text-xs text-bosque">{controlados > 0 ? `Sin plagas activas · ${controlados} controlada(s)` : "Sin plagas reportadas"}</span>}
+          </div>
+          {abiertos.length > 0 && <div className="mt-2 space-y-2">{abiertos.map((c) => <TarjetaCaso key={c.id} caso={c} aplicaciones={sanidad.aplicaciones} puedeRegistrar={sanidad.registra} />)}</div>}
+          {sanidad.registra && (
+            <details className="mt-1">
+              <summary className="min-h-10 cursor-pointer py-2 text-sm font-medium text-alerta">Reportar plaga en este lote</summary>
+              <div className="mt-2"><FormularioReportarPlaga loteId={l.id} /></div>
+            </details>
+          )}
+        </div>
       )}
 
       {l.plan.length > 0 && (
@@ -107,6 +131,11 @@ export default async function Lotes() {
     zoca: lotes.filter((l) => l.origen === "zoca").length,
   };
   const variasFincas = datos.fincas.length > 1;
+  // Sanidad de cada lote: casos de plagas (abiertos y controlados) y las fumigaciones hechas en él, para ligarlas al tratamiento.
+  const veSanidad = ctx.permisos.has("inspeccion:ver");
+  const registraSanidad = ctx.permisos.has("inspeccion:registrar");
+  const casos = veSanidad ? await listarCasosSanitarios(servicios().casosSanitarios, ctx).catch(() => []) : [];
+  const aplicaciones = ctx.permisos.has("agroquimico:ver") ? await listarAgroquimicos(servicios().agricola, ctx).then((x) => x.aplicaciones).catch(() => []) : [];
   return (
     <div className="space-y-6">
       <EncabezadoModulo
@@ -118,7 +147,12 @@ export default async function Lotes() {
           <p className="h-fit rounded-xl border border-dashed border-borde bg-white p-6 text-center text-sm text-suave">Todavía no hay lotes.{puedeAdministrar ? " Cree el primero con el formulario." : ""}</p>
         ) : (
           <ul className="grid h-fit gap-4 xl:grid-cols-2">
-            {lotes.map((l) => <TarjetaLote key={l.id} l={l} puedeAdministrar={puedeAdministrar} variasFincas={variasFincas} />)}
+            {lotes.map((l) => (
+              <TarjetaLote key={l.id} l={l} puedeAdministrar={puedeAdministrar} variasFincas={variasFincas} sanidad={{
+                casos: casos.filter((c) => c.loteId === l.id), ve: veSanidad, registra: registraSanidad,
+                aplicaciones: aplicaciones.filter((a) => a.loteId === l.id).slice(0, 10).map((a) => ({ id: a.id, texto: `${a.fecha} · ${a.agroquimico} · ${a.cantidadTotal}` })),
+              }} />
+            ))}
           </ul>
         )}
         {puedeAdministrar && datos.fincas.length > 0 && (

@@ -1,4 +1,5 @@
-import { ErrorProhibido, listarAgroquimicos, listarAmbientales, listarFincasYLotes, listarInspecciones, servicios } from "@/composicion";
+import { ErrorProhibido, listarAgroquimicos, listarAmbientales, listarCasosSanitarios, listarFincasYLotes, listarInspecciones, servicios } from "@/composicion";
+import { FormularioReportarPlaga, TarjetaCaso } from "../../_componentes/CasosSanitarios";
 import { BotonEliminar } from "../../_componentes/BotonEliminar";
 import { EncabezadoModulo } from "../../_componentes/EncabezadoModulo";
 import { FormularioGenerico } from "../../_componentes/FormularioGenerico";
@@ -23,7 +24,7 @@ export default async function Insumos({ searchParams }: { searchParams: Promise<
   const agro = p("agroquimico:ver") ? await listarAgroquimicos(servicios().agricola, ctx).catch((e) => { if (e instanceof ErrorProhibido) return null; throw e; }) : null;
   const pestanas = [
     ...(agro ? [{ clave: "inventario", texto: "Inventario", cuenta: agro.catalogo.length }, { clave: "aplicar", texto: "Asignar a lotes", cuenta: agro.aplicaciones.length }] : []),
-    ...(p("inspeccion:ver") ? [{ clave: "sanidad", texto: "Sanidad" }] : []),
+    ...(p("inspeccion:ver") ? [{ clave: "sanidad", texto: "Plagas y sanidad" }] : []),
   ];
   const pedida = (await searchParams).ver;
   const ver = pestanas.some((x) => x.clave === pedida) ? pedida! : pestanas[0].clave;
@@ -136,18 +137,32 @@ export default async function Insumos({ searchParams }: { searchParams: Promise<
         </div>
       )}
 
-      {ver === "sanidad" && <Sanidad ctx={ctx} fincas={fincas} lotes={lotes} unaFinca={unaFinca} />}
+      {ver === "sanidad" && <Sanidad ctx={ctx} fincas={fincas} lotes={lotes} unaFinca={unaFinca} aplicaciones={(agro?.aplicaciones ?? []).map((a) => ({ id: a.id, loteId: a.loteId, texto: `${a.fecha} · ${a.agroquimico} · ${a.cantidadTotal}` }))} />}
     </div>
   );
 }
 
-async function Sanidad({ ctx, fincas, lotes, unaFinca }: { ctx: Awaited<ReturnType<typeof exigirContexto>>; fincas: { valor: string; texto: string }[]; lotes: { valor: string; texto: string }[]; unaFinca: Record<string, string> }) {
+async function Sanidad({ ctx, fincas, lotes, unaFinca, aplicaciones }: { ctx: Awaited<ReturnType<typeof exigirContexto>>; fincas: { valor: string; texto: string }[]; lotes: { valor: string; texto: string }[]; unaFinca: Record<string, string>; aplicaciones: { id: string; loteId: string; texto: string }[] }) {
+  const casos = await listarCasosSanitarios(servicios().casosSanitarios, ctx).catch(() => []);
+  const abiertos = casos.filter((c) => c.estado !== "controlado");
+  const controlados = casos.filter((c) => c.estado === "controlado");
   const inspecciones = await listarInspecciones(servicios().agricola, ctx).catch(() => []);
   const ambientales = await listarAmbientales(servicios().agricola, ctx).catch(() => []);
   const registra = ctx.permisos.has("inspeccion:registrar");
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
       <div className="space-y-6">
+        <Tarjeta titulo={abiertos.length > 0 ? `Plagas activas (${abiertos.length})` : "Plagas activas"}>
+          {abiertos.length === 0 ? <p className="text-sm text-suave">Ningún lote tiene plagas activas.</p> : (
+            <div className="space-y-3">{abiertos.map((c) => <TarjetaCaso key={c.id} caso={c} mostrarLote puedeRegistrar={registra} aplicaciones={aplicaciones.filter((a) => a.loteId === c.loteId)} />)}</div>
+          )}
+        </Tarjeta>
+        {controlados.length > 0 && (
+          <details open={abiertos.length === 0} className="rounded-xl border border-borde bg-white p-5 shadow-sm">
+            <summary className="cursor-pointer text-sm font-semibold">Plagas controladas ({controlados.length})</summary>
+            <div className="mt-3 space-y-3">{controlados.map((c) => <TarjetaCaso key={c.id} caso={c} mostrarLote puedeRegistrar={registra} aplicaciones={aplicaciones.filter((a) => a.loteId === c.loteId)} />)}</div>
+          </details>
+        )}
         <Tarjeta titulo="Inspecciones" className="overflow-hidden !p-0 [&>h2]:border-b [&>h2]:border-borde [&>h2]:px-5 [&>h2]:py-3 [&>h2]:mb-0">
           {inspecciones.length === 0 ? <p className="p-5 text-sm text-suave">Aún no hay inspecciones.</p> : (
             <ul className="divide-y divide-borde">
@@ -169,10 +184,16 @@ async function Sanidad({ ctx, fincas, lotes, unaFinca }: { ctx: Awaited<ReturnTy
       </div>
       {registra && (
         <div className="space-y-4">
-          <Tarjeta titulo="Registrar inspección">
-            <p className="-mt-2 mb-3 text-xs text-suave">Funciona sin conexión: se envía sola cuando vuelva la señal.</p>
+          {lotes.length > 0 && (
+            <Tarjeta titulo="Reportar una plaga">
+              <FormularioReportarPlaga lotes={lotes} />
+            </Tarjeta>
+          )}
+          <details className="rounded-xl border border-borde bg-white p-5 shadow-sm">
+            <summary className="cursor-pointer text-sm font-semibold">Inspección de rutina</summary>
+            <p className="mb-3 mt-2 text-xs text-suave">Para dejar constancia de un recorrido por el lote, aunque no encuentre plagas. Funciona sin conexión: se envía sola cuando vuelva la señal.</p>
             <FormularioInspeccionOffline fincas={fincas} lotes={lotes} />
-          </Tarjeta>
+          </details>
           <details className="rounded-xl border border-borde bg-white p-5 shadow-sm">
             <summary className="cursor-pointer text-sm font-semibold">Registro ambiental (envases, residuos, agua)</summary>
             <div className="mt-3">

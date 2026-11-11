@@ -41,6 +41,8 @@ import type { DependenciasFinanzas } from "@/modules/finanzas/application/finanz
 import { RepositorioPagosPg } from "@/modules/comercial/infrastructure/repositorioPagosPg";
 import type { DependenciasPagos } from "@/modules/comercial/application/pagosClientes";
 import { RepositorioAgricolaPg } from "@/modules/agricola/infrastructure/repositorioAgricolaPg";
+import { RepositorioCasosSanitariosPg } from "@/modules/agricola/infrastructure/repositorioCasosSanitariosPg";
+import type { DependenciasCasosSanitarios } from "@/modules/agricola/application/casosSanitarios";
 import type { DependenciasEliminacion } from "@/shared/aplicacion/eliminar";
 import { RepositorioEliminacionPg } from "@/shared/infraestructura/repositorioEliminacionPg";
 import type { InsumosParaCompras } from "@/modules/finanzas/domain/puertos";
@@ -80,6 +82,7 @@ export interface Servicios {
   instalacion: DependenciasInstalacion;
   cultivo: DependenciasCultivo;
   eliminacion: DependenciasEliminacion;
+  casosSanitarios: DependenciasCasosSanitarios;
   invitaciones: DependenciasInvitaciones;
   derechosCliente: DependenciasDerechosCliente;
   derechosTrabajador: DependenciasDerechosTrabajador;
@@ -120,6 +123,7 @@ export function crearServicios(pool: Pool, opciones: { codigoInstalacion?: strin
     invitaciones: { repo: new RepositorioUsuariosPg(), acceso: identidadRepo, cifrar: cifrarContrasena, uow, auditor },
     cultivo: { repo: new RepositorioCultivoPg(), configuracion, uow, auditor },
     eliminacion: { repo: new RepositorioEliminacionPg(), uow, auditor },
+    casosSanitarios: { repo: new RepositorioCasosSanitariosPg(), uow, auditor },
     instalacion: { repo: new RepositorioInstalacionPg(), cifrar: cifrarContrasena, uow, auditor, codigoEsperado: opciones.codigoInstalacion ?? process.env.CODIGO_INSTALACION },
     derechosCliente: { repo: new RepositorioDerechosPg(), uow, auditor },
     derechosTrabajador: { repo: new RepositorioDerechosTrabajadorPg(), uow, auditor },
@@ -198,3 +202,7 @@ export type { ContextoUsuario } from "@/shared/dominio/contexto";
 export { registrarRecoleccion } from "./recoleccion";
 export { eliminarRegistro } from "@/shared/aplicacion/eliminar";
 export { altaDeFinca } from "./altaFinca";
+export {
+  reportarCasoSanitario, registrarSeguimientoCaso, listarCasosSanitarios, NOMBRE_ESTADO, NOMBRE_PLAGA, TIPOS_PLAGA, ESTADOS_CASO,
+  type CasoSanitario, type EstadoCaso, type TipoPlaga,
+} from "@/modules/agricola/application/casosSanitarios";

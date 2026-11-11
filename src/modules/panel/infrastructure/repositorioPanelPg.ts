@@ -98,6 +98,14 @@ export class RepositorioPanelPg implements RepositorioPanel {
     return r.rows[0].n as number;
   }
 
+  async plagasActivas(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]) {
+    const r = await clienteDe(tx).query(
+      "SELECT count(DISTINCT lote_id)::int AS lotes, count(*)::int AS casos, count(*) FILTER (WHERE severidad = 'alta')::int AS altas FROM caso_sanitario WHERE organizacion_id = $1 AND finca_id = ANY($2::uuid[]) AND estado <> 'controlado'",
+      [organizacionId, fincaIds],
+    );
+    return { lotes: r.rows[0].lotes as number, casos: r.rows[0].casos as number, altas: r.rows[0].altas as number };
+  }
+
   async plataforma(tx: Transaccion, organizacionId: string) {
     const c = clienteDe(tx);
     const f = await c.query("SELECT count(*)::int AS fincas, coalesce(sum(area_ha), 0) AS ha FROM finca WHERE organizacion_id = $1 AND activa", [organizacionId]);
