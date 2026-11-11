@@ -2,7 +2,6 @@ import type { Transaccion } from "@/shared/dominio/contexto";
 
 export interface DatosInstalacion {
   organizacion: string;
-  finca: string;
   administrador: { nombre: string; correo: string; hash: string };
 }
 

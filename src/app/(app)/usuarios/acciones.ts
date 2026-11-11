@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import {
-  emitirEnlace, invitarUsuario, vincularUsuarioATrabajador,
+  emitirEnlace, invitarUsuario, vincularUsuarioATrabajador, listarTrabajadores,
   asignarRolesYFincas, cambiarEstadoUsuario, cambiarEstadoValorCatalogo, cambiarPermisoExtra, crearEquivalencia, crearTemporada, crearUsuario, crearValorCatalogo,
   guardarParametro, restablecerContrasena, servicios,
 } from "@/composicion";
@@ -101,6 +101,26 @@ export async function accionEmitirEnlace(_p: EstadoFormulario, d: FormData): Pro
     const r = await emitirEnlace(servicios().invitaciones, ctx, { usuarioId: t(d, "usuarioId") });
     revalidatePath("/usuarios");
     return { ok: true, mensaje: r.tipo === "alta" ? "Enlace de activación generado; el anterior ya no sirve." : "Enlace de restablecimiento generado; el anterior ya no sirve.", enlace: await urlDeActivacion(r.token), enlaceVence: formatoVencimiento(r.expiraEn) };
+  } catch (error) {
+    return aEstadoError(error);
+  }
+}
+
+/**
+ * Cuenta de trabajador creada por el dueño: se elige un trabajador de su equipo que aún no tiene cuenta. Las fincas salen de
+ * dónde está vinculado ese trabajador, y la cuenta queda unida a su ficha para que vea sus propios kilos.
+ */
+export async function accionInvitarTrabajador(_p: EstadoFormulario, d: FormData): Promise<EstadoFormulario> {
+  const ctx = await exigirContexto();
+  try {
+    const trabajador = (await listarTrabajadores(servicios().talento, ctx)).find((w) => w.id === t(d, "trabajadorId") && !w.usuarioId);
+    if (!trabajador) return { error: "Elija un trabajador de su equipo que todavía no tenga cuenta" };
+    const fincaIds = [...new Set(trabajador.vinculaciones.map((v) => v.fincaId))].filter((f) => ctx.fincaIds.includes(f));
+    if (fincaIds.length === 0) return { error: "Ese trabajador no está vinculado a ninguna de sus fincas" };
+    const r = await invitarUsuario(servicios().invitaciones, ctx, { correo: t(d, "correo"), nombre: trabajador.nombre, roles: ["trabajador"], fincaIds });
+    await vincularUsuarioATrabajador(servicios().talento, ctx, { trabajadorId: trabajador.id, usuarioId: r.usuarioId });
+    revalidatePath("/usuarios");
+    return { ok: true, mensaje: `Cuenta creada para ${trabajador.nombre}. Entréguele el enlace para que cree su contraseña.`, enlace: await urlDeActivacion(r.token), enlaceVence: formatoVencimiento(r.expiraEn) };
   } catch (error) {
     return aEstadoError(error);
   }

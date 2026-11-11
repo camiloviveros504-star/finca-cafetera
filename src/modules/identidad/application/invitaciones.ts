@@ -17,7 +17,7 @@ import { problemaDeContrasena } from "@/shared/dominio/contrasena";
 import { ErrorBloqueado, ErrorNoEncontrado, ErrorProhibido, ErrorRegla, ErrorValidacion } from "@/shared/dominio/errores";
 import type { RepositorioUsuarios } from "../domain/usuarios";
 import { MAX_FALLOS_POR_IP, VENTANA_BLOQUEO_MS } from "./sesiones";
-import { ROLES_DE_EQUIPO } from "./usuarios";
+import { ROLES_DE_EQUIPO, validarRolesYFincas } from "./usuarios";
 
 export const DURACION_INVITACION_MS = 72 * 60 * 60 * 1000;
 
@@ -36,7 +36,7 @@ const esquemaInvitar = z.object({
   correo: z.string().trim().toLowerCase().email("Correo inválido").max(120),
   nombre: z.string().trim().min(3, "Indique el nombre").max(100),
   roles: z.array(z.string()).min(1, "Asigne al menos un rol"),
-  fincaIds: z.array(uuid).min(1, "Asigne al menos una finca"),
+  fincaIds: z.array(uuid).default([]),
 });
 
 function validar<T extends z.ZodTypeAny>(esquema: T, entrada: unknown, mensaje: string): z.infer<T> {
@@ -64,6 +64,7 @@ async function autorizarGestionDeCuentas(deps: DependenciasInvitaciones, ctx: Co
 export async function invitarUsuario(deps: DependenciasInvitaciones, ctx: ContextoUsuario, cruda: unknown) {
   const e = validar(esquemaInvitar, cruda, "Revise los datos del usuario");
   await autorizarGestionDeCuentas(deps, ctx, "usuario.invitar", e.roles, e.fincaIds);
+  validarRolesYFincas(ctx, e.roles, e.fincaIds);
   const ahora = (deps.ahora ?? (() => new Date()))();
   const hashInutilizable = await deps.cifrar(tokenAleatorio(48)); // nadie conoce esta contraseña: no se puede iniciar sesión hasta activar
   return deps.uow.ejecutar(async (tx) => {
@@ -75,7 +76,7 @@ export async function invitarUsuario(deps: DependenciasInvitaciones, ctx: Contex
       throw error;
     }
     if (!(await deps.repo.asignarRoles(tx, usuarioId, e.roles))) throw new ErrorRegla("Algún rol no existe", "rol_invalido");
-    if (!(await deps.repo.asignarFincas(tx, ctx.organizacionId, usuarioId, e.fincaIds))) throw new ErrorRegla("Alguna finca no pertenece a la organización", "finca_invalida");
+    if (e.fincaIds.length > 0 && !(await deps.repo.asignarFincas(tx, ctx.organizacionId, usuarioId, e.fincaIds))) throw new ErrorRegla("Alguna finca no pertenece a la organización", "finca_invalida");
     const token = tokenAleatorio(32);
     const expiraEn = new Date(ahora.getTime() + DURACION_INVITACION_MS);
     await deps.repo.insertarInvitacion(tx, { organizacionId: ctx.organizacionId, usuarioId, tipo: "alta", tokenHash: sha256(token), expiraEn, creadaPor: ctx.usuarioId });

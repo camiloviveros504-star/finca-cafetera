@@ -14,8 +14,8 @@ export class RepositorioFincasLotesPg implements RepositorioFincasLotes {
         f.areaHa ?? null,
       ]);
       const id = r.rows[0].id as string;
-      // Quien crea la finca queda con acceso; se crea una bodega principal para poder registrar cosechas.
-      await c.query("INSERT INTO usuario_finca (usuario_id, finca_id) VALUES ($1,$2)", [f.creadoPor, id]);
+      // La finca nace con su bodega principal para poder registrar cosechas. No se asigna a quien la crea: el administrador
+      // de la plataforma ya ve todas las fincas, y el dueño la recibe al darle de alta su cuenta.
       await c.query("INSERT INTO bodega (organizacion_id, finca_id, nombre) VALUES ($1,$2,'Bodega principal')", [f.organizacionId, id]);
       return id;
     } catch (error) {

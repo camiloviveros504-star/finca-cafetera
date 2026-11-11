@@ -59,14 +59,11 @@ export class RepositorioInstalacionPg implements RepositorioInstalacion {
     if (await this.hayOrganizacion(tx)) return null;
 
     const org = (await c.query("INSERT INTO organizacion (nombre, es_demo) VALUES ($1, false) RETURNING id", [d.organizacion])).rows[0].id as string;
-    const finca = (await c.query("INSERT INTO finca (organizacion_id, nombre) VALUES ($1,$2) RETURNING id", [org, d.finca])).rows[0].id as string;
-    await c.query("INSERT INTO bodega (organizacion_id, finca_id, nombre) VALUES ($1,$2,'Bodega principal')", [org, finca]);
 
     const usuario = (
       await c.query("INSERT INTO usuario (organizacion_id, correo, nombre, password_hash, autorizo_tratamiento_en) VALUES ($1,$2,$3,$4, now()) RETURNING id", [org, d.administrador.correo, d.administrador.nombre, d.administrador.hash])
     ).rows[0].id as string;
     await c.query("INSERT INTO usuario_rol (usuario_id, rol_id) SELECT $1, id FROM rol WHERE codigo = 'administrador'", [usuario]);
-    await c.query("INSERT INTO usuario_finca (usuario_id, finca_id) VALUES ($1,$2)", [usuario, finca]);
 
     for (const [catalogo, codigo, nombre] of CATALOGOS) {
       await c.query("INSERT INTO catalogo_valor (organizacion_id, catalogo, codigo, nombre) VALUES ($1,$2,$3,$4)", [org, catalogo, codigo, nombre]);

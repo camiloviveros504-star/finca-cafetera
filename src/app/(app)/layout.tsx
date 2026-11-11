@@ -66,7 +66,7 @@ export default async function LayoutAplicacion({ children }: { children: React.R
       <div className="min-h-svh lg:pl-64">
         <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-borde bg-white lg:flex">
           <Link href="/inicio" className="flex h-16 shrink-0 items-center gap-2.5 border-b border-borde px-5">
-            <Logo className="size-8" />
+            <Logo className="size-10" />
             <span className="text-sm font-bold leading-tight">Gestión de<br />Finca Cafetera</span>
           </Link>
           <BarraLateral enlaces={enlaces} />
@@ -74,7 +74,7 @@ export default async function LayoutAplicacion({ children }: { children: React.R
 
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b border-borde bg-white px-4 sm:px-6 lg:px-8">
           <Link href="/inicio" className="flex items-center gap-2 lg:hidden">
-            <Logo className="size-8" />
+            <Logo className="size-10" />
             <span className="text-sm font-bold">Finca Cafetera</span>
           </Link>
           <span className="hidden lg:block" />

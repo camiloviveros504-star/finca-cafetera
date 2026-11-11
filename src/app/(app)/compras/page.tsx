@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ErrorProhibido, listarAgroquimicos, listarCompras, listarFincasYLotes, listarProveedores, servicios } from "@/composicion";
 import { BotonEliminar } from "../../_componentes/BotonEliminar";
 import { EncabezadoModulo } from "../../_componentes/EncabezadoModulo";
@@ -55,7 +56,7 @@ export default async function Compras() {
 
       {p("compra:crear") && (
         <Tarjeta titulo="Nueva compra">
-          {insumos.length === 0 && <p className="-mt-2 mb-4 text-sm text-suave">Aún no tiene insumos creados. Créelos en <a href="/sanidad" className="font-medium text-bosque underline">Insumos</a> para que lo comprado sume al inventario, o marque “no está en la lista”.</p>}
+          {insumos.length === 0 && <p className="-mt-2 mb-4 text-sm text-suave">Aún no tiene insumos creados. Créelos en <Link href="/sanidad" className="font-medium text-bosque underline">Insumos</Link> para que lo comprado sume al inventario, o marque “no está en la lista”.</p>}
           <FormularioGenerico accion={accionCompraInsumos} boton="Registrar compra" conClave columnas={3} campos={campos} />
         </Tarjeta>
       )}

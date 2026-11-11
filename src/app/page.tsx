@@ -50,7 +50,7 @@ export default function Portada() {
         <header className="absolute inset-x-0 top-0 z-30 px-5 py-5 sm:px-8">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
             <Link href="/" className="flex items-center gap-3 text-white">
-              <Logo className="size-10 shadow-lg" />
+              <Logo className="size-14" />
               <span className="text-[15px] font-semibold leading-tight tracking-tight">Gestión de<br className="sm:hidden" /> Finca Cafetera</span>
             </Link>
             <nav aria-label="Secciones" className="flex items-center gap-1 sm:gap-2">
@@ -64,8 +64,8 @@ export default function Portada() {
         <HeroCarousel imagenes={IMAGENES}>
           <div className="max-w-3xl text-white">
             <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#cfe9de]">
-              <span className="size-1.5 rounded-full bg-[#7fd1ad]" />
-              Control de finca cafetera
+              <span className="size-1.5 rounded-full bg-[#e2c47a]" />
+              Administra · Controla · Crece
             </p>
             <h1 className="text-[clamp(2.25rem,6vw,4.25rem)] font-bold leading-[1.05] tracking-tight">Del lote a la venta, cada kilo con su origen</h1>
             <p className="mt-5 max-w-xl text-[clamp(1rem,2vw,1.2rem)] leading-relaxed text-white/85">
@@ -158,7 +158,7 @@ export default function Portada() {
 
       <footer className="border-t border-borde px-5 py-8 sm:px-8">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 text-sm text-suave">
-          <div className="flex items-center gap-2.5"><Logo className="size-7" /><span>© {new Date().getFullYear()} Gestión de Finca Cafetera</span></div>
+          <div className="flex items-center gap-2.5"><Logo className="size-8" /><span>© {new Date().getFullYear()} Gestión de Finca Cafetera</span></div>
           <nav aria-label="Información legal" className="flex gap-5">
             <Link href="/privacidad" className="inline-flex min-h-11 items-center hover:text-tinta">Política de privacidad</Link>
             <Link href="/cookies" className="inline-flex min-h-11 items-center hover:text-tinta">Política de cookies</Link>

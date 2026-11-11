@@ -65,6 +65,23 @@ test.describe("flujos con roles", () => {
     await expect(page.locator("main [role=alert]")).toContainText("administrador de la plataforma");
   });
 
+  test("propietario: crea la cuenta de su capataz; el administrador no ve formularios de capataz ni trabajador", async ({ browser }) => {
+    const dueno = await (await browser.newContext()).newPage();
+    await entrar(dueno, "propietario@demo.local");
+    await dueno.goto("/usuarios");
+    const tarjeta = dueno.locator("section", { hasText: "Cuenta de capataz" });
+    await tarjeta.locator('input[name="nombre"]').fill("Capataz de Prueba");
+    await tarjeta.locator('input[name="correo"]').fill(`capataz.${Date.now()}@e2e.test`);
+    await tarjeta.getByRole("button", { name: "Crear y generar enlace" }).click();
+    await expect(tarjeta.locator('input[aria-label="Enlace de activación"]')).toBeVisible({ timeout: 15000 });
+
+    const admin = await (await browser.newContext()).newPage();
+    await entrar(admin, "admin@demo.local");
+    await admin.goto("/usuarios");
+    await expect(admin.getByText("Cuenta de capataz")).toHaveCount(0);
+    await expect(admin.locator("option", { hasText: /^Capataz$/ })).toHaveCount(0);
+  });
+
   test("encargado de producción: el menú no muestra Ventas y el servidor rechaza el acceso directo", async ({ page }) => {
     await entrar(page, "produccion@demo.local");
     await expect(page.getByRole("link", { name: "Ventas" })).toHaveCount(0);

@@ -3,6 +3,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   activarCuenta,
   altaDeFinca,
+  asignarRolesYFincas,
+  invitarUsuario,
+  ErrorNoEncontrado,
   crearLote,
   ErrorProhibido,
   ErrorRegla,
@@ -107,5 +110,48 @@ describe("modelo de datos: dependencias sin ciclos", () => {
     for (const n of aristas.keys()) if (!estado.has(n)) visitar(n, []);
     expect(ciclos).toEqual([]);
     expect(autorreferencias).toEqual(["movimiento_inventario"]);
+  });
+});
+
+describe("quién crea qué cuenta", () => {
+  it("el administrador crea propietarios y administradores, pero no capataces ni trabajadores; no tiene fincas asignadas", async () => {
+    const admin = await e.contexto("admin@demo.local");
+    const asignadas = await e.pool.query("SELECT count(*)::int AS n FROM usuario_finca uf JOIN usuario u ON u.id = uf.usuario_id WHERE u.correo = $1", ["admin@demo.local"]);
+    expect(asignadas.rows[0].n).toBe(0);
+    const total = (await e.pool.query("SELECT count(*)::int AS n FROM finca")).rows[0].n;
+    expect(admin.fincaIds).toHaveLength(total); // aun así ve todas las fincas de la plataforma
+    for (const rol of ["capataz", "trabajador"]) {
+      await expect(invitarUsuario(e.servicios.invitaciones, admin, { correo: `${rol}.admin@prueba.co`, nombre: "No Debe", roles: [rol], fincaIds: [e.ids.finca1] })).rejects.toThrow(ErrorRegla);
+    }
+    // Otro administrador no necesita finca; un propietario sí.
+    await invitarUsuario(e.servicios.invitaciones, admin, { correo: "otro.admin@prueba.co", nombre: "Otro Administrador", roles: ["administrador"], fincaIds: [] });
+    await expect(invitarUsuario(e.servicios.invitaciones, admin, { correo: "sin.finca@prueba.co", nombre: "Dueño Sin Finca", roles: ["propietario"], fincaIds: [] })).rejects.toThrow(ErrorValidacion);
+    const roles = (await listarUsuarios(e.servicios.usuarios, admin)).roles.map((r) => r.codigo);
+    expect(roles).not.toContain("capataz");
+    expect(roles).not.toContain("trabajador");
+  });
+
+  it("el propietario crea capataces para una o varias de sus fincas y reorganiza su equipo, solo dentro de sus fincas", async () => {
+    const dueno = await e.contexto("propietario.ambas@demo.local"); // tiene las fincas 1 y 2
+    const r = await invitarUsuario(e.servicios.invitaciones, dueno, { correo: "capataz.dos@prueba.co", nombre: "Capataz Dos Fincas", roles: ["capataz"], fincaIds: [e.ids.finca1, e.ids.finca2] });
+    const visto = (await listarUsuarios(e.servicios.usuarios, dueno)).usuarios.find((u) => u.id === r.usuarioId)!;
+    expect(visto.fincas.map((f) => f.id).sort()).toEqual([e.ids.finca1, e.ids.finca2].sort());
+    // Le deja solo la finca 2.
+    await asignarRolesYFincas(e.servicios.usuarios, dueno, { usuarioId: r.usuarioId, roles: ["capataz"], fincaIds: [e.ids.finca2] });
+    expect((await listarUsuarios(e.servicios.usuarios, dueno)).usuarios.find((u) => u.id === r.usuarioId)!.fincas.map((f) => f.id)).toEqual([e.ids.finca2]);
+
+    // En su lista de cuentas solo aparece su equipo: ni él mismo, ni otros dueños, ni cuentas de la plataforma.
+    const lista = (await listarUsuarios(e.servicios.usuarios, dueno)).usuarios;
+    expect(lista.length).toBeGreaterThan(0);
+    expect(lista.every((u) => u.roles.every((rol) => rol === "capataz" || rol === "trabajador"))).toBe(true);
+
+    // El dueño de una sola finca no asigna la ajena, no crea propietarios ni toca cuentas que no son de su equipo.
+    const otro = await e.contexto("propietario@demo.local");
+    await expect(invitarUsuario(e.servicios.invitaciones, otro, { correo: "ajeno@prueba.co", nombre: "Capataz Ajeno", roles: ["capataz"], fincaIds: [e.ids.finca2] })).rejects.toThrow(ErrorProhibido);
+    await expect(invitarUsuario(e.servicios.invitaciones, otro, { correo: "dueno2@prueba.co", nombre: "Otro Dueño", roles: ["propietario"], fincaIds: [e.ids.finca1] })).rejects.toThrow(ErrorProhibido);
+    await expect(invitarUsuario(e.servicios.invitaciones, otro, { correo: "sin.fincas@prueba.co", nombre: "Capataz Sin Finca", roles: ["capataz"], fincaIds: [] })).rejects.toThrow(ErrorProhibido);
+    await expect(asignarRolesYFincas(e.servicios.usuarios, otro, { usuarioId: r.usuarioId, roles: ["capataz"], fincaIds: [e.ids.finca1] })).rejects.toThrow(ErrorNoEncontrado);
+    const adminId = (await e.pool.query("SELECT id FROM usuario WHERE correo = $1", ["admin@demo.local"])).rows[0].id;
+    await expect(asignarRolesYFincas(e.servicios.usuarios, otro, { usuarioId: adminId, roles: ["capataz"], fincaIds: [e.ids.finca1] })).rejects.toThrow(ErrorNoEncontrado);
   });
 });

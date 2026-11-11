@@ -1,109 +1,160 @@
+import Link from "next/link";
 import { ErrorProhibido, listarFincasYLotes, listarTrabajadores, listarUsuarios, servicios } from "@/composicion";
 import { EncabezadoModulo } from "../../_componentes/EncabezadoModulo";
 import { FormularioGenerico } from "../../_componentes/FormularioGenerico";
+import { Tarjeta } from "../../_componentes/Pestanas";
 import { exigirContexto } from "../../_servidor/sesion";
-import { accionAsignar, accionEmitirEnlace, accionEstadoUsuario, accionInvitar, accionPermisoExtra } from "./acciones";
+import { accionAsignar, accionEmitirEnlace, accionEstadoUsuario, accionInvitar, accionInvitarTrabajador, accionPermisoExtra } from "./acciones";
 
-export const metadata = { title: "Usuarios y permisos · Gestión de Finca Cafetera" };
+export const metadata = { title: "Cuentas · Gestión de Finca Cafetera" };
 
+const NOMBRE_ROL: Record<string, string> = { administrador: "Administrador", propietario: "Propietario", capataz: "Capataz", trabajador: "Trabajador" };
 const DESCRIPCION: Record<string, string> = {
-  administrador: "Administra la plataforma: cuentas, fincas y datos globales.",
-  propietario: "Dueño o administrador de una finca: controla lotes, insumos, equipo, recolección, ventas y gastos de la suya.",
-  capataz: "Maneja al personal en fincas grandes: registra recolección, labores y aplicaciones. No ve ventas ni pagos.",
-  trabajador: "Consulta sus propios kilos recolectados, jornales y lo que le deben.",
+  administrador: "Administra la plataforma: fincas, cuentas y ajustes. No opera ninguna finca.",
+  propietario: "Dueño de una o varias fincas: maneja lotes, insumos, equipo, recolección, ventas y dinero.",
+  capataz: "Anota la recolección, las labores y las aplicaciones de las fincas que se le asignen. No ve ventas ni dinero.",
+  trabajador: "Consulta sus propios kilos, jornales y lo que le han pagado.",
 };
 
 function Estado({ activo, pendiente }: { activo: boolean; pendiente: boolean }) {
-  const [texto, clase] = pendiente ? ["Pendiente de activación", "bg-ambar/25 text-tinta"] : activo ? ["Activo", "bg-bosque/15 text-bosque"] : ["Desactivado", "bg-alerta/10 text-alerta"];
-  return <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${clase}`}>{texto}</span>;
+  const [texto, clase] = pendiente ? ["Pendiente de activar", "bg-ambar/10 text-ambar"] : activo ? ["Activa", "bg-bosque-claro text-bosque"] : ["Desactivada", "bg-alerta/10 text-alerta"];
+  return <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${clase}`}>{texto}</span>;
 }
 
-export default async function Usuarios() {
+export default async function Cuentas() {
   const ctx = await exigirContexto();
   let datos;
   try {
     datos = await listarUsuarios(servicios().usuarios, ctx);
   } catch (error) {
-    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para consultar usuarios.</p>;
+    if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para consultar cuentas.</p>;
     throw error;
   }
   const administra = ctx.permisos.has("usuario:administrar");
-  // El dueño de una finca invita a su capataz y a sus trabajadores, solo a sus propias fincas.
-  const invita = administra || ctx.permisos.has("usuario:invitar_equipo");
+  const invitaEquipo = !administra && ctx.permisos.has("usuario:invitar_equipo");
   const fincas = await listarFincasYLotes(servicios().fincasLotes, ctx).then((d) => d.fincas).catch(() => []);
-  const sinCuenta = invita ? (await listarTrabajadores(servicios().talento, ctx).catch(() => [])).filter((w) => !w.usuarioId) : [];
-  const opcionesRol = datos.roles.map((r) => ({ valor: r.codigo, texto: DESCRIPCION[r.codigo] ? `${r.nombre} — ${DESCRIPCION[r.codigo]}` : `${r.nombre}${r.esExtension ? " (extensión)" : ""}` }));
   const opcionesFinca = fincas.map((f) => ({ valor: f.id, texto: f.nombre }));
+  const sinCuenta = invitaEquipo ? (await listarTrabajadores(servicios().talento, ctx).catch(() => [])).filter((w) => !w.usuarioId && w.vinculaciones.length > 0) : [];
+  const ORDEN = ["propietario", "administrador", "capataz", "trabajador"];
+  const rolesAsignables = datos.roles.filter((r) => NOMBRE_ROL[r.codigo]).sort((x, y) => ORDEN.indexOf(x.codigo) - ORDEN.indexOf(y.codigo)).map((r) => ({ valor: r.codigo, texto: `${NOMBRE_ROL[r.codigo]} — ${DESCRIPCION[r.codigo]}` }));
+  const otraPersona = (u: { id: string }) => u.id !== ctx.usuarioId;
+
   return (
-    <section className="space-y-6">
-      <EncabezadoModulo titulo={ctx.permisos.has("finca:administrar") ? "Cuentas y roles de la plataforma" : "Mi equipo con acceso al sistema"} detalle={ctx.permisos.has("finca:administrar") ? "Cree las cuentas de los dueños de finca y de quien las necesite. Cada persona fija su propia contraseña." : "Cree la cuenta de su capataz o de un trabajador para que vea sus kilos. Cada persona fija su propia contraseña."} />
+    <div className="space-y-6">
+      <EncabezadoModulo
+        titulo={administra ? "Cuentas de la plataforma" : "Cuentas de mi equipo"}
+        detalle={administra
+          ? "Usted crea las cuentas de los propietarios y de otros administradores. Los capataces y trabajadores los crea el propietario de cada finca."
+          : "Cree la cuenta de su capataz (asignándole sus fincas) o la de un trabajador para que vea sus kilos. Cada persona crea su propia contraseña con el enlace."}
+      />
 
-      {invita && (
-        <div className="rounded-xl border border-borde shadow-sm bg-white p-5">
-          <h2 className="text-base font-semibold">Registrar un usuario</h2>
-          <ol className="mb-4 mt-2 list-decimal space-y-0.5 pl-5 text-sm text-tinta/80">
-            <li>Escriba su nombre y correo, y elija sus roles y las fincas a las que tendrá acceso.</li>
-            <li>El sistema genera un enlace de un solo uso (vence en 72 horas). Entréguelo a la persona.</li>
-            <li>Ella crea su contraseña con ese enlace. Usted nunca la conoce.</li>
-          </ol>
-          <FormularioGenerico
-            accion={accionInvitar}
-            boton="Registrar y generar enlace"
-            campos={[
-              { nombre: "nombre", etiqueta: "Nombre completo", requerido: true },
-              { nombre: "correo", etiqueta: "Correo (será su usuario)", requerido: true },
-              { nombre: "roles", etiqueta: "Roles", tipo: "multiple", opciones: opcionesRol },
-              { nombre: "fincaIds", etiqueta: "Fincas con acceso", tipo: "multiple", opciones: opcionesFinca },
-              ...(ctx.permisos.has("trabajador:administrar") ? [{ nombre: "trabajadorId", etiqueta: "Vincular con un trabajador (para que vea sus kilos)", tipo: "select" as const, opciones: [{ valor: "", texto: "No vincular" }, ...sinCuenta.map((w) => ({ valor: w.id, texto: `${w.nombre} · ${w.documento}` }))] }] : []),
-            ]}
-          />
-        </div>
-      )}
-
-      <ul className="space-y-3">
-        {datos.usuarios.map((u) => (
-          <li key={u.id} className="rounded-xl border border-borde shadow-sm bg-white p-4 text-sm">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-base font-semibold">{u.nombre} <span className="font-normal text-tinta/70">· {u.correo}</span></p>
-              <Estado activo={u.activo} pendiente={u.pendiente} />
-            </div>
-            <p className="mt-1">Roles: {u.roles.join(", ").replaceAll("_", " ") || "—"} · Fincas: {u.fincas.map((f) => f.nombre).join(", ") || "—"}</p>
-            {u.permisosExtra.length > 0 && <p>Permisos adicionales: {u.permisosExtra.join(", ")}</p>}
-            {u.pendiente && !u.invitacionVigente && <p className="mt-1 font-semibold text-alerta">El enlace venció: genere uno nuevo.</p>}
-            {invita && (
-              <details className="mt-2">
-                <summary className="min-h-11 cursor-pointer font-semibold">Administrar</summary>
-                <div className="mt-2 space-y-4">
-                  <div>
-                    <p className="mb-1 font-semibold">{u.pendiente ? "Enlace de activación" : "Restablecer contraseña"}</p>
-                    <FormularioGenerico compacto accion={accionEmitirEnlace} boton={u.pendiente ? "Generar enlace nuevo" : "Generar enlace de restablecimiento"} ocultos={{ usuarioId: u.id }} campos={[]} />
+      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+        <Tarjeta titulo={`Cuentas (${datos.usuarios.length})`} className="h-fit overflow-hidden !p-0 [&>h2]:mb-0 [&>h2]:border-b [&>h2]:border-borde [&>h2]:px-5 [&>h2]:py-3">
+          {datos.usuarios.length === 0 ? <p className="p-5 text-sm text-suave">Todavía no hay cuentas.</p> : (
+            <ul className="divide-y divide-borde">
+              {datos.usuarios.map((u) => (
+                <li key={u.id} className="px-5 py-4">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{u.nombre}</p>
+                      <p className="text-xs text-suave">{u.correo}</p>
+                      <p className="mt-1 text-xs text-suave">
+                        {u.roles.map((r) => NOMBRE_ROL[r] ?? r.replaceAll("_", " ")).join(", ") || "Sin rol"}
+                        {u.roles.includes("administrador") ? " · todas las fincas" : u.fincas.length > 0 ? ` · ${u.fincas.map((f) => f.nombre).join(", ")}` : " · sin finca"}
+                      </p>
+                    </div>
+                    <Estado activo={u.activo} pendiente={u.pendiente} />
                   </div>
-                  {administra && <FormularioGenerico accion={accionAsignar} boton="Guardar roles y fincas" ocultos={{ usuarioId: u.id }} campos={[
-                    { nombre: "roles", etiqueta: "Roles", tipo: "multiple", opciones: opcionesRol, valorInicial: u.roles.join(",") },
-                    { nombre: "fincaIds", etiqueta: "Fincas", tipo: "multiple", opciones: opcionesFinca, valorInicial: u.fincas.map((f) => f.id).join(",") },
-                  ]} />}
-                  {administra && !u.pendiente && <FormularioGenerico compacto accion={accionEstadoUsuario} boton={u.activo ? "Desactivar cuenta" : "Reactivar cuenta"} ocultos={{ usuarioId: u.id, activo: u.activo ? "no" : "si" }} campos={[]} />}
-                  {administra && <FormularioGenerico compacto accion={accionPermisoExtra} boton="Aplicar permiso" ocultos={{ usuarioId: u.id }} campos={[
-                    { nombre: "permiso", etiqueta: "Permiso adicional", tipo: "select", opciones: datos.permisos.map((p) => ({ valor: p.codigo, texto: p.codigo })) },
-                    { nombre: "accion", etiqueta: "Acción", tipo: "select", opciones: [{ valor: "otorgar", texto: "Otorgar" }, { valor: "revocar", texto: "Revocar" }] },
-                  ]} />}
-                </div>
-              </details>
-            )}
-          </li>
-        ))}
-      </ul>
+                  {u.pendiente && !u.invitacionVigente && <p className="mt-2 text-xs font-medium text-alerta">El enlace venció: genere uno nuevo.</p>}
+                  {(administra || invitaEquipo) && otraPersona(u) && (
+                    <details className="mt-2">
+                      <summary className="min-h-10 cursor-pointer py-2 text-sm font-medium text-bosque">Administrar</summary>
+                      <div className="mt-2 space-y-4 rounded-lg bg-fondo/70 p-4">
+                        <FormularioGenerico compacto accion={accionEmitirEnlace} boton={u.pendiente ? "Generar enlace de activación" : "Generar enlace para cambiar contraseña"} ocultos={{ usuarioId: u.id }} campos={[]} />
+                        {administra && (
+                          <FormularioGenerico accion={accionAsignar} boton="Guardar rol y fincas" ocultos={{ usuarioId: u.id }} campos={[
+                            { nombre: "roles", etiqueta: "Rol", tipo: "multiple", opciones: rolesAsignables, valorInicial: u.roles.join(",") },
+                            { nombre: "fincaIds", etiqueta: "Fincas (no aplica a administradores)", tipo: "multiple", opciones: opcionesFinca, valorInicial: u.fincas.map((f) => f.id).join(",") },
+                          ]} />
+                        )}
+                        {invitaEquipo && u.roles.includes("capataz") && (
+                          <FormularioGenerico accion={accionAsignar} boton="Guardar fincas del capataz" ocultos={{ usuarioId: u.id, roles: "capataz" }} campos={[
+                            { nombre: "fincaIds", etiqueta: "Fincas que maneja", tipo: "multiple", opciones: opcionesFinca, valorInicial: u.fincas.map((f) => f.id).join(",") },
+                          ]} />
+                        )}
+                        {administra && !u.pendiente && <FormularioGenerico compacto accion={accionEstadoUsuario} boton={u.activo ? "Desactivar cuenta" : "Reactivar cuenta"} ocultos={{ usuarioId: u.id, activo: u.activo ? "no" : "si" }} campos={[]} />}
+                        {administra && (
+                          <details>
+                            <summary className="cursor-pointer text-xs font-medium text-suave">Permiso adicional (avanzado)</summary>
+                            <div className="mt-2">
+                              <FormularioGenerico compacto accion={accionPermisoExtra} boton="Aplicar" ocultos={{ usuarioId: u.id }} campos={[
+                                { nombre: "permiso", etiqueta: "Permiso", tipo: "select", opciones: datos.permisos.map((p) => ({ valor: p.codigo, texto: p.codigo })) },
+                                { nombre: "accion", etiqueta: "Acción", tipo: "select", opciones: [{ valor: "otorgar", texto: "Otorgar" }, { valor: "revocar", texto: "Revocar" }] },
+                              ]} />
+                            </div>
+                          </details>
+                        )}
+                      </div>
+                    </details>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Tarjeta>
 
-      <h2 className="text-lg font-semibold">Roles y sus permisos</h2>
-      <ul className="grid gap-2 lg:grid-cols-2">
-        {datos.roles.map((r) => (
-          <li key={r.codigo} className="rounded-xl border border-borde shadow-sm bg-white p-3 text-sm">
-            <p className="font-bold">{r.nombre}{r.esExtension ? " · extensión" : ""}</p>
-            {DESCRIPCION[r.codigo] && <p>{DESCRIPCION[r.codigo]}</p>}
-            <p className="opacity-80">{r.permisos.join(" · ")}</p>
-          </li>
-        ))}
-      </ul>
-    </section>
+        <div className="space-y-4">
+          {administra && (
+            <Tarjeta titulo="Nueva cuenta">
+              <p className="-mt-2 mb-3 text-xs text-suave">Para dar de alta una finca nueva con su dueño use <Link href="/fincas" className="font-medium text-bosque underline">Fincas</Link>; aquí puede crear otro administrador o agregar un propietario a fincas existentes.</p>
+              <FormularioGenerico accion={accionInvitar} boton="Crear y generar enlace" campos={[
+                { nombre: "nombre", etiqueta: "Nombre completo", requerido: true, ancho: "completo" },
+                { nombre: "correo", etiqueta: "Correo (será su usuario)", requerido: true, ancho: "completo" },
+                { nombre: "roles", etiqueta: "Rol", tipo: "select", opciones: rolesAsignables.map((r) => ({ valor: r.valor, texto: NOMBRE_ROL[r.valor] })), ancho: "completo" },
+                ...(opcionesFinca.length > 0 ? [{ nombre: "fincaIds", etiqueta: "Fincas (solo para propietarios)", tipo: "multiple" as const, opciones: opcionesFinca }] : []),
+              ]} />
+            </Tarjeta>
+          )}
+
+          {invitaEquipo && fincas.length === 0 && (
+            <Tarjeta titulo="Todavía no tiene fincas">
+              <p className="text-sm text-suave">Para crear la cuenta de un capataz o de un trabajador primero necesita una finca asignada. Pídale al administrador de la plataforma que la dé de alta.</p>
+            </Tarjeta>
+          )}
+
+          {invitaEquipo && fincas.length > 0 && (
+            <>
+              <Tarjeta titulo="Cuenta de capataz">
+                <FormularioGenerico accion={accionInvitar} boton="Crear y generar enlace" ocultos={fincas.length === 1 ? { roles: "capataz", fincaIds: fincas[0].id } : { roles: "capataz" }} campos={[
+                  { nombre: "nombre", etiqueta: "Nombre completo", requerido: true, ancho: "completo" },
+                  { nombre: "correo", etiqueta: "Correo (será su usuario)", requerido: true, ancho: "completo" },
+                  ...(fincas.length > 1 ? [{ nombre: "fincaIds", etiqueta: "Fincas que manejará", tipo: "multiple" as const, opciones: opcionesFinca }] : []),
+                ]} />
+                {fincas.length === 1 && <p className="mt-3 text-xs text-suave">Manejará la finca {fincas[0].nombre}.</p>}
+              </Tarjeta>
+              <Tarjeta titulo="Cuenta de trabajador">
+                {sinCuenta.length === 0 ? (
+                  <p className="text-sm text-suave">Todos sus trabajadores ya tienen cuenta, o aún no ha agregado ninguno. Agréguelos primero en <Link href="/trabajadores" className="font-medium text-bosque underline">Equipo</Link>.</p>
+                ) : (
+                  <FormularioGenerico accion={accionInvitarTrabajador} boton="Crear y generar enlace" campos={[
+                    { nombre: "trabajadorId", etiqueta: "Trabajador", tipo: "select", opciones: sinCuenta.map((w) => ({ valor: w.id, texto: `${w.nombre} · ${w.documento}` })), ancho: "completo" },
+                    { nombre: "correo", etiqueta: "Correo (será su usuario)", requerido: true, ancho: "completo", ayuda: "La cuenta queda unida a su ficha: solo verá sus kilos y sus pagos." },
+                  ]} />
+                )}
+              </Tarjeta>
+            </>
+          )}
+
+          <details className="rounded-xl border border-borde bg-white p-5 shadow-sm">
+            <summary className="cursor-pointer text-sm font-semibold">Qué puede hacer cada rol</summary>
+            <ul className="mt-3 space-y-3 text-sm">
+              {Object.entries(DESCRIPCION).map(([codigo, texto]) => (
+                <li key={codigo}><p className="font-medium">{NOMBRE_ROL[codigo]}</p><p className="text-suave">{texto}</p></li>
+              ))}
+            </ul>
+          </details>
+        </div>
+      </div>
+    </div>
   );
 }

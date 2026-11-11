@@ -54,7 +54,8 @@ test("QA-08 · 50 cosechas sin señal se sincronizan solas en ≤ 60 s, sin pér
   expect(enBd).toBe(antes); // mientras no hay red, nada llegó al servidor: sigue pendiente, nunca "confirmada"
   const t0 = Date.now();
   await context.setOffline(false);
-  await expect(page.getByTestId("indicador-sync")).toHaveText("En línea", { timeout: 60_000 });
+  // Cuando todo se envió, el aviso desaparece (con conexión y sin pendientes no se muestra nada).
+  await expect(page.getByTestId("indicador-sync")).toHaveCount(0, { timeout: 60_000 });
   const segundos = (Date.now() - t0) / 1000;
   const despues = (await c.query("SELECT count(*)::int AS n, count(DISTINCT clave_idempotencia)::int AS distintas FROM cosecha WHERE lote_id = $1", [ids.lote])).rows[0];
   expect(despues.n - antes).toBe(50);

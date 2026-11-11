@@ -72,16 +72,16 @@ export function ProveedorSync({ csrfToken, children }: { csrfToken: string; chil
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }
 
-/** Indicador siempre visible del estado de conexión y de la cola. */
+/** Aviso de conexión: solo visible sin señal, con registros pendientes de enviar o mientras se sincronizan. */
 export function IndicadorSync() {
   const { enLinea, pendientes, sincronizando } = useSync();
+  // Con conexión y sin nada pendiente no se muestra nada: el aviso solo aparece cuando hay algo que atender.
+  if (enLinea && !pendientes && !sincronizando) return null;
   const texto = !enLinea
     ? `Sin conexión${pendientes ? ` · ${pendientes} pendiente${pendientes === 1 ? "" : "s"}` : ""}`
     : sincronizando
       ? "Sincronizando…"
-      : pendientes
-        ? `${pendientes} pendiente${pendientes === 1 ? "" : "s"} de sincronizar`
-        : "En línea";
+      : `${pendientes} pendiente${pendientes === 1 ? "" : "s"} de sincronizar`;
   return (
     <span
       role="status"

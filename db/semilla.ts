@@ -28,7 +28,7 @@ export async function sembrar(c: Client): Promise<void> {
       (await c.query<{ id: string; codigo: string }>("SELECT id, codigo FROM rol")).rows.map((r) => [r.codigo, r.id]),
     );
     const usuarios: Array<[string, string, string, string[]]> = [
-      ["admin@demo.local", "Administrador DEMO", "administrador", [f1.id, f2.id]],
+      ["admin@demo.local", "Administrador DEMO", "administrador", []],
       ["produccion@demo.local", "Encargado de producción DEMO", "encargado_produccion", [f1.id]],
       ["comercial@demo.local", "Responsable comercial DEMO", "responsable_comercial", [f1.id]],
       ["comercial2@demo.local", "Responsable comercial finca 2 DEMO", "responsable_comercial", [f2.id]],

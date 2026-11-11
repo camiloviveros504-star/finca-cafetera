@@ -17,14 +17,14 @@ export function MarcoAcceso({ titulo, subtitulo, children, pie }: { titulo: stri
 
         <div className="relative flex h-full flex-col justify-between p-6 text-white sm:p-8 lg:p-14">
           <Link href="/" className="flex w-fit items-center gap-3">
-            <Logo className="size-10 shadow-lg" />
+            <Logo className="size-14" />
             <span className="text-[15px] font-semibold leading-tight tracking-tight">Gestión de<br />Finca Cafetera</span>
           </Link>
           <div className="max-w-xl">
-            <p className="mb-3 hidden text-xs font-semibold uppercase tracking-[0.18em] text-[#a9d5c2] lg:block">Control de finca cafetera</p>
+            <p className="mb-3 hidden text-xs font-semibold uppercase tracking-[0.22em] text-[#e2c47a] lg:block">Administra · Controla · Crece</p>
             <h2 className="text-2xl font-bold leading-[1.15] tracking-tight sm:text-3xl lg:text-[2.75rem]">Del lote a la venta,<br className="hidden sm:block" /> cada kilo con su origen.</h2>
             <p className="mt-4 hidden max-w-md text-base leading-relaxed text-white/80 lg:block">Lotes, recolección, insumos, trabajadores, ventas y dinero de su finca en un mismo lugar, claros y al día.</p>
-            <div className="mt-8 hidden h-1 w-16 rounded-full bg-[#a9d5c2] lg:block" />
+            <div className="mt-8 hidden h-1 w-16 rounded-full bg-gradient-to-r from-[#e2c47a] to-[#a9d5c2] lg:block" />
           </div>
         </div>
       </aside>

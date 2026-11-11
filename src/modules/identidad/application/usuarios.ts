@@ -28,6 +28,19 @@ function validar<T extends z.ZodTypeAny>(esquema: T, entrada: unknown, mensaje: 
 const uuid = z.string().uuid();
 /** Roles que un propietario puede asignar a su equipo; el resto (administrador, propietario) los asigna el administrador. */
 export const ROLES_DE_EQUIPO = ["capataz", "trabajador"];
+
+/**
+ * Reglas de quién crea qué cuenta (también se aplican al invitar):
+ * - El administrador de la plataforma NO crea capataces ni trabajadores: esos los crea el dueño de cada finca.
+ * - Toda cuenta que no sea de administrador necesita al menos una finca; el administrador no necesita ninguna (ve todas).
+ */
+export function validarRolesYFincas(ctx: ContextoUsuario, roles: readonly string[], fincaIds: readonly string[]) {
+  if (ctx.permisos.has("usuario:administrar") && roles.some((r) => ROLES_DE_EQUIPO.includes(r))) {
+    throw new ErrorRegla("Las cuentas de capataz y de trabajador las crea el propietario de cada finca", "rol_de_equipo");
+  }
+  const soloAdministrador = roles.length > 0 && roles.every((r) => r === "administrador");
+  if (!soloAdministrador && fincaIds.length === 0) throw new ErrorValidacion("Asigne al menos una finca", { fincaIds: "Asigne al menos una finca" });
+}
 const contrasena = esquemaContrasena();
 const auditar = (deps: DependenciasUsuarios, ctx: ContextoUsuario, tx: Parameters<Auditor["registrar"]>[1], accion: string, usuarioId: string, despues: unknown) =>
   deps.auditor.registrar({ organizacionId: ctx.organizacionId, usuarioId: ctx.usuarioId, accion, entidad: "usuario", entidadId: usuarioId, resultado: "ok", despues, ip: ctx.ip }, tx);
@@ -37,8 +50,11 @@ export async function listarUsuarios(deps: DependenciasUsuarios, ctx: ContextoUs
   // El administrador ve todas las cuentas; el propietario, solo el equipo (capataces y trabajadores) de sus fincas.
   const global = ctx.permisos.has("usuario:administrar");
   return deps.uow.consultar(async (tx) => ({
-    usuarios: await deps.repo.listarUsuarios(tx, ctx.organizacionId, global ? undefined : ctx.fincaIds),
-    roles: (await deps.repo.listarRoles(tx, true)).filter((r) => global || ROLES_DE_EQUIPO.includes(r.codigo)),
+    // El propietario ve solo a su equipo: capataces y trabajadores de sus fincas (ni a sí mismo ni a otros dueños).
+    usuarios: (await deps.repo.listarUsuarios(tx, ctx.organizacionId, global ? undefined : ctx.fincaIds)).filter(
+      (u) => global || (u.id !== ctx.usuarioId && u.roles.length > 0 && u.roles.every((r) => ROLES_DE_EQUIPO.includes(r))),
+    ),
+    roles: (await deps.repo.listarRoles(tx, true)).filter((r) => (global ? !ROLES_DE_EQUIPO.includes(r.codigo) : ROLES_DE_EQUIPO.includes(r.codigo))),
     permisos: await deps.repo.listarPermisos(tx),
   }));
 }
@@ -48,13 +64,14 @@ const esquemaCrear = z.object({
   nombre: z.string().trim().min(3, "Indique el nombre").max(100),
   contrasena,
   roles: z.array(z.string()).min(1, "Asigne al menos un rol"),
-  fincaIds: z.array(uuid).min(1, "Asigne al menos una finca"),
+  fincaIds: z.array(uuid).default([]),
   autorizaTratamiento: z.literal(true, { message: "Debe confirmar la autorización de tratamiento de datos personales" }),
 });
 
 export async function crearUsuario(deps: DependenciasUsuarios, ctx: ContextoUsuario, cruda: unknown) {
   const e = validar(esquemaCrear, cruda, "Revise los datos del usuario");
   await autorizar(deps.auditor, ctx, "usuario:administrar", { accion: "usuario.crear", entidad: "usuario" });
+  validarRolesYFincas(ctx, e.roles, e.fincaIds);
   const hash = await deps.cifrar(e.contrasena);
   return deps.uow.ejecutar(async (tx) => {
     let id: string;
@@ -65,7 +82,7 @@ export async function crearUsuario(deps: DependenciasUsuarios, ctx: ContextoUsua
       throw error;
     }
     if (!(await deps.repo.asignarRoles(tx, id, e.roles))) throw new ErrorRegla("Algún rol no existe", "rol_invalido");
-    if (!(await deps.repo.asignarFincas(tx, ctx.organizacionId, id, e.fincaIds))) throw new ErrorRegla("Alguna finca no pertenece a la organización", "finca_invalida");
+    if (e.fincaIds.length > 0 && !(await deps.repo.asignarFincas(tx, ctx.organizacionId, id, e.fincaIds))) throw new ErrorRegla("Alguna finca no pertenece a la organización", "finca_invalida");
     await auditar(deps, ctx, tx, "usuario.crear", id, { roles: e.roles, fincas: e.fincaIds.length }); // sin correo ni contraseña en la auditoría
     return { id };
   });
@@ -78,10 +95,18 @@ async function cargarUsuario(deps: DependenciasUsuarios, ctx: ContextoUsuario, t
 }
 
 export async function asignarRolesYFincas(deps: DependenciasUsuarios, ctx: ContextoUsuario, cruda: unknown) {
-  const e = validar(z.object({ usuarioId: uuid, roles: z.array(z.string()).min(1, "Asigne al menos un rol"), fincaIds: z.array(uuid).min(1, "Asigne al menos una finca") }), cruda, "Revise los datos");
-  await autorizar(deps.auditor, ctx, "usuario:administrar", { accion: "usuario.asignar", entidad: "usuario" });
+  const e = validar(z.object({ usuarioId: uuid, roles: z.array(z.string()).min(1, "Asigne al menos un rol"), fincaIds: z.array(uuid).default([]) }), cruda, "Revise los datos");
+  const esAdministrador = ctx.permisos.has("usuario:administrar");
+  await autorizar(deps.auditor, ctx, esAdministrador ? "usuario:administrar" : "usuario:invitar_equipo", { accion: "usuario.asignar", entidad: "usuario" });
+  validarRolesYFincas(ctx, e.roles, e.fincaIds);
   return deps.uow.ejecutar(async (tx) => {
     const u = await cargarUsuario(deps, ctx, tx, e.usuarioId);
+    if (!esAdministrador) {
+      // El propietario solo reorganiza a su propio equipo, y solo entre sus fincas.
+      const actuales = await deps.repo.fincasDeUsuario(tx, u.id);
+      const fuera = u.roles.some((r) => !ROLES_DE_EQUIPO.includes(r)) || e.roles.some((r) => !ROLES_DE_EQUIPO.includes(r)) || actuales.some((f) => !ctx.fincaIds.includes(f)) || e.fincaIds.some((f) => !ctx.fincaIds.includes(f));
+      if (fuera) throw new ErrorNoEncontrado("Usuario");
+    }
     if (u.id === ctx.usuarioId && u.roles.includes("administrador") && !e.roles.includes("administrador")) throw new ErrorRegla("No puede quitarse a sí mismo el rol de administrador", "autoexclusion");
     if (u.roles.includes("administrador") && !e.roles.includes("administrador") && (await deps.repo.contarAdministradoresActivos(tx, ctx.organizacionId)) <= 1) throw new ErrorRegla("La organización debe conservar al menos un administrador", "ultimo_administrador");
     if (!(await deps.repo.asignarRoles(tx, e.usuarioId, e.roles))) throw new ErrorRegla("Algún rol no existe", "rol_invalido");

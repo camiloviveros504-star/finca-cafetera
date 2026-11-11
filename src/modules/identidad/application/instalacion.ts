@@ -29,7 +29,6 @@ export async function obtenerEstadoInstalacion(deps: DependenciasInstalacion): P
 const esquema = z.object({
   codigo: z.string().min(1, "Ingrese el código de instalación"),
   organizacion: z.string().trim().min(3, "Indique el nombre de la organización").max(120),
-  finca: z.string().trim().min(3, "Indique el nombre de la primera finca").max(120),
   nombre: z.string().trim().min(3, "Indique el nombre del administrador").max(100),
   correo: z.string().trim().toLowerCase().email("Correo inválido").max(120),
   contrasena: z.string().min(1, "Ingrese una contraseña"),
@@ -61,10 +60,10 @@ export async function instalarSistema(deps: DependenciasInstalacion, cruda: unkn
 
   const hash = await deps.cifrar(e.contrasena);
   return deps.uow.ejecutar(async (tx) => {
-    const creado = await deps.repo.instalar(tx, { organizacion: e.organizacion, finca: e.finca, administrador: { nombre: e.nombre, correo: e.correo, hash } });
+    const creado = await deps.repo.instalar(tx, { organizacion: e.organizacion, administrador: { nombre: e.nombre, correo: e.correo, hash } });
     if (!creado) throw new ErrorRegla("El sistema ya fue instalado", "ya_instalado");
     await deps.auditor.registrar(
-      { organizacionId: creado.organizacionId, usuarioId: creado.usuarioId, accion: "sistema.instalar", entidad: "organizacion", entidadId: creado.organizacionId, resultado: "ok", despues: { finca: e.finca } },
+      { organizacionId: creado.organizacionId, usuarioId: creado.usuarioId, accion: "sistema.instalar", entidad: "organizacion", entidadId: creado.organizacionId, resultado: "ok", despues: { organizacion: e.organizacion } },
       tx,
     );
     return creado;

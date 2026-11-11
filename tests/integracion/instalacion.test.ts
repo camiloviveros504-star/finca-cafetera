@@ -11,7 +11,7 @@ let pool: Pool;
 let servicios: Servicios;
 
 const datos = (extra: Record<string, unknown> = {}) => ({
-  codigo: CODIGO, organizacion: "Cooperativa La Cumbre", finca: "Finca El Mirador", nombre: "Ana Administradora", correo: "Ana@Cumbre.co", contrasena: "ClaveSegura2026", autorizaTratamiento: true, ...extra,
+  codigo: CODIGO, organizacion: "Cooperativa La Cumbre", nombre: "Ana Administradora", correo: "Ana@Cumbre.co", contrasena: "ClaveSegura2026", autorizaTratamiento: true, ...extra,
 });
 
 beforeAll(async () => {
@@ -49,7 +49,7 @@ describe("primer arranque (sin datos de ejemplo)", () => {
     expect((await pool.query("SELECT count(*)::int AS n FROM organizacion")).rows[0].n).toBe(0);
   }, 20_000);
 
-  it("instala una sola vez: organización, finca con bodega, administrador, catálogos, productos y flujos, sin valores comerciales", async () => {
+  it("instala una sola vez: organización, administrador, catálogos, productos y flujos; sin fincas ni valores comerciales (las fincas las da de alta el administrador con su dueño)", async () => {
     // Dos solicitudes a la vez: solo una instala.
     const r = await Promise.allSettled([instalarSistema(servicios.instalacion, datos()), instalarSistema(servicios.instalacion, datos())]);
     expect(r.filter((x) => x.status === "fulfilled")).toHaveLength(1);
@@ -58,7 +58,8 @@ describe("primer arranque (sin datos de ejemplo)", () => {
     const q = async (sql: string) => (await pool.query(sql)).rows[0];
     expect((await q("SELECT count(*)::int AS n FROM organizacion")).n).toBe(1);
     expect((await q("SELECT es_demo FROM organizacion")).es_demo).toBe(false);
-    expect((await q("SELECT count(*)::int AS n FROM bodega")).n).toBe(1);
+    expect((await q("SELECT count(*)::int AS n FROM finca")).n).toBe(0);
+    expect((await q("SELECT count(*)::int AS n FROM usuario_finca")).n).toBe(0);
     expect((await q("SELECT count(*)::int AS n FROM producto WHERE NOT es_demo")).n).toBe(7);
     expect((await q("SELECT count(*)::int AS n FROM proceso_etapa")).n).toBe(5);
     // Nada de precios, tarifas, equivalencias, clientes ni trabajadores inventados.
@@ -69,14 +70,14 @@ describe("primer arranque (sin datos de ejemplo)", () => {
     await expect(instalarSistema(servicios.instalacion, datos({ correo: "otro@cumbre.co" }))).rejects.toThrow(/ya fue instalado/);
   }, 30_000);
 
-  it("el administrador creado puede iniciar sesión y tiene todos los permisos; la contraseña va con Argon2id", async () => {
+  it("el administrador creado puede iniciar sesión con los permisos de la plataforma; la contraseña va con Argon2id", async () => {
     const hash = (await pool.query("SELECT password_hash FROM usuario")).rows[0].password_hash as string;
     expect(hash).toMatch(/^\$argon2id\$/);
     const sesion = await iniciarSesion(servicios.sesion, { correo: "ana@cumbre.co", contrasena: "ClaveSegura2026", ip: "10.1.1.1" });
     const ctx = await obtenerContexto(servicios.sesion, sesion.token, "10.1.1.1");
     expect(ctx.roles).toEqual(["administrador"]);
     expect(ctx.permisos.has("usuario:administrar")).toBe(true);
-    expect(ctx.fincaIds).toHaveLength(1);
+    expect(ctx.fincaIds).toHaveLength(0); // todavía no hay fincas: las da de alta él mismo
   });
 
   it("sin CODIGO_INSTALACION definido, la instalación queda deshabilitada", async () => {

@@ -9,7 +9,7 @@ export async function accionInstalar(_previo: EstadoFormulario, d: FormData): Pr
   const t = (k: string) => String(d.get(k) ?? "");
   try {
     await instalarSistema(servicios().instalacion, {
-      codigo: t("codigo"), organizacion: t("organizacion"), finca: t("finca"), nombre: t("nombre"), correo: t("correo"),
+      codigo: t("codigo"), organizacion: t("organizacion"), nombre: t("nombre"), correo: t("correo"),
       contrasena: t("contrasena"), autorizaTratamiento: d.get("autoriza") === "on",
     });
   } catch (error) {

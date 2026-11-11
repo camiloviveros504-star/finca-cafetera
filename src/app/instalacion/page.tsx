@@ -25,7 +25,6 @@ export default async function Instalacion() {
           campos={[
             { nombre: "codigo", etiqueta: "Código de instalación", tipo: "password", requerido: true },
             { nombre: "organizacion", etiqueta: "Nombre de la organización", requerido: true },
-            { nombre: "finca", etiqueta: "Nombre de la primera finca", requerido: true },
             { nombre: "nombre", etiqueta: "Su nombre completo", requerido: true },
             { nombre: "correo", etiqueta: "Su correo", requerido: true },
             { nombre: "contrasena", etiqueta: "Contraseña (mínimo 10 caracteres, letras y números)", tipo: "password", requerido: true },
