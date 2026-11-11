@@ -17,6 +17,10 @@ export default async function LayoutAplicacion({ children }: { children: React.R
     { href: "/inventario/operaciones", etiqueta: "Movimientos", icono: "⇄", permiso: "inventario:ajustar" },
     { href: "/configuracion", etiqueta: "Tarifas", icono: "%", permiso: "tarifa:ver" },
     { href: "/beneficio", etiqueta: "Beneficio", icono: "≋", permiso: "proceso:ver" },
+    { href: "/sanidad", etiqueta: "Sanidad", icono: "✚", permiso: "inspeccion:ver" },
+    { href: "/sanidad", etiqueta: "Agroquímicos", icono: "✚", permiso: "agroquimico:ver" },
+    { href: "/planificacion", etiqueta: "Planificación", icono: "◷", permiso: "planificacion:ver" },
+    { href: "/maquinaria", etiqueta: "Maquinaria", icono: "⚙", permiso: "equipo:ver" },
     { href: "/trabajadores", etiqueta: "Trabajadores", icono: "☻", permiso: "trabajador:ver" },
     { href: "/trabajadores", etiqueta: "Mis datos", icono: "☻", permiso: "trabajador:ver_propio" },
     { href: "/trabajo", etiqueta: "Producción", icono: "⚒", permiso: "trabajo:validar" },
@@ -26,7 +30,12 @@ export default async function LayoutAplicacion({ children }: { children: React.R
     { href: "/compras", etiqueta: "Compras", icono: "⛟", permiso: "compra:ver" },
     { href: "/finanzas", etiqueta: "Finanzas", icono: "▤", permiso: "finanzas:ver" },
   ];
-  const enlaces = todos.filter((e) => !e.permiso || ctx.permisos.has(e.permiso));
+  const vistos = new Set<string>();
+  const enlaces = todos.filter((e) => {
+    if ((e.permiso && !ctx.permisos.has(e.permiso)) || vistos.has(e.href)) return false;
+    vistos.add(e.href);
+    return true;
+  });
 
   return (
     <ProveedorSync csrfToken={ctx.csrfToken}>

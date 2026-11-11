@@ -27,6 +27,8 @@ import { RepositorioFinanzasPg } from "@/modules/finanzas/infrastructure/reposit
 import type { DependenciasFinanzas } from "@/modules/finanzas/application/finanzas";
 import { RepositorioPagosPg } from "@/modules/comercial/infrastructure/repositorioPagosPg";
 import type { DependenciasPagos } from "@/modules/comercial/application/pagosClientes";
+import { RepositorioAgricolaPg } from "@/modules/agricola/infrastructure/repositorioAgricolaPg";
+import type { DependenciasAgricola } from "@/modules/agricola/application/comun";
 import { RepositorioTrazabilidadPg } from "@/modules/trazabilidad/infrastructure/repositorioTrazabilidadPg";
 import { hashDeRelleno, verificarContrasena } from "@/shared/infraestructura/contrasenas";
 import { obtenerPool, UnidadDeTrabajoPg } from "@/shared/infraestructura/baseDatos";
@@ -51,6 +53,7 @@ export interface Servicios {
   beneficio: DependenciasBeneficio;
   finanzas: DependenciasFinanzas;
   pagos: DependenciasPagos;
+  agricola: DependenciasAgricola;
 }
 
 export function crearServicios(pool: Pool): Servicios {
@@ -71,6 +74,7 @@ export function crearServicios(pool: Pool): Servicios {
     beneficio: { repo: new RepositorioBeneficioPg(), operaciones, uow, auditor },
     finanzas: { repo: new RepositorioFinanzasPg(), uow, auditor },
     pagos: { repo: new RepositorioPagosPg(), uow, auditor },
+    agricola: { repo: new RepositorioAgricolaPg(), finanzas: { repo: new RepositorioFinanzasPg(), uow, auditor }, uow, auditor },
     produccion: { produccion: new RepositorioProduccionPg(), inventario: inventarioRepo, configuracion, uow, auditor },
     trazabilidad: { repo: new RepositorioTrazabilidadPg(), uow, auditor },
     talento: { repo: new RepositorioTalentoPg(), configuracion, uow, auditor },
@@ -113,5 +117,13 @@ export {
   obtenerResumenFinanciero, obtenerConciliacion,
   type Conciliacion, type FilaCompra, type FilaGasto, type FilaProveedor, type MovimientoFinanciero, type ResumenFinanciero,
 } from "@/modules/finanzas/application/finanzas";
+export {
+  registrarInspeccion, listarInspecciones, registrarAmbiental, listarAmbientales, crearAgroquimico, registrarEntradaAgroquimico, registrarAplicacion, listarAgroquimicos,
+} from "@/modules/agricola/application/sanidad";
+export { programarActividad, cerrarActividad, listarActividades, registrarProyeccion, listarProyecciones } from "@/modules/agricola/application/planificacion";
+export { crearEquipo, registrarUsoEquipo, registrarMantenimiento, listarEquipos } from "@/modules/agricola/application/maquinaria";
+export type {
+  FilaActividad, FilaAgroquimico, FilaAplicacion, FilaEquipo, FilaInspeccion, FilaMantenimiento, FilaProyeccion, FilaRegistroAmbiental, FilaStockAgroquimico,
+} from "@/modules/agricola/domain/puertos";
 export * from "@/shared/dominio/errores";
 export type { ContextoUsuario } from "@/shared/dominio/contexto";
