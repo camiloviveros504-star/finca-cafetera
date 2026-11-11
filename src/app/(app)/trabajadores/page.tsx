@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { ErrorProhibido, listarFincasYLotes, listarTrabajadores, servicios } from "@/composicion";
+import { ErrorProhibido, listarFincasYLotes, listarTrabajadores, listarTrabajos, servicios } from "@/composicion";
 import { EncabezadoModulo } from "../../_componentes/EncabezadoModulo";
 import { FormularioGenerico } from "../../_componentes/FormularioGenerico";
-import { moneda } from "../../_servidor/formatos";
+import { cantidad, moneda } from "../../_servidor/formatos";
 import { exigirContexto } from "../../_servidor/sesion";
 import { accionAnticipo, accionCrearTrabajador, accionVincular } from "./acciones";
 
@@ -22,10 +22,11 @@ export default async function Trabajadores() {
   const administra = ctx.permisos.has("trabajador:administrar");
   const opcionesTrabajador = lista.map((w) => ({ valor: w.id, texto: w.nombre }));
   const propio = !ctx.permisos.has("trabajador:ver");
+  const misRegistros = propio ? await listarTrabajos(servicios().talento, ctx).catch(() => []) : [];
   return (
     <section className="space-y-6">
-      <EncabezadoModulo titulo={propio ? "Mis datos y acumulados" : "Trabajadores"} imagen="hero-3-caficultores" alt="Grupo de caficultores recolectando café en una ladera" />
-      <p className="text-sm">Remuneración por producción o jornada. Este sistema no es software de nómina legal: no calcula prestaciones, seguridad social ni retenciones.</p>
+      <EncabezadoModulo titulo={propio ? "Mis kilos y pagos" : "Equipo de trabajo"} imagen="hero-3-caficultores" alt="Grupo de caficultores recolectando café en una ladera" />
+      <p className="text-sm">{propio ? "Aquí ve los kilos y jornales que le han registrado y lo que le deben." : "Los trabajadores y capataces de su finca. Cada trabajador se crea ya vinculado a la finca."} Remuneración por producción o jornada. Este sistema no es software de nómina legal: no calcula prestaciones, seguridad social ni retenciones.</p>
 
       <div className="grid gap-4 xl:grid-cols-3">
         {administra && (
@@ -41,6 +42,8 @@ export default async function Trabajadores() {
                   { nombre: "nombres", etiqueta: "Nombres", requerido: true },
                   { nombre: "apellidos", etiqueta: "Apellidos", requerido: true },
                   { nombre: "telefono", etiqueta: "Teléfono" },
+                  { nombre: "fincaId", etiqueta: "Finca donde trabaja", tipo: "select", opciones: fincas.map((f) => ({ valor: f.id, texto: f.nombre })) },
+                  { nombre: "modalidad", etiqueta: "Cómo se le paga", tipo: "select", opciones: [{ valor: "kg", texto: "Por kilo recolectado" }, { valor: "jornada", texto: "Por jornal" }] },
                   { nombre: "autorizaTratamiento", etiqueta: "El trabajador autorizó el tratamiento de sus datos personales (Ley 1581)", tipo: "checkbox", requerido: true },
                 ]}
               />
@@ -104,6 +107,21 @@ export default async function Trabajadores() {
         ))}
         {lista.length === 0 && <li>No hay trabajadores registrados.</li>}
       </ul>
+      {propio && (
+        <div>
+          <h2 className="mb-2 text-xl font-extrabold">Mis registros</h2>
+          <ul className="space-y-1 text-sm">
+            {misRegistros.map((r) => (
+              <li key={r.id} className="rounded-lg bg-white px-3 py-2">
+                {r.fecha} · {r.labor === "recoleccion" || !r.labor ? "Recolección" : r.labor} · {r.fincaNombre}{r.loteCodigo ? ` · lote ${r.loteCodigo}` : ""} ·{" "}
+                <strong>{cantidad(r.cantidadValidada ?? r.cantidadDeclarada)} {r.modalidad === "jornada" ? "jornal(es)" : "kg"}</strong>
+                {r.valor !== null && <> · {moneda(r.valor)}</>} · {r.estado}
+              </li>
+            ))}
+            {misRegistros.length === 0 && <li>Todavía no tiene registros.</li>}
+          </ul>
+        </div>
+      )}
     </section>
   );
 }

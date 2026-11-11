@@ -8,6 +8,8 @@ import {
   anonimizarTrabajador,
   rectificarTrabajador,
   registrarAnticipo,
+  registrarJornada,
+  listarFincasYLotes,
   registrarPagoTrabajador,
   registrarTrabajo,
   servicios,
@@ -38,6 +40,8 @@ export async function accionCrearTrabajador(_p: EstadoFormulario, d: FormData) {
       nombres: t(d, "nombres"),
       apellidos: t(d, "apellidos"),
       telefono: t(d, "telefono"),
+      fincaId: t(d, "fincaId"),
+      modalidad: t(d, "modalidad"),
       autorizaTratamiento: d.get("autorizaTratamiento") === "on",
     }),
   );
@@ -140,4 +144,22 @@ export async function accionAnonimizarTrabajador(_p: EstadoFormulario, d: FormDa
   return ejecutar(["/trabajadores"], "Datos personales suprimidos (anonimizados). Las liquidaciones y pagos conservan su valor.", () =>
     anonimizarTrabajador(servicios().derechosTrabajador, ctx, { trabajadorId: t(d, "trabajadorId"), motivo: t(d, "motivo") }),
   );
+}
+
+/** Labores del día (abonada, fumigación, limpieza o paleo…): una línea por trabajador con jornadas y valor del jornal. */
+export async function accionRegistrarJornada(_p: EstadoFormulario, d: FormData) {
+  const ctx = await exigirContexto();
+  try {
+    const { lotes } = await listarFincasYLotes(servicios().fincasLotes, ctx);
+    const lote = lotes.find((l) => l.id === t(d, "loteId"));
+    if (!lote) return { error: "Seleccione el lote donde se trabajó" } as EstadoFormulario;
+    const lineas = [1, 2, 3, 4, 5, 6]
+      .filter((n) => t(d, "trabajadorId" + n) !== "")
+      .map((n) => ({ trabajadorId: t(d, "trabajadorId" + n), cantidad: dec(d, "cantidad" + n) || "1", unidad: "jornada", valorUnitario: dec(d, "valor" + n) }));
+    return await ejecutar(["/trabajo", "/trabajadores", "/liquidaciones"], "Labor registrada y lista para liquidar.", () =>
+      registrarJornada(servicios().talento, ctx, { fincaId: lote.fincaId, loteId: lote.id, fecha: t(d, "fecha"), labor: t(d, "labor"), claveIdempotencia: t(d, "claveIdempotencia"), lineas }),
+    );
+  } catch (error) {
+    return aEstadoError(error);
+  }
 }

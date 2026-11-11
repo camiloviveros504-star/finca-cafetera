@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { ErrorProhibido, listarCosechas, servicios } from "@/composicion";
+import { consultarCultivo, ErrorProhibido, listarCosechas, listarTrabajadores, obtenerOpcionesRegistro, servicios } from "@/composicion";
 import { FormularioGenerico } from "../../_componentes/FormularioGenerico";
 import { cantidad } from "../../_servidor/formatos";
-import { accionAnularCosecha } from "./acciones";
+import { accionAnularCosecha, accionRegistrarRecoleccion } from "./acciones";
 import { exigirContexto } from "../../_servidor/sesion";
 
-export const metadata = { title: "Cosechas · Gestión de Finca Cafetera" };
+export const metadata = { title: "Recolección · Gestión de Finca Cafetera" };
+const hoy = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
 
 export default async function Cosechas({ searchParams }: { searchParams: Promise<{ pagina?: string }> }) {
   const ctx = await exigirContexto();
@@ -18,16 +19,57 @@ export default async function Cosechas({ searchParams }: { searchParams: Promise
     throw error;
   }
   const paginas = Math.max(Math.ceil(datos.total / 25), 1);
+  const puedePagar = ctx.permisos.has("cosecha:registrar") && ctx.permisos.has("trabajo:registrar");
+  const opciones = ctx.permisos.has("cosecha:registrar") ? await obtenerOpcionesRegistro(servicios().produccion, ctx).catch(() => null) : null;
+  const trabajadores = puedePagar ? await listarTrabajadores(servicios().talento, ctx).catch(() => []) : [];
+  const lotesCultivo = await consultarCultivo(servicios().cultivo, ctx).catch(() => []);
+  const sembrados = lotesCultivo.filter((l) => l.origen !== "sin_sembrar");
+  const tiposCafe = (opciones?.productos ?? []).map((p) => ({ valor: p.id, texto: p.nombre }));
   return (
     <section>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-extrabold">Cosechas</h1>
+        <h1 className="text-2xl font-extrabold">Recolección</h1>
         {ctx.permisos.has("cosecha:registrar") && (
-          <Link href="/cosechas/nueva" className="flex min-h-11 items-center rounded-lg bg-bosque px-4 font-bold text-white">
-            Registrar cosecha
+          <Link href="/cosechas/nueva" className="flex min-h-11 items-center rounded-lg border-2 border-bosque px-4 font-bold text-bosque">
+            Registro rápido sin conexión
           </Link>
         )}
       </div>
+
+      {sembrados.length > 0 && (
+        <div className="mb-4">
+          <h2 className="mb-2 text-lg font-extrabold">Café recolectado por lote</h2>
+          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {sembrados.map((l) => (
+              <li key={l.id} className="rounded-xl border-2 border-tinta/20 bg-white p-3 text-sm">
+                <p className="font-bold">{l.codigo} · {l.nombre}</p>
+                <p>{l.origen === "zoca" ? "Zoca" : "Café nuevo"} · {l.fincaNombre}</p>
+                <p className="text-lg font-extrabold">{cantidad(l.cosechadoKg)} kg</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {puedePagar && opciones && (
+        <details open className="mb-6 rounded-xl border-2 border-tinta/20 bg-white p-4">
+          <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Registrar recolección del día</summary>
+          <p className="my-2 text-sm">Elija el lote y el tipo de café, y anote cuántos kilos recogió cada trabajador y a cuánto se le paga el kilo. El café entra a la bodega y lo que se le debe a cada uno queda listo para liquidar.</p>
+          <FormularioGenerico accion={accionRegistrarRecoleccion} boton="Registrar recolección" conClave campos={[
+            { nombre: "loteId", etiqueta: "Lote", tipo: "select", requerido: true, opciones: (sembrados.length > 0 ? sembrados : lotesCultivo).map((l) => ({ valor: l.id, texto: `${l.fincaNombre} · ${l.codigo} ${l.nombre}` })) },
+            { nombre: "productoId", etiqueta: "Tipo de café recogido", tipo: "select", requerido: true, opciones: tiposCafe },
+            { nombre: "fecha", etiqueta: "Fecha", tipo: "date", requerido: true, valorInicial: hoy() },
+            { nombre: "kgTotal", etiqueta: "Kilos totales (si lo deja vacío se suman los de los trabajadores)", tipo: "number" },
+            ...[1, 2, 3, 4, 5, 6].flatMap((n) => [
+              { nombre: `trabajadorId${n}`, etiqueta: `Trabajador ${n}`, tipo: "select" as const, opciones: [{ valor: "", texto: n === 1 ? "Elija un trabajador…" : "— ninguno —" }, ...trabajadores.map((w) => ({ valor: w.id, texto: w.nombre }))] },
+              { nombre: `kg${n}`, etiqueta: `Kilos ${n}`, tipo: "number" as const },
+              { nombre: `precio${n}`, etiqueta: `Valor del kilo ${n} (COP)`, tipo: "number" as const },
+            ]),
+            { nombre: "nota", etiqueta: "Nota (opcional)" },
+          ]} />
+        </details>
+      )}
+
       {datos.filas.length === 0 ? (
         <p className="rounded-lg bg-arena p-4">Todavía no hay cosechas registradas.</p>
       ) : (

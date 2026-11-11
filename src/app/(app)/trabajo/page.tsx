@@ -4,9 +4,11 @@ import { FormularioGenerico } from "../../_componentes/FormularioGenerico";
 import { cantidad, moneda } from "../../_servidor/formatos";
 import { exigirContexto } from "../../_servidor/sesion";
 import { FormularioTrabajoOffline } from "../../_componentes/FormulariosOffline";
-import { accionValidarTrabajo } from "../trabajadores/acciones";
+import { accionRegistrarJornada, accionValidarTrabajo } from "../trabajadores/acciones";
 
-export const metadata = { title: "Producción de trabajadores · Gestión de Finca Cafetera" };
+export const metadata = { title: "Labores y producción · Gestión de Finca Cafetera" };
+const hoy = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
+const LABOR: Record<string, string> = { recoleccion: "Recolección", abonada: "Abonada o fertilización", fumigacion: "Fumigación", plateo: "Limpieza de lote o paleo", renovacion: "Renovación (zoca o siembra)", otra: "Otra labor" };
 const ETIQUETA: Record<string, string> = { pendiente: "Pendiente de validar", validado: "Validado", rechazado: "Rechazado", liquidado: "Liquidado" };
 
 export default async function Trabajo() {
@@ -26,6 +28,22 @@ export default async function Trabajo() {
   return (
     <section className="space-y-6">
       <EncabezadoModulo titulo="Producción de trabajadores" imagen="hero-2-recoleccion" alt="Manos de un recolector tomando cerezas maduras de café sobre un canasto" />
+      {terceros && ctx.permisos.has("trabajo:validar") && (
+        <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
+          <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Registrar labores del día (abonada, fumigación, limpieza…)</summary>
+          <p className="my-2 text-sm">Una línea por trabajador: cuántas jornadas trabajó y cuánto se le paga cada jornal. Los kilos recolectados se registran en Recolección.</p>
+          <FormularioGenerico accion={accionRegistrarJornada} boton="Registrar labor" conClave campos={[
+            { nombre: "loteId", etiqueta: "Lote", tipo: "select", requerido: true, opciones: datos.lotes.map((l) => ({ valor: l.id, texto: `${l.fincaNombre} · ${l.codigo}` })) },
+            { nombre: "labor", etiqueta: "Labor", tipo: "select", opciones: Object.entries(LABOR).filter(([k]) => k !== "recoleccion").map(([valor, texto]) => ({ valor, texto })) },
+            { nombre: "fecha", etiqueta: "Fecha", tipo: "date", requerido: true, valorInicial: hoy() },
+            ...[1, 2, 3, 4, 5, 6].flatMap((n) => [
+              { nombre: `trabajadorId${n}`, etiqueta: `Trabajador ${n}`, tipo: "select" as const, opciones: [{ valor: "", texto: n === 1 ? "Elija un trabajador…" : "— ninguno —" }, ...trabajadores.map((w) => ({ valor: w.id, texto: w.nombre }))] },
+              { nombre: `cantidad${n}`, etiqueta: `Jornadas ${n}`, tipo: "number" as const, valorInicial: "1" },
+              { nombre: `valor${n}`, etiqueta: `Valor del jornal ${n} (COP)`, tipo: "number" as const },
+            ]),
+          ]} />
+        </details>
+      )}
       <p className="text-sm">Quien trabaja declara la cantidad. El supervisor la valida y el sistema calcula el valor con la tarifa vigente en la fecha de la producción; nadie lo digita.</p>
 
       {puedeRegistrar && (
@@ -44,7 +62,7 @@ export default async function Trabajo() {
       <ul className="space-y-3">
         {registros.map((r) => (
           <li key={r.id} className="rounded-xl border-2 border-tinta/20 bg-white p-3">
-            <p className="font-bold">{r.trabajadorNombre} · {r.fecha} · {r.fincaNombre}{r.loteCodigo ? ` · ${r.loteCodigo}` : ""}</p>
+            <p className="font-bold">{r.trabajadorNombre} · {r.labor ? `${LABOR[r.labor] ?? r.labor} · ` : ""}{r.fecha} · {r.fincaNombre}{r.loteCodigo ? ` · ${r.loteCodigo}` : ""}</p>
             <p className="text-sm">
               Declarado: <strong>{cantidad(r.cantidadDeclarada)} {r.unidadDeclarada}</strong>
               {r.cantidadValidada !== null && <> · Validado: <strong>{cantidad(r.cantidadValidada)} {r.modalidad}</strong></>}
