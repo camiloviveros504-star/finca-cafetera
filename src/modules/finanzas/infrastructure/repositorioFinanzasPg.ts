@@ -182,7 +182,7 @@ export class RepositorioFinanzasPg implements RepositorioFinanzas {
   async conciliacion(tx: Transaccion, organizacionId: string, fincaIds: readonly string[], desde: string, hasta: string): Promise<Conciliacion> {
     const r = await clienteDe(tx).query(
       `SELECT m.fecha::text AS fecha, m.concepto, m.tercero, m.metodo, m.entrada, m.salida FROM (
-         SELECT (p.fecha ${BOGOTA})::date AS fecha, 'Pago de cliente · comprobante ' || v.numero_comprobante AS concepto, c.nombre AS tercero, p.metodo,
+         SELECT (p.fecha ${BOGOTA})::date AS fecha, 'Cobro de la venta ' || v.numero_comprobante AS concepto, c.nombre AS tercero, p.metodo,
                 p.monto AS entrada, 0::numeric AS salida
            FROM pago_cliente p JOIN venta v ON v.id = p.venta_id JOIN cliente c ON c.id = v.cliente_id
           WHERE p.organizacion_id = $1 AND v.finca_id = ANY($2::uuid[])
@@ -196,7 +196,7 @@ export class RepositorioFinanzasPg implements RepositorioFinanzas {
           WHERE p.organizacion_id = $1
             AND EXISTS (SELECT 1 FROM liquidacion_detalle d JOIN registro_trabajo w ON w.id = d.registro_trabajo_id WHERE d.liquidacion_id = l.id AND w.finca_id = ANY($2::uuid[]))
          UNION ALL
-         SELECT g.fecha, 'Gasto ' || g.clasificacion || ' · ' || g.descripcion, g.tipo, coalesce(g.metodo, 'sin_metodo'), 0::numeric, g.monto
+         SELECT g.fecha, g.descripcion, coalesce((SELECT cv.nombre FROM catalogo_valor cv WHERE cv.organizacion_id = g.organizacion_id AND cv.catalogo = 'tipo_gasto' AND cv.codigo = g.tipo), g.tipo), coalesce(g.metodo, 'sin_metodo'), 0::numeric, g.monto
            FROM gasto g WHERE g.organizacion_id = $1 AND g.finca_id = ANY($2::uuid[])
        ) m WHERE m.fecha BETWEEN $3::date AND $4::date ORDER BY m.fecha, m.concepto LIMIT 1000`,
       [organizacionId, fincaIds, desde, hasta],

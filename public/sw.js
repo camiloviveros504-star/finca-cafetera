@@ -3,7 +3,7 @@
 const CACHE = "finca-v1";
 const RUTAS_OFFLINE = ["/cosechas/nueva"];
 
-self.addEventListener("install", (e) => {
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 

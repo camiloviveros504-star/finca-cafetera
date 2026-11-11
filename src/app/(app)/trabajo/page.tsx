@@ -27,28 +27,31 @@ export default async function Trabajo() {
   const valida = ctx.permisos.has("trabajo:validar");
   return (
     <section className="space-y-6">
-      <EncabezadoModulo titulo="Producción de trabajadores" imagen="hero-2-recoleccion" alt="Manos de un recolector tomando cerezas maduras de café sobre un canasto" />
+      <EncabezadoModulo titulo="Producción de trabajadores" />
       {terceros && ctx.permisos.has("trabajo:validar") && (
-        <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
-          <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Registrar labores del día (abonada, fumigación, limpieza…)</summary>
+        <details className="rounded-xl border border-borde shadow-sm bg-white p-4">
+          <summary className="min-h-11 cursor-pointer text-base font-semibold">Registrar labores del día (abonada, fumigación, limpieza…)</summary>
           <p className="my-2 text-sm">Una línea por trabajador: cuántas jornadas trabajó y cuánto se le paga cada jornal. Los kilos recolectados se registran en Recolección.</p>
-          <FormularioGenerico accion={accionRegistrarJornada} boton="Registrar labor" conClave campos={[
+          <FormularioGenerico accion={accionRegistrarJornada} boton="Registrar labor" conClave columnas={3} campos={[
             { nombre: "loteId", etiqueta: "Lote", tipo: "select", requerido: true, opciones: datos.lotes.map((l) => ({ valor: l.id, texto: `${l.fincaNombre} · ${l.codigo}` })) },
             { nombre: "labor", etiqueta: "Labor", tipo: "select", opciones: Object.entries(LABOR).filter(([k]) => k !== "recoleccion").map(([valor, texto]) => ({ valor, texto })) },
             { nombre: "fecha", etiqueta: "Fecha", tipo: "date", requerido: true, valorInicial: hoy() },
-            ...[1, 2, 3, 4, 5, 6].flatMap((n) => [
-              { nombre: `trabajadorId${n}`, etiqueta: `Trabajador ${n}`, tipo: "select" as const, opciones: [{ valor: "", texto: n === 1 ? "Elija un trabajador…" : "— ninguno —" }, ...trabajadores.map((w) => ({ valor: w.id, texto: w.nombre }))] },
-              { nombre: `cantidad${n}`, etiqueta: `Jornadas ${n}`, tipo: "number" as const, valorInicial: "1" },
-              { nombre: `valor${n}`, etiqueta: `Valor del jornal ${n} (COP)`, tipo: "number" as const },
-            ]),
+            ...[1, 2, 3, 4, 5, 6].flatMap((n) => {
+              const visibleSi = n > 3 ? "masTrabajadores" : undefined;
+              return [
+                { nombre: `trabajadorId${n}`, etiqueta: `Trabajador ${n}`, tipo: "select" as const, visibleSi, seccion: n === 1 ? "Quién trabajó" : undefined, opciones: [{ valor: "", texto: n === 1 ? "Elija un trabajador…" : "— ninguno —" }, ...trabajadores.map((w) => ({ valor: w.id, texto: w.nombre }))] },
+                { nombre: `cantidad${n}`, etiqueta: "Jornadas", tipo: "number" as const, valorInicial: "1", visibleSi },
+                { nombre: `valor${n}`, etiqueta: "Valor del jornal (COP)", tipo: "number" as const, visibleSi },
+              ];
+            }).flatMap((c, i) => (i === 9 ? [{ nombre: "masTrabajadores", etiqueta: "Más de tres trabajadores", tipo: "checkbox" as const }, c] : [c])),
           ]} />
         </details>
       )}
       <p className="text-sm">Quien trabaja declara la cantidad. El supervisor la valida y el sistema calcula el valor con la tarifa vigente en la fecha de la producción; nadie lo digita.</p>
 
       {puedeRegistrar && (
-        <details open className="rounded-xl border-2 border-tinta/20 bg-white p-4">
-          <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Registrar producción o jornada (funciona sin conexión)</summary>
+        <details open className="rounded-xl border border-borde shadow-sm bg-white p-4">
+          <summary className="min-h-11 cursor-pointer text-base font-semibold">Registrar producción o jornada (funciona sin conexión)</summary>
           <div className="mt-3">
             <FormularioTrabajoOffline
               fincas={datos.fincas.map((f) => ({ valor: f.id, texto: f.nombre }))}
@@ -61,7 +64,7 @@ export default async function Trabajo() {
 
       <ul className="space-y-3">
         {registros.map((r) => (
-          <li key={r.id} className="rounded-xl border-2 border-tinta/20 bg-white p-3">
+          <li key={r.id} className="rounded-xl border border-borde shadow-sm bg-white p-3">
             <p className="font-bold">{r.trabajadorNombre} · {r.labor ? `${LABOR[r.labor] ?? r.labor} · ` : ""}{r.fecha} · {r.fincaNombre}{r.loteCodigo ? ` · ${r.loteCodigo}` : ""}</p>
             <p className="text-sm">
               Declarado: <strong>{cantidad(r.cantidadDeclarada)} {r.unidadDeclarada}</strong>

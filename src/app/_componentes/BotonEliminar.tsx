@@ -10,7 +10,7 @@ export function BotonEliminar({ tipo, id, nombre }: { tipo: "cliente" | "proveed
     <form action={accion} onSubmit={(e) => { if (!confirm(`¿Eliminar "${nombre}"? Si ya tiene historial se archivará en lugar de borrarse.`)) e.preventDefault(); }} className="inline-block">
       <input type="hidden" name="tipo" value={tipo} />
       <input type="hidden" name="id" value={id} />
-      <button disabled={pendiente} className="min-h-11 rounded-lg border-2 border-alerta px-3 text-sm font-bold text-alerta disabled:opacity-60">{pendiente ? "Eliminando…" : "Eliminar"}</button>
+      <button disabled={pendiente} className="min-h-11 rounded-lg px-2 text-sm font-medium text-alerta hover:bg-alerta/5 disabled:opacity-60">{pendiente ? "Eliminando…" : "Eliminar"}</button>
       {estado.error && <span role="alert" className="ml-2 text-sm font-semibold text-alerta">{estado.error}</span>}
       {estado.ok && <span role="status" className="ml-2 text-sm font-semibold text-bosque">{estado.mensaje}</span>}
     </form>

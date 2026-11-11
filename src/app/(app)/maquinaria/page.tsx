@@ -27,8 +27,8 @@ export default async function Maquinaria() {
       <EncabezadoModulo titulo="Maquinaria y herramientas" detalle="Equipos, uso, combustible y mantenimientos. El costo de mantenimiento se carga como gasto." />
       <div className="grid gap-4 xl:grid-cols-3">
         {administra && (
-          <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
-            <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nuevo equipo</summary>
+          <details className="rounded-xl border border-borde shadow-sm bg-white p-4">
+            <summary className="min-h-11 cursor-pointer text-base font-semibold">Nuevo equipo</summary>
             <div className="mt-3">
               <FormularioGenerico accion={accionCrearEquipo} boton="Crear equipo" campos={[
                 { nombre: "fincaId", etiqueta: "Finca", tipo: "select", opciones: fincas.map((f) => ({ valor: f.id, texto: f.nombre })) },
@@ -40,8 +40,8 @@ export default async function Maquinaria() {
           </details>
         )}
         {usa && (
-          <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
-            <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Registrar uso</summary>
+          <details className="rounded-xl border border-borde shadow-sm bg-white p-4">
+            <summary className="min-h-11 cursor-pointer text-base font-semibold">Registrar uso</summary>
             <div className="mt-3">
               <FormularioGenerico accion={accionUsoEquipo} boton="Registrar uso" conClave campos={[
                 { nombre: "equipoId", etiqueta: "Equipo", tipo: "select", opciones: opcionesEquipo },
@@ -52,8 +52,8 @@ export default async function Maquinaria() {
           </details>
         )}
         {administra && (
-          <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
-            <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Registrar mantenimiento</summary>
+          <details className="rounded-xl border border-borde shadow-sm bg-white p-4">
+            <summary className="min-h-11 cursor-pointer text-base font-semibold">Registrar mantenimiento</summary>
             <div className="mt-3">
               <FormularioGenerico accion={accionMantenimiento} boton="Registrar mantenimiento" conClave campos={[
                 { nombre: "equipoId", etiqueta: "Equipo", tipo: "select", opciones: datos.equipos.map((e) => ({ valor: e.id, texto: `${e.codigo} · ${e.nombre}` })) },
@@ -69,8 +69,8 @@ export default async function Maquinaria() {
 
       <ul className="grid gap-3 md:grid-cols-2">
         {datos.equipos.filter((e) => e.estado !== "baja").map((e) => (
-          <li key={e.id} className={`rounded-xl border-2 bg-white p-3 text-sm ${e.mantenimientoVencido ? "border-alerta" : "border-tinta/20"}`}>
-            <p className="font-extrabold">{e.codigo} · {e.nombre} <span className="font-normal">({e.tipo} · {e.fincaNombre})</span></p>
+          <li key={e.id} className={`rounded-xl border bg-white shadow-sm p-3 text-sm ${e.mantenimientoVencido ? "border-alerta" : "border-borde"}`}>
+            <p className="font-semibold">{e.codigo} · {e.nombre} <span className="font-normal">({e.tipo} · {e.fincaNombre})</span></p>
             <p>Estado: {e.estado.replace("_", " ")} · {cantidad(e.horasUso)} h de uso · {cantidad(e.combustibleLitros)} L</p>
             <p>Mantenimientos: {moneda(e.costoMantenimiento)} · último {e.ultimoMantenimiento ?? "—"} · próximo {e.proximoMantenimiento ?? "—"}{e.mantenimientoVencido ? " · VENCIDO" : ""}</p>
             {ctx.permisos.has("equipo:administrar") && <div className="mt-2"><BotonEliminar tipo="equipo" id={e.id} nombre={e.nombre} /></div>}
@@ -78,7 +78,7 @@ export default async function Maquinaria() {
         ))}
         {datos.equipos.length === 0 && <li>No hay equipos registrados.</li>}
       </ul>
-      <h2 className="text-xl font-extrabold">Historial de mantenimientos</h2>
+      <h2 className="text-lg font-semibold">Historial de mantenimientos</h2>
       <ul className="space-y-1 text-sm">
         {datos.mantenimientos.map((m) => <li key={m.id} className="rounded-lg bg-white px-3 py-2">{m.fecha} · {m.equipo} · {m.tipo} · {m.descripcion} · <strong>{moneda(m.costo)}</strong>{m.conGasto ? " · cargado a gastos" : ""}</li>)}
       </ul>

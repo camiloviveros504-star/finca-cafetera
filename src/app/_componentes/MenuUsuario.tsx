@@ -43,14 +43,14 @@ export function MenuUsuario({ nombre, correo, roles }: { nombre: string; correo:
         aria-expanded={abierto}
         aria-label={`Menú de ${nombre}`}
         onClick={() => setAbierto((a) => !a)}
-        className="flex min-h-11 items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-3 hover:bg-white/20"
+        className="flex min-h-11 items-center gap-2 rounded-full py-1 pl-1 pr-2 hover:bg-fondo"
       >
-        <span aria-hidden className="flex size-9 items-center justify-center rounded-full bg-ambar text-sm font-extrabold text-tinta">{iniciales(nombre)}</span>
+        <span aria-hidden className="flex size-9 items-center justify-center rounded-full bg-bosque text-sm font-semibold text-white">{iniciales(nombre)}</span>
         <span className="hidden text-left leading-tight md:block">
           <span className="block max-w-40 truncate text-sm font-semibold">{nombre}</span>
-          <span className="block max-w-40 truncate text-xs capitalize text-white/75">{rolTexto}</span>
+          <span className="block max-w-40 truncate text-xs capitalize text-suave">{rolTexto}</span>
         </span>
-        <svg aria-hidden viewBox="0 0 20 20" className={`size-4 transition-transform ${abierto ? "rotate-180" : ""}`} fill="currentColor"><path d="M5.5 7.5 10 12l4.5-4.5z" /></svg>
+        <svg aria-hidden viewBox="0 0 20 20" className={`size-4 text-suave transition-transform ${abierto ? "rotate-180" : ""}`} fill="currentColor"><path d="M5.5 7.5 10 12l4.5-4.5z" /></svg>
       </button>
 
       {abierto && (

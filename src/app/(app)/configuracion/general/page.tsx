@@ -24,11 +24,11 @@ export default async function ConfiguracionGeneral() {
     <section className="space-y-6">
       <EncabezadoModulo titulo="Configuración general" detalle="Unidades, equivalencias, catálogos, temporadas y parámetros." />
 
-      <h2 className="text-xl font-extrabold">Equivalencias de unidades</h2>
+      <h2 className="text-lg font-semibold">Equivalencias de unidades</h2>
       <p className="text-sm">Cada cambio crea una vigencia nueva y cierra la anterior; lo ya registrado conserva el factor que se aplicó.</p>
       {modifica && (
-        <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
-          <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nueva equivalencia</summary>
+        <details className="rounded-xl border border-borde shadow-sm bg-white p-4">
+          <summary className="min-h-11 cursor-pointer text-base font-semibold">Nueva equivalencia</summary>
           <div className="mt-3">
             <FormularioGenerico accion={accionEquivalencia} boton="Crear equivalencia" campos={[
               { nombre: "origen", etiqueta: "Unidad de origen", tipo: "select", opciones: ["arroba", "carga", "saco", "kg"].map((v) => ({ valor: v, texto: v })) },
@@ -42,17 +42,17 @@ export default async function ConfiguracionGeneral() {
       )}
       <ul className="grid gap-2 md:grid-cols-2">
         {a.equivalencias.map((e) => (
-          <li key={e.id} className={`rounded-xl border-2 bg-white p-3 text-sm ${e.vigente ? "border-bosque" : "border-tinta/20 opacity-80"}`}>
+          <li key={e.id} className={`rounded-xl border bg-white shadow-sm p-3 text-sm ${e.vigente ? "border-bosque" : "border-borde opacity-80"}`}>
             <strong>1 {e.origen} = {Number(e.factor)} {e.destino}</strong>{e.esDemo ? " · DEMO" : ""} · {e.fincaNombre ?? "General"}<br />
             Desde {e.desde}{e.hasta ? ` hasta ${e.hasta}` : " (sin fin)"}{e.vigente ? " · vigente hoy" : ""}
           </li>
         ))}
       </ul>
 
-      <h2 className="text-xl font-extrabold">Catálogos</h2>
+      <h2 className="text-lg font-semibold">Catálogos</h2>
       {modifica && (
-        <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
-          <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nuevo valor de catálogo</summary>
+        <details className="rounded-xl border border-borde shadow-sm bg-white p-4">
+          <summary className="min-h-11 cursor-pointer text-base font-semibold">Nuevo valor de catálogo</summary>
           <div className="mt-3">
             <FormularioGenerico accion={accionValorCatalogo} boton="Crear valor" campos={[
               { nombre: "catalogo", etiqueta: "Catálogo", tipo: "select", opciones: Object.entries(NOMBRE_CATALOGO).map(([valor, texto]) => ({ valor, texto })) },
@@ -63,7 +63,7 @@ export default async function ConfiguracionGeneral() {
       )}
       <div className="grid gap-3 md:grid-cols-2">
         {Object.entries(NOMBRE_CATALOGO).map(([clave, titulo]) => (
-          <div key={clave} className="rounded-xl border-2 border-tinta/20 bg-white p-3 text-sm">
+          <div key={clave} className="rounded-xl border border-borde shadow-sm bg-white p-3 text-sm">
             <p className="font-bold">{titulo}</p>
             <ul>
               {(porCatalogo[clave] ?? []).map((v) => (
@@ -78,10 +78,10 @@ export default async function ConfiguracionGeneral() {
         ))}
       </div>
 
-      <h2 className="text-xl font-extrabold">Temporadas</h2>
+      <h2 className="text-lg font-semibold">Temporadas</h2>
       {modifica && (
-        <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
-          <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nueva temporada</summary>
+        <details className="rounded-xl border border-borde shadow-sm bg-white p-4">
+          <summary className="min-h-11 cursor-pointer text-base font-semibold">Nueva temporada</summary>
           <div className="mt-3">
             <FormularioGenerico accion={accionTemporada} boton="Crear temporada" campos={[{ nombre: "nombre", etiqueta: "Nombre", requerido: true }, { nombre: "desde", etiqueta: "Desde", tipo: "date", requerido: true }, { nombre: "hasta", etiqueta: "Hasta", tipo: "date", requerido: true }]} />
           </div>
@@ -89,10 +89,10 @@ export default async function ConfiguracionGeneral() {
       )}
       <ul className="space-y-1 text-sm">{a.temporadas.map((t) => <li key={t.id} className="rounded-lg bg-white px-3 py-2">{t.nombre}: {t.desde} a {t.hasta}</li>)}{a.temporadas.length === 0 && <li>Sin temporadas.</li>}</ul>
 
-      <h2 className="text-xl font-extrabold">Parámetros operativos</h2>
+      <h2 className="text-lg font-semibold">Parámetros operativos</h2>
       {modifica && (
-        <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
-          <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Guardar parámetro</summary>
+        <details className="rounded-xl border border-borde shadow-sm bg-white p-4">
+          <summary className="min-h-11 cursor-pointer text-base font-semibold">Guardar parámetro</summary>
           <div className="mt-3">
             <FormularioGenerico accion={accionParametro} boton="Guardar" campos={[
               { nombre: "clave", etiqueta: "Parámetro", tipo: "select", opciones: a.definiciones.map((d) => ({ valor: d.clave, texto: `${d.descripcion} [${d.min}–${d.max}]` })) },

@@ -24,8 +24,8 @@ export default async function Fincas() {
     <section className="space-y-6">
       <EncabezadoModulo titulo="Fincas de la plataforma" detalle={`${datos.fincas.length} finca(s) · ${totalHa.toLocaleString("es-CO")} ha. Usted da de alta la finca y a su propietario; cada propietario administra lo suyo: lotes, insumos, equipo, recolección y ventas.`} />
 
-      <div className="rounded-xl border border-tinta/15 bg-white p-5">
-        <h2 className="text-lg font-extrabold">Dar de alta una finca</h2>
+      <div className="rounded-xl border border-borde shadow-sm bg-white p-5">
+        <h2 className="text-base font-semibold">Dar de alta una finca</h2>
         <ol className="mb-4 mt-2 list-decimal space-y-0.5 pl-5 text-sm text-tinta/80">
           <li>Escriba los datos de la finca y de su propietario (nombre y correo).</li>
           <li>El sistema crea la finca con su bodega y la cuenta del propietario, ya asignada a esa finca.</li>
@@ -46,14 +46,14 @@ export default async function Fincas() {
       </div>
 
       {datos.fincas.length === 0 ? (
-        <p className="rounded-xl border-2 border-dashed border-tinta/30 p-6 text-center">Todavía no hay fincas.</p>
+        <p className="rounded-xl border border-dashed border-borde p-6 text-center">Todavía no hay fincas.</p>
       ) : (
         <ul className="grid gap-4 lg:grid-cols-2">
           {datos.fincas.map((f) => {
             const duenos = propietariosDe(f.id);
             return (
-              <li key={f.id} className="rounded-xl border border-tinta/15 bg-white p-4">
-                <p className="text-lg font-extrabold">{f.nombre}</p>
+              <li key={f.id} className="rounded-xl border border-borde shadow-sm bg-white p-4">
+                <p className="text-base font-semibold">{f.nombre}</p>
                 <p className="text-sm">{f.ubicacion ?? "Sin ubicación"} · {f.areaHa ?? "—"} ha · {f.lotes} lote(s)</p>
                 <div className="mt-3">
                   <p className="text-sm font-bold">Propietario(s)</p>

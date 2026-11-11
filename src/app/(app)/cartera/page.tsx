@@ -20,11 +20,11 @@ export default async function Cartera() {
   const registra = ctx.permisos.has("pago:registrar");
   return (
     <section className="space-y-6">
-      <EncabezadoModulo titulo="Cartera de clientes" imagen="modulo-ventas-catacion" alt="Mesa de catación con tazas de café, granos tostados y café verde frente a una ventana con montañas cafeteras" />
+      <EncabezadoModulo titulo="Cartera de clientes" />
       <p className="text-sm">Ventas con saldo pendiente. Los comprobantes son internos; el sistema no emite facturas electrónicas DIAN.</p>
       <ul className="space-y-3">
         {filas.map((f) => (
-          <li key={f.ventaId} className="rounded-xl border-2 border-tinta/20 bg-white p-3">
+          <li key={f.ventaId} className="rounded-xl border border-borde shadow-sm bg-white p-3">
             <p className="font-bold">Comprobante {f.comprobante} · {f.cliente} · {f.fincaNombre}</p>
             <p className="text-sm">Total {moneda(f.total)} · Pagado {moneda(f.pagado)} · <strong className="text-alerta">Saldo {moneda(f.saldo)}</strong> · {f.diasAntiguedad} día(s)</p>
             {registra && (

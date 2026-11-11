@@ -10,7 +10,7 @@ interface Opciones {
   productos: { id: string; codigo: string; nombre: string }[];
 }
 
-const campo = "min-h-11 w-full rounded-lg border-2 border-tinta/40 bg-white px-3 text-base focus:border-bosque";
+const campo = "min-h-11 w-full rounded-lg border border-[#cdd3d0] bg-white px-3 text-base focus:border-bosque";
 const hoy = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
 
 function Mensaje({ estado }: { estado: { ok?: boolean; error?: string; mensaje?: string; campos?: Record<string, string> } }) {
@@ -72,7 +72,7 @@ export function FormularioAjuste({ o }: { o: Opciones }) {
       <label className="block text-sm font-semibold sm:col-span-2">Motivo
         <input name="motivo" required minLength={3} className={campo} placeholder="Ej.: grano brocado, conteo físico" />
       </label>
-      <button disabled={pendiente} className="min-h-11 rounded-lg bg-bosque px-4 font-bold text-white disabled:opacity-60 sm:col-span-2">Registrar</button>
+      <button disabled={pendiente} className="min-h-11 rounded-lg bg-bosque px-5 text-sm font-semibold text-white shadow-sm hover:bg-bosque/90 disabled:opacity-60 sm:col-span-2">Registrar</button>
       <Mensaje estado={estado} />
     </form>
   );
@@ -99,7 +99,7 @@ export function FormularioTraslado({ o }: { o: Opciones }) {
       <label className="block text-sm font-semibold">Cantidad (kg)
         <input name="cantidad" inputMode="decimal" required className={campo} />
       </label>
-      <button disabled={pendiente} className="min-h-11 rounded-lg bg-bosque px-4 font-bold text-white disabled:opacity-60 sm:col-span-2">Trasladar</button>
+      <button disabled={pendiente} className="min-h-11 rounded-lg bg-bosque px-5 text-sm font-semibold text-white shadow-sm hover:bg-bosque/90 disabled:opacity-60 sm:col-span-2">Trasladar</button>
       <Mensaje estado={estado} />
     </form>
   );
@@ -134,7 +134,7 @@ export function FormularioTransformacion({ o }: { o: Opciones }) {
       <label className="block text-sm font-semibold">Fecha
         <input name="fecha" type="date" defaultValue={hoy()} required className={campo} />
       </label>
-      <button disabled={pendiente} className="min-h-11 rounded-lg bg-bosque px-4 font-bold text-white disabled:opacity-60 sm:col-span-2">Registrar transformación</button>
+      <button disabled={pendiente} className="min-h-11 rounded-lg bg-bosque px-5 text-sm font-semibold text-white shadow-sm hover:bg-bosque/90 disabled:opacity-60 sm:col-span-2">Registrar transformación</button>
       <Mensaje estado={estado} />
     </form>
   );
@@ -145,8 +145,8 @@ export function BotonReverso({ movimientoId }: { movimientoId: string }) {
   return (
     <form action={accion} className="flex flex-wrap items-center gap-2">
       <input type="hidden" name="movimientoId" value={movimientoId} />
-      <input name="motivo" aria-label="Motivo del reverso" required minLength={3} placeholder="Motivo" className="min-h-11 rounded-lg border-2 border-tinta/40 bg-white px-2 text-base" />
-      <button disabled={pendiente} className="min-h-11 rounded-lg border-2 border-alerta px-3 text-sm font-bold text-alerta">Reversar</button>
+      <input name="motivo" aria-label="Motivo del reverso" required minLength={3} placeholder="Motivo" className="min-h-11 rounded-lg border border-[#cdd3d0] bg-white px-2 text-base" />
+      <button disabled={pendiente} className="min-h-11 rounded-lg border border-alerta/40 px-3 text-sm font-bold text-alerta">Reversar</button>
       {estado.error && <span role="alert" className="text-xs font-semibold text-alerta">{estado.error}</span>}
       {estado.ok && <span role="status" className="text-xs font-semibold text-bosque">{estado.mensaje}</span>}
     </form>

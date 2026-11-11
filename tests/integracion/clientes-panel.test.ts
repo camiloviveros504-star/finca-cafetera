@@ -45,11 +45,11 @@ describe("clientes, pedidos y Ley 1581", () => {
 
   it("el panel solo muestra los indicadores que el rol puede ver", async () => {
     const com = await obtenerPanel(e.servicios.panel, await e.contexto("comercial@demo.local"));
-    expect(com.ventas30d).toBeDefined();
-    expect(com.cosechas30d).toBeUndefined();
+    expect(com.ventasMes).toBeDefined();
+    expect(com.cosechasMes).toBeUndefined();
     const prod = await obtenerPanel(e.servicios.panel, await e.contexto("produccion@demo.local"));
-    expect(prod.cosechas30d).toBeDefined();
-    expect(prod.ventas30d).toBeUndefined();
+    expect(prod.cosechasMes).toBeDefined();
+    expect(prod.ventasMes).toBeUndefined();
     const otra = await obtenerPanel(e.servicios.panel, await e.contexto("comercial2@demo.local"));
     expect(otra.existencias?.reduce((s, x) => s + Number(x.kg), 0)).toBe(30); // solo la finca 2
   });

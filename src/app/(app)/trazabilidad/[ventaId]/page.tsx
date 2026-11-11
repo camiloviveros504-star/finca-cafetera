@@ -13,12 +13,12 @@ export default async function Trazabilidad({ params }: { params: Promise<{ venta
     return (
       <section>
         <Link href="/ventas" className="text-sm font-bold underline">← Ventas</Link>
-        <h1 className="mt-2 text-2xl font-extrabold">Trazabilidad · comprobante {t.numeroComprobante}</h1>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight">Trazabilidad · comprobante {t.numeroComprobante}</h1>
         <p className="mb-4 text-sm">{t.cliente} · {fechaHora(t.fecha)}</p>
         <ol className="space-y-4">
           {t.lineas.map((l) => (
-            <li key={l.movimientoId} className="rounded-xl border-2 border-tinta/20 bg-white p-4">
-              <p className="text-lg font-extrabold">{l.producto} · {cantidad(l.cantidadVendida)} kg</p>
+            <li key={l.movimientoId} className="rounded-xl border border-borde shadow-sm bg-white p-4">
+              <p className="text-base font-semibold">{l.producto} · {cantidad(l.cantidadVendida)} kg</p>
               <dl className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
                 <div>
                   <dt className="font-bold">Lote de origen</dt>

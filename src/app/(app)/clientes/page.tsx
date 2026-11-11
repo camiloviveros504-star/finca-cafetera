@@ -20,24 +20,24 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
   const paginas = Math.max(Math.ceil(datos.total / 25), 1);
   return (
     <section className="space-y-6">
-      <h1 className="text-2xl font-extrabold">Compradores y clientes</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Compradores y clientes</h1>
       <form className="flex gap-2" role="search">
         <label className="sr-only" htmlFor="q">Buscar por nombre</label>
-        <input id="q" name="q" defaultValue={q} placeholder="Buscar por nombre" className="min-h-11 flex-1 rounded-lg border-2 border-tinta/40 bg-white px-3 text-base" />
-        <button className="min-h-11 rounded-lg border-2 border-tinta px-4 font-bold">Buscar</button>
+        <input id="q" name="q" defaultValue={q} placeholder="Buscar por nombre" className="min-h-11 flex-1 rounded-lg border border-[#cdd3d0] bg-white px-3 text-base" />
+        <button className="min-h-11 rounded-lg border border-[#cdd3d0] bg-white px-4 font-semibold hover:bg-fondo">Buscar</button>
       </form>
       {ctx.permisos.has("cliente:administrar") && (
-        <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
-          <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Nuevo comprador</summary>
+        <details className="rounded-xl border border-borde shadow-sm bg-white p-4">
+          <summary className="min-h-11 cursor-pointer text-base font-semibold">Nuevo comprador</summary>
           <div className="mt-3"><FormularioCliente /></div>
         </details>
       )}
       {datos.filas.length === 0 ? (
-        <p className="rounded-lg bg-arena p-4">No hay clientes que coincidan.</p>
+        <p className="rounded-xl border border-dashed border-borde bg-white p-5 text-sm text-suave">No hay clientes que coincidan.</p>
       ) : (
         <ul className="grid gap-3 md:grid-cols-2">
           {datos.filas.map((c) => (
-            <li key={c.id} className="rounded-xl border-2 border-tinta/20 bg-white p-3">
+            <li key={c.id} className="rounded-xl border border-borde shadow-sm bg-white p-3">
               <p className="font-bold">{c.nombre}</p>
               <p className="text-sm">{[c.documento, c.telefono, c.correo].filter(Boolean).join(" · ") || "Sin datos de contacto"}</p>
               <p className="text-xs">{c.autorizoEn ? "Tratamiento de datos autorizado" : "Solo nombre comercial"}</p>
@@ -47,11 +47,13 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
           ))}
         </ul>
       )}
-      <nav aria-label="Paginación" className="flex items-center justify-between text-sm">
-        {pagina > 1 ? <Link className="min-h-11 py-3 font-bold underline" href={`/clientes?pagina=${pagina - 1}${q ? `&q=${encodeURIComponent(q)}` : ""}`}>← Anterior</Link> : <span />}
-        <span>Página {pagina} de {paginas}</span>
-        {pagina < paginas ? <Link className="min-h-11 py-3 font-bold underline" href={`/clientes?pagina=${pagina + 1}${q ? `&q=${encodeURIComponent(q)}` : ""}`}>Siguiente →</Link> : <span />}
-      </nav>
+      {paginas > 1 && (
+        <nav aria-label="Paginación" className="flex items-center justify-between text-sm">
+          {pagina > 1 ? <Link className="min-h-11 py-3 font-bold underline" href={`/clientes?pagina=${pagina - 1}${q ? `&q=${encodeURIComponent(q)}` : ""}`}>← Anterior</Link> : <span />}
+          <span>Página {pagina} de {paginas}</span>
+          {pagina < paginas ? <Link className="min-h-11 py-3 font-bold underline" href={`/clientes?pagina=${pagina + 1}${q ? `&q=${encodeURIComponent(q)}` : ""}`}>Siguiente →</Link> : <span />}
+        </nav>
+      )}
     </section>
   );
 }

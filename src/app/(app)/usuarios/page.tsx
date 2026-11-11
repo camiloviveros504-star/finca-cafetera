@@ -39,8 +39,8 @@ export default async function Usuarios() {
       <EncabezadoModulo titulo={ctx.permisos.has("finca:administrar") ? "Cuentas y roles de la plataforma" : "Mi equipo con acceso al sistema"} detalle={ctx.permisos.has("finca:administrar") ? "Cree las cuentas de los dueños de finca y de quien las necesite. Cada persona fija su propia contraseña." : "Cree la cuenta de su capataz o de un trabajador para que vea sus kilos. Cada persona fija su propia contraseña."} />
 
       {invita && (
-        <div className="rounded-xl border border-tinta/15 bg-white p-5">
-          <h2 className="text-lg font-extrabold">Registrar un usuario</h2>
+        <div className="rounded-xl border border-borde shadow-sm bg-white p-5">
+          <h2 className="text-base font-semibold">Registrar un usuario</h2>
           <ol className="mb-4 mt-2 list-decimal space-y-0.5 pl-5 text-sm text-tinta/80">
             <li>Escriba su nombre y correo, y elija sus roles y las fincas a las que tendrá acceso.</li>
             <li>El sistema genera un enlace de un solo uso (vence en 72 horas). Entréguelo a la persona.</li>
@@ -62,9 +62,9 @@ export default async function Usuarios() {
 
       <ul className="space-y-3">
         {datos.usuarios.map((u) => (
-          <li key={u.id} className="rounded-xl border border-tinta/15 bg-white p-4 text-sm">
+          <li key={u.id} className="rounded-xl border border-borde shadow-sm bg-white p-4 text-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-base font-extrabold">{u.nombre} <span className="font-normal text-tinta/70">· {u.correo}</span></p>
+              <p className="text-base font-semibold">{u.nombre} <span className="font-normal text-tinta/70">· {u.correo}</span></p>
               <Estado activo={u.activo} pendiente={u.pendiente} />
             </div>
             <p className="mt-1">Roles: {u.roles.join(", ").replaceAll("_", " ") || "—"} · Fincas: {u.fincas.map((f) => f.nombre).join(", ") || "—"}</p>
@@ -94,10 +94,10 @@ export default async function Usuarios() {
         ))}
       </ul>
 
-      <h2 className="text-xl font-extrabold">Roles y sus permisos</h2>
+      <h2 className="text-lg font-semibold">Roles y sus permisos</h2>
       <ul className="grid gap-2 lg:grid-cols-2">
         {datos.roles.map((r) => (
-          <li key={r.codigo} className="rounded-xl border border-tinta/15 bg-white p-3 text-sm">
+          <li key={r.codigo} className="rounded-xl border border-borde shadow-sm bg-white p-3 text-sm">
             <p className="font-bold">{r.nombre}{r.esExtension ? " · extensión" : ""}</p>
             {DESCRIPCION[r.codigo] && <p>{DESCRIPCION[r.codigo]}</p>}
             <p className="opacity-80">{r.permisos.join(" · ")}</p>

@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { accionCrearCliente } from "./acciones";
 
-const campo = "min-h-11 w-full rounded-lg border-2 border-tinta/40 bg-white px-3 text-base focus:border-bosque";
+const campo = "min-h-11 w-full rounded-lg border border-[#cdd3d0] bg-white px-3 text-base focus:border-bosque";
 
 export function FormularioCliente() {
   const [estado, accion, pendiente] = useActionState(accionCrearCliente, {});
@@ -31,7 +31,7 @@ export function FormularioCliente() {
           (Ley 1581 de 2012). Puede pedir acceso, rectificación o supresión en cualquier momento.
         </span>
       </label>
-      <button disabled={pendiente} className="min-h-11 rounded-lg bg-bosque px-4 font-bold text-white disabled:opacity-60 sm:col-span-2">Guardar cliente</button>
+      <button disabled={pendiente} className="min-h-11 rounded-lg bg-bosque px-5 text-sm font-semibold text-white shadow-sm hover:bg-bosque/90 disabled:opacity-60 sm:col-span-2">Guardar cliente</button>
       {estado.error && (
         <p role="alert" className="text-sm font-semibold text-alerta sm:col-span-2">
           {estado.error}

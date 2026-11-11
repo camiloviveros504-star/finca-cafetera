@@ -28,7 +28,7 @@ export function CampoContrasena({
   const f = fortaleza(valor);
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-semibold">{etiqueta}</label>
+      <label htmlFor={id} className="mb-1.5 block text-sm font-medium">{etiqueta}</label>
       <div className="relative">
         <svg aria-hidden viewBox="0 0 24 24" className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-tinta/45" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <rect x="4" y="10" width="16" height="10" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" />
@@ -45,7 +45,7 @@ export function CampoContrasena({
           onChange={(e) => { setValor(e.target.value); onCambio?.(e.target.value); }}
           onKeyUp={(e) => setMayusculas(e.getModifierState("CapsLock"))}
           onBlur={() => setMayusculas(false)}
-          className="min-h-12 w-full rounded-lg border border-tinta/30 bg-white pl-10 pr-12 text-base shadow-sm focus:border-bosque focus:outline-none focus:ring-2 focus:ring-bosque/30"
+          className="min-h-12 w-full rounded-lg border border-[#cdd3d0] bg-white pl-10 pr-12 text-base shadow-sm focus:border-bosque focus:outline-none focus:ring-2 focus:ring-bosque/20"
         />
         <button
           type="button"

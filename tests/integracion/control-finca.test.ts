@@ -13,6 +13,8 @@ import {
   consultarSaldos,
   eliminarRegistro,
   obtenerPanel,
+  registrarGasto,
+  registrarPagoCliente,
   listarTrabajadores,
   listarProveedores,
   registrarComprador,
@@ -259,7 +261,7 @@ describe("panel por rol", () => {
     expect(p.plataforma).toBeUndefined();
     expect(p.recoleccionPorLote?.length).toBeGreaterThan(0);
     expect(p.recoleccionPorMes).toHaveLength(12);
-    expect(p.gastos30d).toBeDefined();
+    expect(p.billeteraMes).toBeDefined();
     expect(p.porCobrar).toBeDefined();
     expect(typeof p.insumosPorVencer).toBe("number");
 
@@ -270,8 +272,31 @@ describe("panel por rol", () => {
     // El trabajador no ve cifras de la finca.
     const obrero = await e.contexto("trabajador@demo.local");
     const o = await obtenerPanel(e.servicios.panel, obrero);
-    expect(o.ventas30d).toBeUndefined();
-    expect(o.gastos30d).toBeUndefined();
+    expect(o.ventasMes).toBeUndefined();
+    expect(o.billeteraMes).toBeUndefined();
     expect(o.plataforma).toBeUndefined();
+  });
+});
+
+describe("billetera: se llena sola con cobros, fletes y gastos", () => {
+  it("una venta cobrada suma a lo que entra; su flete suma a lo que sale y se ve aparte", async () => {
+    const dueno = await e.contexto("propietario@demo.local");
+    const antes = (await obtenerPanel(e.servicios.panel, dueno)).billeteraMes!;
+    await registrarRecoleccion(e.servicios, dueno, { fincaId: e.ids.finca1, loteId: e.ids.lote1_01, productoId: e.ids.CER, fecha: hoy, claveIdempotencia: k(), kgTotal: "40", lineas: [] });
+    const { id: comprador } = await registrarComprador(e.servicios.clientes, dueno, { fincaId: e.ids.finca1, nombre: "Comprador billetera" });
+    const clave = k();
+    const venta = await registrarVenta(e.servicios.comercial, dueno, { fincaId: e.ids.finca1, clienteId: comprador, claveIdempotencia: clave, items: [{ productoId: e.ids.CER, cantidad: "10", precioKg: "5000" }] });
+    expect(venta.venta.total).toBe("50000.00");
+    await registrarPagoCliente(e.servicios.pagos, dueno, { ventaId: venta.venta.id, monto: venta.venta.total, metodo: "efectivo", fecha: hoy, claveIdempotencia: `${clave}:pago` });
+    await registrarGasto(e.servicios.finanzas, dueno, { fincaId: e.ids.finca1, ventaId: venta.venta.id, tipo: "flete", clasificacion: "agricola", fecha: hoy, descripcion: "Flete a la cooperativa", monto: "8000", claveIdempotencia: `${clave}:flete` });
+    // Reenviar el mismo pago y el mismo flete no los duplica.
+    await registrarPagoCliente(e.servicios.pagos, dueno, { ventaId: venta.venta.id, monto: venta.venta.total, metodo: "efectivo", fecha: hoy, claveIdempotencia: `${clave}:pago` });
+    await registrarGasto(e.servicios.finanzas, dueno, { fincaId: e.ids.finca1, ventaId: venta.venta.id, tipo: "flete", clasificacion: "agricola", fecha: hoy, descripcion: "Flete a la cooperativa", monto: "8000", claveIdempotencia: `${clave}:flete` });
+
+    const despues = (await obtenerPanel(e.servicios.panel, dueno)).billeteraMes!;
+    expect(Number(despues.entradas) - Number(antes.entradas)).toBe(50000);
+    expect(Number(despues.salidas) - Number(antes.salidas)).toBe(8000);
+    expect(Number(despues.fletes) - Number(antes.fletes)).toBe(8000);
+    expect(Number(despues.saldo) - Number(antes.saldo)).toBe(42000);
   });
 });

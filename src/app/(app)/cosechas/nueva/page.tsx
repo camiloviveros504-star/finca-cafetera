@@ -10,7 +10,7 @@ export default async function NuevaCosecha() {
     const opciones = await obtenerOpcionesRegistro(servicios().produccion, ctx);
     return (
       <section>
-        <h1 className="mb-4 text-2xl font-extrabold">Registrar cosecha</h1>
+        <h1 className="mb-4 text-2xl font-bold tracking-tight">Registrar cosecha</h1>
         <FormularioCosecha opciones={opciones} csrfToken={ctx.csrfToken} />
       </section>
     );

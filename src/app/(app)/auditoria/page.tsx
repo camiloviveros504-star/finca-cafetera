@@ -25,14 +25,14 @@ export default async function Auditoria({ searchParams }: { searchParams: Promis
       <EncabezadoModulo titulo="Auditoría" detalle="Registro de solo inserción: no se edita ni se borra. No guarda contraseñas ni datos personales innecesarios." />
       <form className="flex flex-wrap items-end gap-3">
         <label className="text-sm font-semibold">Resultado
-          <select name="resultado" defaultValue={q.resultado ?? ""} className="mt-1 block min-h-11 rounded-lg border-2 border-tinta/40 px-3">
+          <select name="resultado" defaultValue={q.resultado ?? ""} className="mt-1 block min-h-11 rounded-lg border border-[#cdd3d0] px-3">
             <option value="">Todos</option><option value="ok">Correctos</option><option value="denegado">Denegados</option><option value="error">Con error</option>
           </select>
         </label>
         <label className="text-sm font-semibold">Acción contiene
-          <input name="accion" defaultValue={q.accion ?? ""} className="mt-1 block min-h-11 rounded-lg border-2 border-tinta/40 px-3" />
+          <input name="accion" defaultValue={q.accion ?? ""} className="mt-1 block min-h-11 rounded-lg border border-[#cdd3d0] px-3" />
         </label>
-        <button className="min-h-11 rounded-lg bg-bosque px-4 font-bold text-white">Filtrar</button>
+        <button className="min-h-11 rounded-lg bg-bosque px-5 text-sm font-semibold text-white shadow-sm hover:bg-bosque/90">Filtrar</button>
       </form>
       <p className="text-sm">{datos.total} registro(s) · página {pagina} de {paginas}</p>
       <ul className="space-y-1 text-sm">
@@ -44,8 +44,8 @@ export default async function Auditoria({ searchParams }: { searchParams: Promis
         ))}
       </ul>
       <nav className="flex gap-3" aria-label="Paginación">
-        {pagina > 1 && <Link className="min-h-11 rounded-lg border-2 border-tinta/40 px-4 py-2 font-semibold" href={enlace(pagina - 1)}>Anterior</Link>}
-        {pagina < paginas && <Link className="min-h-11 rounded-lg border-2 border-tinta/40 px-4 py-2 font-semibold" href={enlace(pagina + 1)}>Siguiente</Link>}
+        {pagina > 1 && <Link className="min-h-11 rounded-lg border border-[#cdd3d0] px-4 py-2 font-semibold" href={enlace(pagina - 1)}>Anterior</Link>}
+        {pagina < paginas && <Link className="min-h-11 rounded-lg border border-[#cdd3d0] px-4 py-2 font-semibold" href={enlace(pagina + 1)}>Siguiente</Link>}
       </nav>
     </section>
   );

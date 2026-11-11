@@ -1,65 +1,43 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Logo } from "./Logo";
-import { PieDePagina } from "./PieDePagina";
-
-const ICONOS = {
-  trazabilidad: "M4 6h16M4 12h10M4 18h6M18 14l2 2 3-4",
-  roles: "M12 3 4 6v6c0 4.5 3.2 8.2 8 9 4.8-.8 8-4.5 8-9V6l-8-3zM9 12l2 2 4-4",
-  auditoria: "M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h6",
-} as const;
-
-const PUNTOS: [keyof typeof ICONOS, string, string][] = [
-  ["trazabilidad", "Trazabilidad completa", "De cada venta al lote, al beneficio y a la cosecha."],
-  ["roles", "Acceso por roles y fincas", "Cada persona ve y hace solo lo que le corresponde."],
-  ["auditoria", "Auditoría de cada operación", "Registro que no se puede modificar ni borrar."],
-];
 
 /**
- * Marco de las pantallas de acceso (inicio de sesión, instalación y activación de cuenta): panel de marca con imagen
- * clara en pantallas medianas y grandes (hero-2 con foco al 40 % desde lg; login-fondo en medianas) y franja de 160 px
- * en celular. Sin efectos de desenfoque: el texto va sobre paneles sólidos.
+ * Marco de las pantallas de acceso (inicio de sesión, instalación y activación de cuenta).
+ * Escritorio: foto a la izquierda con la marca y una sola línea; formulario en tarjeta a la derecha.
+ * Celular: la foto se reduce a una franja y el formulario ocupa la pantalla.
  */
 export function MarcoAcceso({ titulo, subtitulo, children, pie }: { titulo: string; subtitulo: string; children: React.ReactNode; pie?: React.ReactNode }) {
   return (
-    <div className="flex min-h-svh flex-col bg-fondo">
-      <main className="grid flex-1 md:grid-cols-[1.05fr_1fr]">
-        <aside className="relative hidden md:block" aria-label="Presentación del sistema">
-          <Image src="/images/login-fondo.webp" alt="Manos de un recolector con cerezas de café y un canasto" fill sizes="(min-width: 1024px) 0px, 50vw" className="object-cover lg:hidden" priority />
-          <Image src="/images/hero-2-recoleccion.webp" alt="Manos de un recolector tomando cerezas maduras de café sobre un canasto" fill sizes="52vw" className="hidden object-cover lg:block" style={{ objectPosition: "40% center" }} priority />
-          <div className="absolute inset-0 bg-gradient-to-t from-tinta/45 via-transparent to-tinta/15" />
-          <div className="absolute left-8 top-8 flex items-center gap-3 rounded-xl bg-white/95 py-2 pl-2 pr-4 shadow">
-            <Logo className="size-9" />
-            <span className="text-sm font-extrabold leading-tight text-tinta">Gestión de<br />Finca Cafetera</span>
-          </div>
-          <ul className="absolute inset-x-8 bottom-8 grid max-w-lg gap-3">
-            {PUNTOS.map(([icono, t, d]) => (
-              <li key={t} className="flex items-start gap-3 rounded-xl bg-tinta/80 p-4 text-white shadow-lg">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white/15">
-                  <svg aria-hidden viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={ICONOS[icono]} /></svg>
-                </span>
-                <span><strong className="block text-sm">{t}</strong><span className="text-sm text-white/85">{d}</span></span>
-              </li>
-            ))}
-          </ul>
-        </aside>
+    <div className="flex min-h-svh flex-col bg-fondo lg:flex-row">
+      <aside className="relative h-44 shrink-0 overflow-hidden sm:h-56 lg:h-auto lg:w-[46%]" aria-label="Gestión de Finca Cafetera">
+        <Image src="/images/hero-2-recoleccion.webp" alt="" fill sizes="(min-width: 1024px) 46vw, 100vw" className="object-cover" style={{ objectPosition: "40% center" }} priority />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0f1d17]/85 via-[#0f1d17]/35 to-[#0f1d17]/20" />
+        <Link href="/" className="absolute left-5 top-5 flex items-center gap-2.5 text-white lg:left-10 lg:top-10">
+          <Logo className="size-9" />
+          <span className="text-sm font-semibold leading-tight">Gestión de<br />Finca Cafetera</span>
+        </Link>
+        <div className="absolute inset-x-5 bottom-5 text-white lg:inset-x-10 lg:bottom-12">
+          <p className="max-w-md text-lg font-semibold leading-snug lg:text-2xl">Control de su finca cafetera, del lote a la venta.</p>
+          <p className="mt-2 hidden max-w-md text-sm text-white/80 lg:block">Lotes, recolección, insumos, personal, ventas y dinero en un mismo lugar.</p>
+        </div>
+      </aside>
 
-        <div className="flex flex-col">
-          <div className="relative h-40 md:hidden">
-            <Image src="/images/hero-2-recoleccion-sm.webp" alt="Manos de un recolector tomando cerezas maduras de café sobre un canasto" fill sizes="100vw" className="object-cover" priority />
-            <div className="absolute inset-0 bg-gradient-to-t from-tinta/50 to-transparent" />
-            <Link href="/" className="absolute bottom-3 left-4 flex items-center gap-2 rounded-lg bg-white/95 py-1.5 pl-1.5 pr-3 text-sm font-extrabold shadow"><Logo className="size-7" />Finca Cafetera</Link>
-          </div>
-          <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 py-10 sm:px-6">
-            <Link href="/" className="mb-8 hidden text-sm font-semibold text-tinta/65 hover:text-tinta md:inline-flex md:min-h-11 md:items-center">← Volver al sitio</Link>
-            <h1 className="text-3xl font-extrabold tracking-tight">{titulo}</h1>
-            <p className="mb-7 mt-2 text-tinta/75">{subtitulo}</p>
+      <main className="flex flex-1 flex-col">
+        <div className="flex flex-1 items-center justify-center px-5 py-10 sm:px-8">
+          <div className="w-full max-w-[420px] rounded-2xl border border-borde bg-white p-6 shadow-sm sm:p-8">
+            <h1 className="text-2xl font-bold tracking-tight">{titulo}</h1>
+            <p className="mb-6 mt-1.5 text-sm text-suave">{subtitulo}</p>
             {children}
-            {pie && <div className="mt-8 border-t border-tinta/10 pt-6 text-sm text-tinta/75">{pie}</div>}
+            {pie && <div className="mt-6 border-t border-borde pt-5 text-sm text-suave">{pie}</div>}
           </div>
         </div>
+        <footer className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 px-5 pb-6 text-xs text-suave">
+          <span>© {new Date().getFullYear()} Gestión de Finca Cafetera</span>
+          <Link href="/privacidad" className="hover:text-tinta">Política de privacidad</Link>
+          <Link href="/cookies" className="hover:text-tinta">Política de cookies</Link>
+        </footer>
       </main>
-      <PieDePagina />
     </div>
   );
 }

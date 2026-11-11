@@ -2,6 +2,9 @@ import type { Transaccion } from "@/shared/dominio/contexto";
 import { clienteDe } from "@/shared/infraestructura/baseDatos";
 import type { RepositorioPanel } from "../domain/puertos";
 
+/** Inicio del mes en curso en la hora de Colombia (las fechas del negocio son locales). */
+const INICIO_MES = "(date_trunc('month', now() AT TIME ZONE 'America/Bogota'))";
+
 export class RepositorioPanelPg implements RepositorioPanel {
   async existencias(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]) {
     const r = await clienteDe(tx).query(
@@ -14,10 +17,10 @@ export class RepositorioPanelPg implements RepositorioPanel {
     return r.rows.map((x) => ({ producto: x.producto as string, kg: x.kg as string }));
   }
 
-  async ventas30d(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]) {
+  async ventasMes(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]) {
     const r = await clienteDe(tx).query(
       `SELECT count(*)::int AS n, coalesce(sum(total), 0) AS total FROM venta
-        WHERE organizacion_id = $1 AND finca_id = ANY($2::uuid[]) AND estado = 'confirmada' AND fecha >= now() - interval '30 days'`,
+        WHERE organizacion_id = $1 AND finca_id = ANY($2::uuid[]) AND estado = 'confirmada' AND fecha >= ${INICIO_MES} AT TIME ZONE 'America/Bogota'`,
       [organizacionId, fincaIds],
     );
     return { cantidad: r.rows[0].n as number, total: r.rows[0].total as string };
@@ -46,13 +49,24 @@ export class RepositorioPanelPg implements RepositorioPanel {
     return r.rows.map((x) => ({ mes: x.mes as string, kg: x.kg as string }));
   }
 
-  async gastos30d(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]) {
+  async billeteraMes(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]) {
     const r = await clienteDe(tx).query(
-      `SELECT coalesce(sum(monto), 0) AS total, coalesce(sum(monto) FILTER (WHERE tipo = 'flete'), 0) AS fletes FROM gasto
-        WHERE organizacion_id = $1 AND finca_id = ANY($2::uuid[]) AND fecha >= current_date - 30`,
+      `SELECT
+         coalesce((SELECT sum(p.monto) FROM pago_cliente p JOIN venta v ON v.id = p.venta_id
+                    WHERE v.organizacion_id = $1 AND v.finca_id = ANY($2::uuid[]) AND p.fecha >= ${INICIO_MES} AT TIME ZONE 'America/Bogota'), 0) AS entradas,
+         coalesce((SELECT sum(g.monto) FROM gasto g WHERE g.organizacion_id = $1 AND g.finca_id = ANY($2::uuid[]) AND g.fecha >= ${INICIO_MES}::date), 0) AS gastos,
+         coalesce((SELECT sum(g.monto) FROM gasto g WHERE g.organizacion_id = $1 AND g.finca_id = ANY($2::uuid[]) AND g.tipo = 'flete' AND g.fecha >= ${INICIO_MES}::date), 0) AS fletes,
+         coalesce((SELECT sum(pp.monto) FROM pago_proveedor pp JOIN compra c ON c.id = pp.compra_id
+                    WHERE c.organizacion_id = $1 AND c.finca_id = ANY($2::uuid[]) AND pp.fecha >= ${INICIO_MES}::date), 0) AS proveedores,
+         coalesce((SELECT sum(pt.monto) FROM pago_trabajador pt JOIN liquidacion l ON l.id = pt.liquidacion_id
+                    WHERE pt.organizacion_id = $1 AND pt.fecha >= ${INICIO_MES}::date
+                      AND EXISTS (SELECT 1 FROM liquidacion_detalle d JOIN registro_trabajo w ON w.id = d.registro_trabajo_id WHERE d.liquidacion_id = l.id AND w.finca_id = ANY($2::uuid[]))), 0) AS trabajadores`,
       [organizacionId, fincaIds],
     );
-    return { total: r.rows[0].total as string, fletes: r.rows[0].fletes as string };
+    const x = r.rows[0];
+    // Suma exacta en el motor de base de datos para no perder centavos con números de punto flotante.
+    const t = await clienteDe(tx).query("SELECT ($1::numeric + $2::numeric + $3::numeric)::text AS salidas, ($4::numeric - $1::numeric - $2::numeric - $3::numeric)::text AS saldo", [x.gastos, x.proveedores, x.trabajadores, x.entradas]);
+    return { entradas: x.entradas as string, salidas: t.rows[0].salidas as string, saldo: t.rows[0].saldo as string, fletes: x.fletes as string };
   }
 
   async porCobrar(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]) {
@@ -100,10 +114,10 @@ export class RepositorioPanelPg implements RepositorioPanel {
     return { fincas: f.rows[0].fincas as number, lotes: l.rows[0].n as number, hectareas: f.rows[0].ha as string, usuarios: u.rows[0].n as number, kgAnio: k.rows[0].anio as string, kgSeco: k.rows[0].seco as string };
   }
 
-  async cosechas30d(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]) {
+  async cosechasMes(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]) {
     const r = await clienteDe(tx).query(
       `SELECT count(*)::int AS n, coalesce(sum(cantidad_base), 0) AS kg FROM cosecha
-        WHERE organizacion_id = $1 AND finca_id = ANY($2::uuid[]) AND estado = 'confirmada' AND fecha >= current_date - 30`,
+        WHERE organizacion_id = $1 AND finca_id = ANY($2::uuid[]) AND estado = 'confirmada' AND fecha >= ${INICIO_MES}::date`,
       [organizacionId, fincaIds],
     );
     return { cantidad: r.rows[0].n as number, kg: r.rows[0].kg as string };

@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { anularVenta, obtenerOpcionesVenta, registrarComprador, registrarGasto, registrarVenta, servicios } from "@/composicion";
+import { anularVenta, obtenerOpcionesVenta, registrarComprador, registrarGasto, registrarPagoCliente, registrarVenta, servicios } from "@/composicion";
 import { aEstadoError, type EstadoFormulario } from "../../_servidor/errores";
 import { exigirContexto } from "../../_servidor/sesion";
 
@@ -32,9 +32,14 @@ export async function accionRegistrarVenta(_previo: EstadoFormulario, datos: For
       descuentoPct: dec("descuentoPct") || undefined, variedad: t("variedad") || undefined, taza: t("taza") || undefined, destino: t("destino") || undefined, nota: t("nota") || undefined,
     });
     ventaId = r.venta.id;
-    if (dec("flete")) {
-      const hoy = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
-      await registrarGasto(servicios().finanzas, ctx, { fincaId, ventaId, tipo: "flete", clasificacion: "agricola", fecha: hoy, descripcion: t("destino") ? `Flete a ${t("destino")}` : "Flete de la venta", monto: dec("flete"), claveIdempotencia: `${clave}:flete` });
+    const hoy = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
+    // Cuadro "El comprador ya me pagó": el cobro entra de una vez a la billetera (claves derivadas: reintentar no duplica).
+    if (datos.get("pagado") === "on") {
+      await registrarPagoCliente(servicios().pagos, ctx, { ventaId, monto: r.venta.total, metodo: t("metodo") || "efectivo", fecha: hoy, claveIdempotencia: `${clave}:pago` });
+    }
+    // Cuadro "Pagué flete": el flete queda como gasto ligado a esta venta y sale de la billetera.
+    if (datos.get("conFlete") === "on" && dec("flete")) {
+      await registrarGasto(servicios().finanzas, ctx, { fincaId, ventaId, tipo: "flete", clasificacion: "agricola", fecha: hoy, descripcion: t("destino") ? `Flete a ${t("destino")}` : "Flete de la venta", monto: dec("flete"), metodo: t("metodoFlete") || undefined, claveIdempotencia: `${clave}:flete` });
     }
   } catch (error) {
     return aEstadoError(error);

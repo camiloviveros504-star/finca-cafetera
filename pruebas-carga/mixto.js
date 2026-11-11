@@ -11,7 +11,7 @@ export const options = {
   },
 };
 
-export default function () {
+export default function escenarioMixto() {
   iteracion("mixto");
 }
 

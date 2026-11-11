@@ -75,6 +75,11 @@ export async function sembrar(c: Client): Promise<void> {
       ["tipo_gasto", "administrativo", "Gasto administrativo"],
       ["tipo_gasto", "mantenimiento", "Mantenimiento de maquinaria"],
       ["tipo_gasto", "combustible", "Combustible"],
+      ["tipo_gasto", "flete", "Flete (transporte de café)"],
+      ["tipo_gasto", "jornales", "Jornales y mano de obra"],
+      ["tipo_gasto", "fertilizacion", "Fertilización"],
+      ["tipo_gasto", "fumigacion", "Fumigación"],
+      ["tipo_gasto", "servicios", "Servicios y otros pagos"],
     ]) {
       await c.query("INSERT INTO catalogo_valor (organizacion_id, catalogo, codigo, nombre) VALUES ($1,$2,$3,$4)", [org.id, catalogo, codigo, nombre]);
     }

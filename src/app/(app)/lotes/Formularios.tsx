@@ -19,22 +19,21 @@ function Mensaje({ estado }: { estado: { ok?: boolean; error?: string; mensaje?:
 
 export function FormularioLote({ fincas, densidad }: { fincas: { id: string; nombre: string }[]; densidad: number }) {
   return (
-    <div className="space-y-2">
-      <p className="text-sm">Deje la fecha de siembra vacía si el lote aún no tiene café. Si ya está sembrado, indique la fecha y cuántos árboles tiene (referencia: unos {densidad.toLocaleString("es-CO")} árboles por hectárea).</p>
-      <FormularioGenerico
-        accion={accionCrearLote}
-        boton="Crear lote"
-        campos={[
-          { nombre: "fincaId", etiqueta: "Finca", tipo: "select", opciones: fincas.map((f) => ({ valor: f.id, texto: f.nombre })) },
-          { nombre: "codigo", etiqueta: "Código", requerido: true, placeholder: "L-04" },
-          { nombre: "nombre", etiqueta: "Nombre del lote", requerido: true },
-          { nombre: "areaHa", etiqueta: "Área (hectáreas)", tipo: "number", requerido: true },
-          { nombre: "variedad", etiqueta: "Variedad (opcional)" },
-          { nombre: "fechaSiembra", etiqueta: "Fecha de siembra (si ya está sembrado)", tipo: "date" },
-          { nombre: "numeroArboles", etiqueta: "Árboles sembrados", tipo: "number", inputMode: "numeric" },
-        ]}
-      />
-    </div>
+    <FormularioGenerico
+      accion={accionCrearLote}
+      boton="Crear lote"
+      ocultos={fincas.length === 1 ? { fincaId: fincas[0].id } : {}}
+      campos={[
+        ...(fincas.length > 1 ? [{ nombre: "fincaId", etiqueta: "Finca", tipo: "select" as const, opciones: fincas.map((f) => ({ valor: f.id, texto: f.nombre })), ancho: "completo" as const }] : []),
+        { nombre: "nombre", etiqueta: "Nombre del lote", requerido: true, placeholder: "La Cima", ancho: "completo" },
+        { nombre: "codigo", etiqueta: "Código", requerido: true, placeholder: "L-04" },
+        { nombre: "areaHa", etiqueta: "Hectáreas", tipo: "number", requerido: true },
+        { nombre: "variedad", etiqueta: "Variedad (opcional)", placeholder: "Castillo, Cenicafé 1…", ancho: "completo" },
+        { nombre: "yaSembrado", etiqueta: "Ya está sembrado", tipo: "checkbox" },
+        { nombre: "fechaSiembra", etiqueta: "Fecha de siembra", tipo: "date", visibleSi: "yaSembrado" },
+        { nombre: "numeroArboles", etiqueta: "Árboles", tipo: "number", inputMode: "numeric", visibleSi: "yaSembrado", ayuda: `Referencia: unos ${densidad.toLocaleString("es-CO")} por hectárea.` },
+      ]}
+    />
   );
 }
 
@@ -57,7 +56,7 @@ export function FormularioEventoLote({ loteId, estado, densidad, areaHa }: { lot
       boton="Registrar"
       ocultos={{ loteId }}
       campos={[
-        { nombre: "tipo", etiqueta: "¿Qué se hizo?", tipo: "select", opciones, requerido: true },
+        { nombre: "tipo", etiqueta: "¿Qué se hizo?", tipo: "select", opciones, requerido: true, ancho: "completo" },
         { nombre: "fecha", etiqueta: "Fecha", tipo: "date", requerido: true },
         { nombre: "arboles", etiqueta: sembrado ? "Árboles (solo si es siembra)" : "Árboles sembrados", tipo: "number", inputMode: "numeric", valorInicial: sembrado ? "" : sugeridos },
         { nombre: "detalle", etiqueta: "Detalle (opcional)" },
@@ -71,7 +70,7 @@ export function EliminarLote({ loteId, nombre }: { loteId: string; nombre: strin
   return (
     <form action={accion} onSubmit={(e) => { if (!confirm(`¿Eliminar el lote "${nombre}"? Esta acción no se puede deshacer.`)) e.preventDefault(); }}>
       <input type="hidden" name="loteId" value={loteId} />
-      <button disabled={pendiente} className="min-h-11 rounded-lg border-2 border-alerta px-3 text-sm font-bold text-alerta disabled:opacity-60">Eliminar lote</button>
+      <button disabled={pendiente} className="min-h-11 rounded-lg px-2 text-sm font-medium text-alerta hover:bg-alerta/5 disabled:opacity-60">Eliminar lote</button>
       <Mensaje estado={estado} />
     </form>
   );

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { obtenerPanel, servicios } from "@/composicion";
+import { Icono, type NombreIcono } from "../../_componentes/Icono";
 import { cantidad, moneda } from "../../_servidor/formatos";
 import { exigirContexto } from "../../_servidor/sesion";
 
@@ -16,16 +17,41 @@ const DESTINO_POR_ROL: [string, string][] = [
   ["auditor", "/auditoria"],
 ];
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const MESES_LARGOS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
-function Barras({ datos, etiqueta }: { datos: { clave: string; texto: string; valor: number }[]; etiqueta: string }) {
+function Indicador({ titulo, valor, nota, icono, tono = "normal" }: { titulo: string; valor: string; nota?: string; icono: NombreIcono; tono?: "normal" | "positivo" | "negativo" }) {
+  const color = tono === "positivo" ? "text-bosque" : tono === "negativo" ? "text-alerta" : "text-tinta";
+  return (
+    <li className="rounded-xl border border-borde bg-white p-3 shadow-sm sm:p-4">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-xs font-medium text-suave sm:text-sm">{titulo}</p>
+        <span className="hidden size-8 shrink-0 items-center sm:flex justify-center rounded-lg bg-bosque-claro text-bosque"><Icono nombre={icono} className="size-4" /></span>
+      </div>
+      <p className={`mt-2 text-xl font-semibold tracking-tight tabular-nums sm:text-2xl ${color}`}>{valor}</p>
+      {nota && <p className="mt-0.5 text-xs text-suave">{nota}</p>}
+    </li>
+  );
+}
+
+function Panel({ titulo, children, className = "" }: { titulo: string; children: React.ReactNode; className?: string }) {
+  return (
+    <section className={`rounded-xl border border-borde bg-white p-5 shadow-sm ${className}`}>
+      <h2 className="mb-4 text-sm font-semibold">{titulo}</h2>
+      {children}
+    </section>
+  );
+}
+
+/** Barras horizontales: para comparar lotes o tipos de café. */
+function BarrasHorizontales({ datos, etiqueta }: { datos: { clave: string; texto: string; valor: number }[]; etiqueta: string }) {
   const maximo = Math.max(...datos.map((d) => d.valor), 1);
   return (
-    <ul className="space-y-2" aria-label={etiqueta}>
+    <ul className="space-y-3" aria-label={etiqueta}>
       {datos.map((d) => (
         <li key={d.clave}>
-          <div className="flex justify-between gap-3 text-sm"><span className="min-w-0 truncate">{d.texto}</span><strong>{cantidad(d.valor)} kg</strong></div>
-          <div className="mt-1 h-3 rounded bg-arena" role="img" aria-label={`${d.texto}: ${cantidad(d.valor)} kg`}>
-            <div className="h-3 rounded bg-bosque" style={{ width: `${d.valor > 0 ? Math.max((d.valor / maximo) * 100, 2) : 0}%` }} />
+          <div className="flex justify-between gap-3 text-sm"><span className="min-w-0 truncate text-tinta/85">{d.texto}</span><span className="font-semibold tabular-nums">{cantidad(d.valor)} kg</span></div>
+          <div className="mt-1.5 h-2 rounded-full bg-fondo" role="img" aria-label={`${d.texto}: ${cantidad(d.valor)} kg`}>
+            <div className="h-2 rounded-full bg-bosque" style={{ width: `${d.valor > 0 ? Math.max((d.valor / maximo) * 100, 2) : 0}%` }} />
           </div>
         </li>
       ))}
@@ -33,13 +59,39 @@ function Barras({ datos, etiqueta }: { datos: { clave: string; texto: string; va
   );
 }
 
-const Tarjeta = ({ titulo, valor, detalle, alerta }: { titulo: string; valor: string; detalle?: string; alerta?: boolean }) => (
-  <li className={`rounded-xl border-2 bg-white p-4 ${alerta ? "border-alerta" : "border-tinta/20"}`}>
-    <p className="text-sm font-bold">{titulo}</p>
-    <p className="mt-1 text-2xl font-extrabold">{valor}</p>
-    {detalle && <p className="text-xs">{detalle}</p>}
-  </li>
-);
+/** Columnas por mes: muestra la estacionalidad de la cosecha de un vistazo. */
+function ColumnasPorMes({ datos }: { datos: { mes: string; kg: number }[] }) {
+  const maximo = Math.max(...datos.map((d) => d.kg), 1);
+  return (
+    <div>
+      <ul className="flex h-40 items-end gap-1.5" aria-label="Kilos recolectados por mes">
+        {datos.map((d) => (
+          <li key={d.mes} className="flex h-full flex-1 flex-col items-center justify-end" title={`${d.mes}: ${cantidad(d.kg)} kg`}>
+            <span className="sr-only">{`${MESES[Number(d.mes.slice(5)) - 1]} ${d.mes.slice(0, 4)}: ${cantidad(d.kg)} kg`}</span>
+            <div className={`w-full rounded-t ${d.kg > 0 ? "bg-bosque" : "bg-fondo"}`} style={{ height: `${d.kg > 0 ? Math.max((d.kg / maximo) * 100, 3) : 3}%` }} />
+          </li>
+        ))}
+      </ul>
+      <div className="mt-2 flex gap-1.5 text-center text-[10px] text-suave" aria-hidden>
+        {datos.map((d) => <span key={d.mes} className="flex-1">{MESES[Number(d.mes.slice(5)) - 1]}</span>)}
+      </div>
+    </div>
+  );
+}
+
+function Fila({ etiqueta, valor, href, alerta }: { etiqueta: string; valor: string; href?: string; alerta?: boolean }) {
+  const contenido = (
+    <>
+      <span className="text-tinta/85">{etiqueta}</span>
+      <span className={`font-semibold tabular-nums ${alerta ? "text-alerta" : ""}`}>{valor}</span>
+    </>
+  );
+  return (
+    <li>
+      {href ? <Link href={href} className="flex min-h-11 items-center justify-between gap-3 rounded-lg px-2 text-sm hover:bg-fondo">{contenido}</Link> : <div className="flex min-h-11 items-center justify-between gap-3 px-2 text-sm">{contenido}</div>}
+    </li>
+  );
+}
 
 export default async function Inicio() {
   const ctx = await exigirContexto();
@@ -47,93 +99,109 @@ export default async function Inicio() {
   const destino = DESTINO_POR_ROL.find(([rol]) => ctx.roles.includes(rol))?.[1];
   if (destino && !ctx.roles.some((r) => PANEL_PROPIO.includes(r))) redirect(destino);
   const panel = await obtenerPanel(servicios().panel, ctx);
-  const esAdmin = ctx.roles.includes("administrador");
-  const accesos = [
-    { href: "/cosechas", texto: "Registrar recolección", permiso: "cosecha:registrar" },
-    { href: "/ventas/nueva", texto: "Registrar venta de café", permiso: "venta:crear" },
-    { href: "/lotes", texto: "Ver mis lotes", permiso: "lote:ver" },
-    { href: "/sanidad", texto: "Insumos y abonadas", permiso: "agroquimico:ver" },
-    { href: "/trabajo", texto: "Labores del día", permiso: "trabajo:validar" },
-    { href: "/compras", texto: "Comprar insumos", permiso: "compra:crear" },
-  ].filter((a) => ctx.permisos.has(a.permiso));
+  const mes = MESES_LARGOS[Number(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota", month: "numeric" }).format(new Date())) - 1];
+
   const lotes = panel.recoleccionPorLote ?? [];
-  const kgPorLote = lotes.filter((l) => l.estado !== "Sin sembrar" || Number(l.kg) > 0);
-  const sinSembrar = lotes.filter((l) => l.estado === "Sin sembrar" && Number(l.kg) === 0).length;
+  const lotesConCafe = lotes.filter((l) => l.estado !== "Sin sembrar" || Number(l.kg) > 0);
   const variasFincas = new Set(lotes.map((l) => l.finca)).size > 1;
   const kgBodega = (panel.existencias ?? []).reduce((s, e) => s + Number(e.kg), 0);
-  const tarjetas = [
-    panel.plataforma && { t: "Fincas en la plataforma", v: String(panel.plataforma.fincas), d: `${panel.plataforma.lotes} lotes · ${cantidad(panel.plataforma.hectareas)} ha` },
-    panel.plataforma && { t: "Cuentas activas", v: String(panel.plataforma.usuarios), d: "Dueños, capataces y trabajadores" },
-    panel.plataforma && { t: "Café recolectado este año", v: `${cantidad(panel.plataforma.kgAnio)} kg`, d: `Café seco en bodega: ${cantidad(panel.plataforma.kgSeco)} kg` },
-    !panel.plataforma && panel.existencias && { t: "Café en bodega", v: `${cantidad(kgBodega)} kg`, d: "Todos los tipos de café" },
-    panel.cosechas30d && { t: "Recolectado (30 días)", v: `${cantidad(panel.cosechas30d.kg)} kg`, d: `${panel.cosechas30d.cantidad} registro(s)` },
-    panel.ventas30d && { t: "Ventas (30 días)", v: moneda(panel.ventas30d.total), d: `${panel.ventas30d.cantidad} venta(s)` },
-    panel.gastos30d && { t: "Gastos (30 días)", v: moneda(panel.gastos30d.total), d: `Fletes: ${moneda(panel.gastos30d.fletes)}` },
-    panel.porCobrar && { t: "Por cobrar a compradores", v: moneda(panel.porCobrar.total), d: `${panel.porCobrar.ventas} venta(s) con saldo`, a: Number(panel.porCobrar.total) > 0 },
-    panel.porPagar && { t: "Por pagar", v: moneda(Number(panel.porPagar.proveedores) + Number(panel.porPagar.trabajadores)), d: `Proveedores ${moneda(panel.porPagar.proveedores)} · trabajadores ${moneda(panel.porPagar.trabajadores)}` },
-  ].filter(Boolean) as { t: string; v: string; d?: string; a?: boolean }[];
-  const sinMovimiento = !esAdmin && kgPorLote.length === 0 && (panel.existencias ?? []).length === 0;
+  const porMes = (panel.recoleccionPorMes ?? []).map((m) => ({ mes: m.mes, kg: Number(m.kg) }));
+  const hayCosechaAnual = porMes.some((m) => m.kg > 0);
+  const b = panel.billeteraMes;
+
+  const indicadores: { titulo: string; valor: string; nota?: string; icono: NombreIcono; tono?: "normal" | "positivo" | "negativo" }[] = panel.plataforma
+    ? [
+        { titulo: "Fincas", valor: String(panel.plataforma.fincas), nota: `${panel.plataforma.lotes} lotes · ${cantidad(panel.plataforma.hectareas)} ha`, icono: "finca" },
+        { titulo: "Cuentas activas", valor: String(panel.plataforma.usuarios), nota: "Dueños, capataces y trabajadores", icono: "cuentas" },
+        { titulo: "Recolectado este año", valor: `${cantidad(panel.plataforma.kgAnio)} kg`, nota: "Todas las fincas", icono: "recoleccion" },
+        { titulo: "Café seco en bodega", valor: `${cantidad(panel.plataforma.kgSeco)} kg`, nota: "Pergamino seco, todas las fincas", icono: "bodega" },
+      ]
+    : [
+        ...(panel.existencias ? [{ titulo: "Café en bodega", valor: `${cantidad(kgBodega)} kg`, nota: kgBodega > 0 ? `${panel.existencias.length} tipo(s) de café` : "Sin café en bodega", icono: "bodega" as const }] : []),
+        ...(panel.cosechasMes ? [{ titulo: `Recolectado en ${mes}`, valor: `${cantidad(panel.cosechasMes.kg)} kg`, nota: panel.cosechasMes.cantidad > 0 ? `${panel.cosechasMes.cantidad} registro(s)` : "Aún sin recolección este mes", icono: "recoleccion" as const }] : []),
+        ...(panel.ventasMes ? [{ titulo: `Vendido en ${mes}`, valor: moneda(panel.ventasMes.total), nota: panel.ventasMes.cantidad > 0 ? `${panel.ventasMes.cantidad} venta(s)` : "Aún sin ventas este mes", icono: "venta" as const }] : []),
+        ...(b ? [{ titulo: `Billetera de ${mes}`, valor: moneda(b.saldo), nota: `Entró ${moneda(b.entradas)} · salió ${moneda(b.salidas)}`, icono: "billetera" as const, tono: (Number(b.saldo) < 0 ? "negativo" : Number(b.saldo) > 0 ? "positivo" : "normal") as "normal" | "positivo" | "negativo" }] : []),
+      ];
+
+  const pendientes = [
+    panel.porCobrar && { etiqueta: `Le deben compradores (${panel.porCobrar.ventas} venta${panel.porCobrar.ventas === 1 ? "" : "s"})`, monto: Number(panel.porCobrar.total), valor: moneda(panel.porCobrar.total), href: "/cartera", alerta: Number(panel.porCobrar.total) > 0 },
+    panel.porPagar && { etiqueta: "Debe a proveedores", monto: Number(panel.porPagar.proveedores), valor: moneda(panel.porPagar.proveedores), href: "/compras", alerta: Number(panel.porPagar.proveedores) > 0 },
+    panel.porPagar && { etiqueta: "Debe a trabajadores", monto: Number(panel.porPagar.trabajadores), valor: moneda(panel.porPagar.trabajadores), href: "/liquidaciones", alerta: Number(panel.porPagar.trabajadores) > 0 },
+    b && Number(b.fletes) > 0 && { etiqueta: `Fletes pagados en ${mes}`, monto: Number(b.fletes), valor: moneda(b.fletes), href: "/finanzas" },
+  ].filter(Boolean) as { etiqueta: string; monto: number; valor: string; href?: string; alerta?: boolean }[];
+  const pendientesConValor = pendientes.filter((p) => p.monto !== 0);
+
+  const sinNada = !panel.plataforma && lotes.length === 0 && kgBodega === 0;
+
   return (
-    <section className="space-y-6">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-extrabold">Hola, {ctx.nombre}</h1>
-        <p className="text-sm">{esAdmin ? "Resumen de toda la plataforma." : "Resumen de su finca."}</p>
+        <h1 className="text-2xl font-bold tracking-tight">Hola, {ctx.nombre}</h1>
+        <p className="mt-1 text-sm text-suave">{panel.plataforma ? "Resumen de toda la plataforma." : `Así va su finca en ${mes}.`}</p>
       </div>
 
       {(panel.insumosPorVencer ?? 0) > 0 && (
-        <p role="alert" className="rounded-xl border-2 border-alerta bg-white p-3 text-sm font-semibold text-alerta">
-          Tiene {panel.insumosPorVencer} insumo(s) vencidos o que vencen en menos de 30 días. <Link href="/sanidad" className="underline">Revisar el inventario de insumos</Link>
-        </p>
+        <Link href="/sanidad" role="alert" className="flex items-center gap-3 rounded-xl border border-ambar/40 bg-ambar/5 p-4 text-sm font-medium text-tinta hover:bg-ambar/10">
+          <Icono nombre="alerta" className="size-5 shrink-0 text-ambar" />
+          {panel.insumosPorVencer} insumo(s) vencidos o que vencen en menos de 30 días. Revíselos antes de aplicarlos.
+        </Link>
       )}
 
-      {sinMovimiento && (
-        <div className="rounded-xl border-2 border-dashed border-tinta/30 bg-white p-4 text-sm">
-          <p className="font-extrabold">Empiece por aquí</p>
-          <ol className="mt-1 list-decimal space-y-1 pl-5">
-            <li>Cree sus lotes en <Link className="font-bold underline" href="/lotes">Lotes</Link>: hectáreas, si están sembrados y desde cuándo.</li>
-            <li>Agregue a sus trabajadores en <Link className="font-bold underline" href="/trabajadores">Equipo</Link>.</li>
-            <li>Registre sus insumos y compras, y anote cada recolección y cada venta: aquí verá el resumen.</li>
+      {sinNada && (
+        <section className="rounded-xl border border-dashed border-borde bg-white p-5">
+          <h2 className="font-semibold">Empiece en tres pasos</h2>
+          <ol className="mt-3 grid gap-3 sm:grid-cols-3">
+            {[
+              ["1", "Registre sus lotes", "Hectáreas, si están sembrados y desde cuándo.", "/lotes"],
+              ["2", "Agregue a su equipo", "Trabajadores y capataz, con cómo se les paga.", "/trabajadores"],
+              ["3", "Anote cada recolección", "Kilos por lote y por trabajador; el resto se calcula solo.", "/cosechas"],
+            ].map(([n, t, d, href]) => (
+              <li key={n}>
+                <Link href={href} className="flex h-full gap-3 rounded-lg border border-borde p-4 hover:border-bosque/40 hover:bg-bosque-claro/40">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-bosque text-sm font-semibold text-white">{n}</span>
+                  <span><span className="block text-sm font-semibold">{t}</span><span className="text-sm text-suave">{d}</span></span>
+                </Link>
+              </li>
+            ))}
           </ol>
-        </div>
+        </section>
       )}
 
-      {tarjetas.length > 0 && (
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Indicadores">
-          {tarjetas.map((k) => <Tarjeta key={k.t} titulo={k.t} valor={k.v} detalle={k.d} alerta={k.a} />)}
+      {indicadores.length > 0 && (
+        <ul className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4" aria-label="Indicadores">
+          {indicadores.map((k) => <Indicador key={k.titulo} {...k} />)}
         </ul>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {kgPorLote.length > 0 && (
-          <figure className="rounded-xl border-2 border-tinta/20 bg-white p-4">
-            <figcaption className="mb-3 font-extrabold">Recolección del año por lote</figcaption>
-            <Barras etiqueta="Kilos por lote" datos={kgPorLote.map((l) => ({ clave: l.finca + l.lote, texto: `${l.lote} (${l.estado})${variasFincas ? ` · ${l.finca}` : ""}`, valor: Number(l.kg) }))} />
-            {sinSembrar > 0 && <p className="mt-2 text-xs">{sinSembrar} lote(s) sin sembrar no aparecen aquí.</p>}
-          </figure>
-        )}
-        {panel.recoleccionPorMes && panel.recoleccionPorMes.some((m) => Number(m.kg) > 0) && (
-          <figure className="rounded-xl border-2 border-tinta/20 bg-white p-4">
-            <figcaption className="mb-3 font-extrabold">Recolección en los últimos 12 meses</figcaption>
-            <Barras etiqueta="Kilos por mes" datos={panel.recoleccionPorMes.map((m) => ({ clave: m.mes, texto: `${MESES[Number(m.mes.slice(5)) - 1]} ${m.mes.slice(0, 4)}`, valor: Number(m.kg) }))} />
-          </figure>
-        )}
-        {panel.existencias && panel.existencias.length > 0 && (
-          <figure className="rounded-xl border-2 border-tinta/20 bg-white p-4">
-            <figcaption className="mb-3 font-extrabold">Café en bodega por tipo</figcaption>
-            <Barras etiqueta="Existencias por tipo de café" datos={panel.existencias.map((e) => ({ clave: e.producto, texto: e.producto, valor: Number(e.kg) }))} />
-          </figure>
-        )}
-      </div>
+      {(hayCosechaAnual || pendientes.length > 0) && (
+        <div className="grid gap-4 lg:grid-cols-3">
+          {hayCosechaAnual && (
+            <Panel titulo="Recolección de los últimos 12 meses" className={pendientes.length > 0 ? "lg:col-span-2" : "lg:col-span-3"}>
+              <ColumnasPorMes datos={porMes} />
+            </Panel>
+          )}
+          {pendientes.length > 0 && (
+            <Panel titulo="Pendientes de dinero" className={hayCosechaAnual ? "" : "lg:col-span-3"}>
+              {pendientesConValor.length > 0 ? <ul className="-mx-2 divide-y divide-borde">{pendientesConValor.map((p) => <Fila key={p.etiqueta} etiqueta={p.etiqueta} valor={p.valor} href={p.href} alerta={p.alerta} />)}</ul> : <p className="text-sm text-suave">{panel.plataforma ? "Ninguna finca tiene saldos pendientes." : "Está al día: no le deben ni debe nada."}</p>}
+            </Panel>
+          )}
+        </div>
+      )}
 
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {accesos.map((a) => (
-          <li key={a.href}>
-            <Link href={a.href} className="flex min-h-16 items-center rounded-xl border-2 border-tinta/20 bg-white p-4 text-base font-bold hover:border-bosque">
-              {a.texto}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
+      {(lotesConCafe.some((l) => Number(l.kg) > 0) || (panel.existencias ?? []).length > 0) && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {lotesConCafe.some((l) => Number(l.kg) > 0) && (
+            <Panel titulo="Recolección del año por lote">
+              <BarrasHorizontales etiqueta="Kilos por lote" datos={lotesConCafe.map((l) => ({ clave: l.finca + l.lote, texto: `${l.lote} · ${l.estado}${variasFincas ? ` · ${l.finca}` : ""}`, valor: Number(l.kg) }))} />
+            </Panel>
+          )}
+          {(panel.existencias ?? []).length > 0 && (
+            <Panel titulo="Café en bodega por tipo">
+              <BarrasHorizontales etiqueta="Existencias por tipo de café" datos={panel.existencias!.map((e) => ({ clave: e.producto, texto: e.producto, valor: Number(e.kg) }))} />
+            </Panel>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

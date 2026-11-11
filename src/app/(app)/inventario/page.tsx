@@ -15,21 +15,21 @@ export default async function Inventario() {
   }
   return (
     <section>
-      <h1 className="text-2xl font-extrabold">Inventario</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Inventario</h1>
       <p className="mb-4 text-sm">Existencias por finca, producto y lote de origen. Son una proyección de los movimientos.</p>
       {filas.length === 0 ? (
-        <p className="rounded-lg bg-arena p-4">Aún no hay existencias registradas.</p>
+        <p className="rounded-xl border border-dashed border-borde bg-white p-5 text-sm text-suave">Aún no hay existencias registradas.</p>
       ) : (
         <>
           {/* Tarjetas en celular */}
           <ul className="space-y-3 md:hidden">
             {filas.map((f) => (
-              <li key={f.saldoId} className="rounded-xl border-2 border-tinta/20 bg-white p-3">
+              <li key={f.saldoId} className="rounded-xl border border-borde shadow-sm bg-white p-3">
                 <p className="font-bold">{f.productoNombre}</p>
                 <p className="text-sm">
                   {f.fincaNombre} · {f.bodegaNombre} · Lote {f.loteCodigo}
                 </p>
-                <p className="mt-1 text-lg font-extrabold">{cantidad(f.cantidad)} kg</p>
+                <p className="mt-1 text-base font-semibold">{cantidad(f.cantidad)} kg</p>
               </li>
             ))}
           </ul>

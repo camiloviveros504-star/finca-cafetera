@@ -17,13 +17,9 @@ export default async function PaginaLogin({ searchParams }: { searchParams: Prom
   return (
     <MarcoAcceso
       titulo="Iniciar sesión"
-      subtitulo="Acceda con la cuenta que le asignó el administrador de su organización."
+      subtitulo="Ingrese con el correo y la contraseña de su cuenta."
       pie={
-        <ul className="space-y-2">
-          <li><strong className="text-tinta">¿No tiene cuenta?</strong> Los accesos y los roles los crea el administrador; no hay registro público.</li>
-          <li><strong className="text-tinta">¿Olvidó su contraseña?</strong> Pida al administrador un enlace de restablecimiento.</li>
-          <li className="text-xs text-tinta/60">Por seguridad, la cuenta se bloquea temporalmente tras varios intentos fallidos y la sesión se cierra a las 8 horas.</li>
-        </ul>
+        <p>¿No tiene cuenta o olvidó su contraseña? Pídale al administrador de su finca un enlace de acceso. Tras varios intentos fallidos el acceso se bloquea unos minutos.</p>
       }
     >
       {(cuenta === "activada" || cuenta === "restablecida") && (

@@ -12,7 +12,7 @@ interface Opciones {
   unidades: { id: string; codigo: string; nombre: string }[];
 }
 
-const campo = "min-h-12 w-full rounded-lg border-2 border-tinta/40 bg-white px-3 text-base focus:border-bosque";
+const campo = "min-h-12 w-full rounded-lg border border-[#cdd3d0] bg-white px-3 text-base focus:border-bosque";
 const hoy = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
 
 /** Flujo de 4 pasos pensado para celular y una mano: finca y lote → fecha → cantidad y unidad → confirmar. */
@@ -81,7 +81,7 @@ export function FormularioCosecha({ opciones }: { opciones: Opciones; csrfToken:
       <p className="mb-3 text-sm font-bold" aria-live="polite">
         Paso {Math.min(paso, 4)} de 4
       </p>
-      <div className="space-y-4 rounded-xl border-2 border-tinta/20 bg-white p-4">
+      <div className="space-y-4 rounded-xl border border-borde shadow-sm bg-white p-4">
         {paso === 1 && (
           <>
             <div>
@@ -136,7 +136,7 @@ export function FormularioCosecha({ opciones }: { opciones: Opciones; csrfToken:
         )}
         {paso === 4 && guardada && (
           <div role="status" className="space-y-3">
-            <p className="text-lg font-extrabold">
+            <p className="text-base font-semibold">
               {sync.enLinea ? "Cosecha guardada. Enviando al servidor…" : "Cosecha guardada en este dispositivo."}
             </p>
             <p className="text-sm">
@@ -147,13 +147,13 @@ export function FormularioCosecha({ opciones }: { opciones: Opciones; csrfToken:
             </button>
           </div>
         )}
-        {error && <p role="alert" className="rounded-lg border-2 border-alerta p-3 text-sm font-semibold text-alerta">{error}</p>}
+        {error && <p role="alert" className="rounded-lg border border-alerta/40 p-3 text-sm font-semibold text-alerta">{error}</p>}
       </div>
 
       {!(paso === 4 && guardada) && (
         <div className="fixed inset-x-0 bottom-14 z-20 flex gap-3 bg-fondo/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:static lg:mt-4 lg:bg-transparent lg:p-0">
           {paso > 1 && (
-            <button onClick={() => setPaso(paso - 1)} className="min-h-12 flex-1 rounded-lg border-2 border-tinta px-4 font-bold">
+            <button onClick={() => setPaso(paso - 1)} className="min-h-12 flex-1 rounded-lg border border-[#cdd3d0] bg-white px-4 font-semibold hover:bg-fondo">
               Atrás
             </button>
           )}
@@ -170,13 +170,13 @@ export function FormularioCosecha({ opciones }: { opciones: Opciones; csrfToken:
       )}
 
       <section className="mt-6 pb-24" aria-labelledby="titulo-cola">
-        <h2 id="titulo-cola" className="mb-2 font-extrabold">Mis registros recientes</h2>
+        <h2 id="titulo-cola" className="mb-2 font-semibold">Mis registros recientes</h2>
         {sync.cola.length === 0 ? (
           <p className="text-sm">Todavía no hay registros en este dispositivo.</p>
         ) : (
           <ul className="space-y-2">
             {sync.cola.slice(0, 10).map((o) => (
-              <li key={o.id} className="flex items-start justify-between gap-3 rounded-lg border-2 border-tinta/20 bg-white p-3 text-sm">
+              <li key={o.id} className="flex items-start justify-between gap-3 rounded-lg border border-borde shadow-sm bg-white p-3 text-sm">
                 <span>{o.resumen}{o.mensaje && <span className="block font-semibold text-alerta">{o.mensaje}</span>}</span>
                 <span
                   data-estado={o.estado}

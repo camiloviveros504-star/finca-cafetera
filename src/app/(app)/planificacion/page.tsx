@@ -26,11 +26,11 @@ export default async function Planificacion() {
   const lotes = datos.lotes.map((l) => ({ valor: l.id, texto: `${l.fincaNombre} · ${l.codigo}` }));
   return (
     <section className="space-y-6">
-      <EncabezadoModulo titulo="Planificación agrícola" imagen="modulo-planificacion-floracion" alt="Rama de café con flores blancas en plena floración frente a montañas cafeteras" />
+      <EncabezadoModulo titulo="Planificación agrícola" />
       {admin && (
         <div className="grid gap-4 xl:grid-cols-2">
-          <details open className="rounded-xl border-2 border-tinta/20 bg-white p-4">
-            <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Programar actividad</summary>
+          <details open className="rounded-xl border border-borde shadow-sm bg-white p-4">
+            <summary className="min-h-11 cursor-pointer text-base font-semibold">Programar actividad</summary>
             <div className="mt-3">
               <FormularioGenerico accion={accionProgramarActividad} boton="Programar" conClave campos={[
                 { nombre: "fincaId", etiqueta: "Finca", tipo: "select", opciones: fincas },
@@ -41,8 +41,8 @@ export default async function Planificacion() {
               ]} />
             </div>
           </details>
-          <details className="rounded-xl border-2 border-tinta/20 bg-white p-4">
-            <summary className="min-h-11 cursor-pointer text-lg font-extrabold">Proyección de cosecha</summary>
+          <details className="rounded-xl border border-borde shadow-sm bg-white p-4">
+            <summary className="min-h-11 cursor-pointer text-base font-semibold">Proyección de cosecha</summary>
             <div className="mt-3">
               <FormularioGenerico accion={accionProyeccion} boton="Registrar proyección" conClave campos={[
                 { nombre: "fincaId", etiqueta: "Finca", tipo: "select", opciones: fincas },
@@ -57,10 +57,10 @@ export default async function Planificacion() {
         </div>
       )}
 
-      <h2 className="text-xl font-extrabold">Actividades</h2>
+      <h2 className="text-lg font-semibold">Actividades</h2>
       <ul className="space-y-2">
         {actividades.map((a) => (
-          <li key={a.id} className={`rounded-xl border-2 bg-white p-3 text-sm ${a.atrasada ? "border-alerta" : "border-tinta/20"}`}>
+          <li key={a.id} className={`rounded-xl border bg-white shadow-sm p-3 text-sm ${a.atrasada ? "border-alerta" : "border-borde"}`}>
             <p className="font-bold">{a.fechaProgramada} · {a.tipo} · {a.titulo} · {a.fincaNombre}{a.loteCodigo ? ` · ${a.loteCodigo}` : ""}</p>
             <p>{a.estado === "programada" ? (a.atrasada ? "Atrasada" : "Programada") : `${a.estado === "completada" ? "Completada" : "Cancelada"} el ${a.fechaCierre}${a.resultado ? `: ${a.resultado}` : ""}`}</p>
             {admin && a.estado === "programada" && (
@@ -75,7 +75,7 @@ export default async function Planificacion() {
         {actividades.length === 0 && <li>Sin actividades programadas.</li>}
       </ul>
 
-      <h2 className="text-xl font-extrabold">Proyección frente a lo cosechado</h2>
+      <h2 className="text-lg font-semibold">Proyección frente a lo cosechado</h2>
       <ul className="space-y-1 text-sm">
         {proyecciones.map((p) => (
           <li key={p.id} className="rounded-lg bg-white px-3 py-2">

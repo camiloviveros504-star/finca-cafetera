@@ -21,20 +21,20 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
   return (
     <section>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-extrabold">Ventas</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Ventas</h1>
         {ctx.permisos.has("venta:crear") && (
-          <Link href="/ventas/nueva" className="flex min-h-11 items-center rounded-lg bg-bosque px-4 font-bold text-white">
+          <Link href="/ventas/nueva" className="flex min-h-11 items-center rounded-lg bg-bosque px-5 text-sm font-semibold text-white shadow-sm hover:bg-bosque/90">
             Registrar venta
           </Link>
         )}
       </div>
       {datos.filas.length === 0 ? (
-        <p className="rounded-lg bg-arena p-4">Todavía no hay ventas registradas.</p>
+        <p className="rounded-xl border border-dashed border-borde bg-white p-5 text-sm text-suave">Todavía no hay ventas registradas.</p>
       ) : (
         <>
           <ul className="space-y-3 md:hidden">
             {datos.filas.map((v) => (
-              <li key={v.id} className="rounded-xl border-2 border-tinta/20 bg-white p-3">
+              <li key={v.id} className="rounded-xl border border-borde shadow-sm bg-white p-3">
                 <p className="font-bold">Comprobante {v.numeroComprobante} · {moneda(v.total)}{v.estado === "anulada" ? " · ANULADA" : ""}</p>
                 <p className="text-sm">{v.clienteNombre} · {v.fincaNombre}</p>
                 <p className="text-xs">{fechaHora(v.fecha)}</p>
@@ -89,11 +89,13 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
           </div>
         </>
       )}
-      <nav aria-label="Paginación" className="mt-4 flex items-center justify-between text-sm">
-        {pagina > 1 ? <Link className="min-h-11 py-3 font-bold underline" href={`/ventas?pagina=${pagina - 1}`}>← Anterior</Link> : <span />}
-        <span>Página {pagina} de {paginas}</span>
-        {pagina < paginas ? <Link className="min-h-11 py-3 font-bold underline" href={`/ventas?pagina=${pagina + 1}`}>Siguiente →</Link> : <span />}
-      </nav>
+      {paginas > 1 && (
+        <nav aria-label="Paginación" className="mt-4 flex items-center justify-between text-sm">
+          {pagina > 1 ? <Link className="min-h-11 py-3 font-bold underline" href={`/ventas?pagina=${pagina - 1}`}>← Anterior</Link> : <span />}
+          <span>Página {pagina} de {paginas}</span>
+          {pagina < paginas ? <Link className="min-h-11 py-3 font-bold underline" href={`/ventas?pagina=${pagina + 1}`}>Siguiente →</Link> : <span />}
+        </nav>
+      )}
     </section>
   );
 }

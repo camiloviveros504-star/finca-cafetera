@@ -11,21 +11,25 @@ export interface DependenciasPanel {
 export async function obtenerPanel(deps: DependenciasPanel, ctx: ContextoUsuario): Promise<ResumenPanel> {
   return deps.uow.consultar(async (tx) => {
     const r: ResumenPanel = {};
-    if (ctx.permisos.has("inventario:ver")) r.existencias = await deps.repo.existencias(tx, ctx.organizacionId, ctx.fincaIds);
-    if (ctx.permisos.has("venta:ver")) r.ventas30d = await deps.repo.ventas30d(tx, ctx.organizacionId, ctx.fincaIds);
-    if (ctx.permisos.has("cosecha:ver")) r.cosechas30d = await deps.repo.cosechas30d(tx, ctx.organizacionId, ctx.fincaIds);
+    const { organizacionId: o, fincaIds: f } = ctx;
+    if (ctx.permisos.has("inventario:ver")) r.existencias = await deps.repo.existencias(tx, o, f);
+    if (ctx.permisos.has("venta:ver")) r.ventasMes = await deps.repo.ventasMes(tx, o, f);
     if (ctx.permisos.has("cosecha:ver")) {
-      r.recoleccionPorLote = await deps.repo.recoleccionPorLote(tx, ctx.organizacionId, ctx.fincaIds);
-      r.recoleccionPorMes = await deps.repo.recoleccionPorMes(tx, ctx.organizacionId, ctx.fincaIds);
+      r.cosechasMes = await deps.repo.cosechasMes(tx, o, f);
+      r.recoleccionPorLote = await deps.repo.recoleccionPorLote(tx, o, f);
+      r.recoleccionPorMes = await deps.repo.recoleccionPorMes(tx, o, f);
     }
-    if (ctx.permisos.has("gasto:ver")) r.gastos30d = await deps.repo.gastos30d(tx, ctx.organizacionId, ctx.fincaIds);
-    if (ctx.permisos.has("pago:ver")) r.porCobrar = await deps.repo.porCobrar(tx, ctx.organizacionId, ctx.fincaIds);
-    if (ctx.permisos.has("finanzas:ver")) r.porPagar = await deps.repo.porPagar(tx, ctx.organizacionId, ctx.fincaIds);
-    if (ctx.permisos.has("agroquimico:ver")) r.insumosPorVencer = await deps.repo.insumosPorVencer(tx, ctx.organizacionId, ctx.fincaIds);
+    // La billetera mezcla cobros, gastos y pagos: solo quien ve las finanzas de la finca.
+    if (ctx.permisos.has("finanzas:ver")) {
+      r.billeteraMes = await deps.repo.billeteraMes(tx, o, f);
+      r.porPagar = await deps.repo.porPagar(tx, o, f);
+    }
+    if (ctx.permisos.has("pago:ver")) r.porCobrar = await deps.repo.porCobrar(tx, o, f);
+    if (ctx.permisos.has("agroquimico:ver")) r.insumosPorVencer = await deps.repo.insumosPorVencer(tx, o, f);
     // Totales de la plataforma: solo quien administra fincas y cuentas.
-    if (ctx.permisos.has("finca:administrar") && ctx.permisos.has("usuario:administrar")) r.plataforma = await deps.repo.plataforma(tx, ctx.organizacionId);
+    if (ctx.permisos.has("finca:administrar") && ctx.permisos.has("usuario:administrar")) r.plataforma = await deps.repo.plataforma(tx, o);
     return r;
   });
 }
 
-export type { ResumenPanel } from "../domain/puertos";
+export type { Billetera, ResumenPanel } from "../domain/puertos";
