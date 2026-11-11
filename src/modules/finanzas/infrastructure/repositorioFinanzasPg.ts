@@ -110,23 +110,27 @@ export class RepositorioFinanzasPg implements RepositorioFinanzas {
     return r.rows[0] ? (r.rows[0].id as string) : null;
   }
 
+  async ventaEsDeFinca(tx: Transaccion, organizacionId: string, ventaId: string, fincaId: string): Promise<boolean> {
+    return (await clienteDe(tx).query("SELECT 1 FROM venta WHERE id = $1 AND finca_id = $2 AND organizacion_id = $3", [ventaId, fincaId, organizacionId])).rowCount === 1;
+  }
+
   async insertarGasto(tx: Transaccion, g: Parameters<RepositorioFinanzas["insertarGasto"]>[1]): Promise<string> {
     const r = await clienteDe(tx).query(
-      `INSERT INTO gasto (organizacion_id, finca_id, lote_id, tipo, clasificacion, fecha, descripcion, monto, metodo, clave_idempotencia, registrado_por)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
-      [g.organizacionId, g.fincaId, g.loteId ?? null, g.tipo, g.clasificacion, g.fecha, g.descripcion, g.monto, g.metodo ?? null, g.clave, g.registradoPor],
+      `INSERT INTO gasto (organizacion_id, finca_id, lote_id, venta_id, tipo, clasificacion, fecha, descripcion, monto, metodo, clave_idempotencia, registrado_por)
+       VALUES ($1,$2,$3,$12,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
+      [g.organizacionId, g.fincaId, g.loteId ?? null, g.tipo, g.clasificacion, g.fecha, g.descripcion, g.monto, g.metodo ?? null, g.clave, g.registradoPor, g.ventaId ?? null],
     );
     return r.rows[0].id as string;
   }
 
   async listarGastos(tx: Transaccion, organizacionId: string, fincaIds: readonly string[], desde: string, hasta: string): Promise<FilaGasto[]> {
     const r = await clienteDe(tx).query(
-      `SELECT g.id, g.fecha::text AS fecha, f.nombre AS finca, l.codigo AS lote, g.tipo, g.clasificacion, g.descripcion, g.monto
+      `SELECT g.id, g.venta_id, g.fecha::text AS fecha, f.nombre AS finca, l.codigo AS lote, g.tipo, g.clasificacion, g.descripcion, g.monto
          FROM gasto g JOIN finca f ON f.id = g.finca_id LEFT JOIN lote l ON l.id = g.lote_id
         WHERE g.organizacion_id = $1 AND g.finca_id = ANY($2::uuid[]) AND g.fecha BETWEEN $3::date AND $4::date ORDER BY g.fecha DESC, g.creado_en DESC LIMIT 300`,
       [organizacionId, fincaIds, desde, hasta],
     );
-    return r.rows.map((x) => ({ id: x.id, fecha: x.fecha, fincaNombre: x.finca, loteCodigo: x.lote, tipo: x.tipo, clasificacion: x.clasificacion, descripcion: x.descripcion, monto: x.monto }));
+    return r.rows.map((x) => ({ id: x.id, ventaId: x.venta_id, fecha: x.fecha, fincaNombre: x.finca, loteCodigo: x.lote, tipo: x.tipo, clasificacion: x.clasificacion, descripcion: x.descripcion, monto: x.monto }));
   }
 
   async resumen(tx: Transaccion, organizacionId: string, fincaIds: readonly string[], desde: string, hasta: string): Promise<ResumenFinanciero> {

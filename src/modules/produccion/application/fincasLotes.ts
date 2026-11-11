@@ -47,6 +47,7 @@ const esquemaLote = z.object({
   nombre: z.string().trim().min(2, "Indique el nombre").max(120),
   areaHa: area,
   variedad: z.preprocess(vacio, z.string().trim().max(60).optional()),
+  fechaSiembra: z.preprocess(vacio, z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida").optional()),
   numeroArboles: z.preprocess((v) => (v === "" || v === undefined ? undefined : Number(v)), z.number().int().min(0).max(10_000_000).optional()),
 });
 
@@ -54,7 +55,7 @@ export async function crearLote(deps: DependenciasFincasLotes, ctx: ContextoUsua
   const e = validar(esquemaLote, cruda, "Revise los datos del lote");
   await autorizar(deps.auditor, ctx, "lote:administrar", { accion: "lote.crear", entidad: "lote", fincaId: e.fincaId });
   return deps.uow.ejecutar(async (tx) => {
-    const id = await deps.repo.crearLote(tx, { organizacionId: ctx.organizacionId, ...e });
+    const id = await deps.repo.crearLote(tx, { organizacionId: ctx.organizacionId, ...e, creadoPor: ctx.usuarioId });
     await deps.auditor.registrar(
       { organizacionId: ctx.organizacionId, usuarioId: ctx.usuarioId, accion: "lote.crear", entidad: "lote", entidadId: id, resultado: "ok", despues: { codigo: e.codigo }, ip: ctx.ip },
       tx,

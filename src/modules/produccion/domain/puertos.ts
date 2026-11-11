@@ -71,7 +71,7 @@ export interface RepositorioFincasLotes {
   crearFinca(tx: Transaccion, f: { organizacionId: string; nombre: string; ubicacion?: string; areaHa?: string; creadoPor: string }): Promise<string>;
   crearLote(
     tx: Transaccion,
-    l: { organizacionId: string; fincaId: string; codigo: string; nombre: string; areaHa?: string; variedad?: string; numeroArboles?: number },
+    l: { organizacionId: string; fincaId: string; codigo: string; nombre: string; areaHa?: string; variedad?: string; numeroArboles?: number; fechaSiembra?: string; creadoPor?: string },
   ): Promise<string>;
   listarFincas(
     tx: Transaccion,

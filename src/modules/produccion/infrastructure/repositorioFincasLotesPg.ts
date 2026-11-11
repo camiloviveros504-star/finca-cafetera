@@ -26,13 +26,20 @@ export class RepositorioFincasLotesPg implements RepositorioFincasLotes {
 
   async crearLote(
     tx: Transaccion,
-    l: { organizacionId: string; fincaId: string; codigo: string; nombre: string; areaHa?: string; variedad?: string; numeroArboles?: number },
+    l: { organizacionId: string; fincaId: string; codigo: string; nombre: string; areaHa?: string; variedad?: string; numeroArboles?: number; fechaSiembra?: string; creadoPor?: string },
   ): Promise<string> {
     try {
+      // Con fecha de siembra el lote nace sembrado (levante o producción según su edad); sin ella, nace sin sembrar.
       const r = await clienteDe(tx).query(
-        "INSERT INTO lote (organizacion_id, finca_id, codigo, nombre, area_ha, variedad, numero_arboles) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id",
-        [l.organizacionId, l.fincaId, l.codigo, l.nombre, l.areaHa ?? null, l.variedad ?? null, l.numeroArboles ?? null],
+        `INSERT INTO lote (organizacion_id, finca_id, codigo, nombre, area_ha, variedad, numero_arboles, fecha_siembra, estado_productivo)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8::date,
+                 CASE WHEN $8::date IS NULL THEN 'sin_sembrar' WHEN $8::date <= current_date - interval '24 months' THEN 'produccion' ELSE 'levante' END)
+         RETURNING id`,
+        [l.organizacionId, l.fincaId, l.codigo, l.nombre, l.areaHa ?? null, l.variedad ?? null, l.fechaSiembra ? (l.numeroArboles ?? null) : null, l.fechaSiembra ?? null],
       );
+      if (l.fechaSiembra && l.creadoPor) {
+        await clienteDe(tx).query("INSERT INTO lote_evento (organizacion_id, lote_id, fecha, tipo, arboles, detalle, creado_por) VALUES ($1,$2,$3,'siembra',$4,'Registro inicial del lote',$5)", [l.organizacionId, r.rows[0].id, l.fechaSiembra, l.numeroArboles ?? null, l.creadoPor]);
+      }
       return r.rows[0].id as string;
     } catch (error) {
       const codigo = (error as { code?: string }).code;

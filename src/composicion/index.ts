@@ -28,6 +28,8 @@ import { RepositorioPanelPg } from "@/modules/panel/infrastructure/repositorioPa
 import type { DependenciasClientes } from "@/modules/comercial/application/clientesPedidos";
 import type { DependenciasPanel } from "@/modules/panel/application/obtenerPanel";
 import { RepositorioProduccionPg } from "@/modules/produccion/infrastructure/repositorioProduccionPg";
+import { RepositorioCultivoPg } from "@/modules/produccion/infrastructure/repositorioCultivoPg";
+import type { DependenciasCultivo } from "@/modules/produccion/application/cultivo";
 import { RepositorioFincasLotesPg } from "@/modules/produccion/infrastructure/repositorioFincasLotesPg";
 import type { DependenciasFincasLotes } from "@/modules/produccion/application/fincasLotes";
 import { RepositorioTalentoPg } from "@/modules/talento/infrastructure/repositorioTalentoPg";
@@ -73,6 +75,7 @@ export interface Servicios {
   pagos: DependenciasPagos;
   agricola: DependenciasAgricola;
   instalacion: DependenciasInstalacion;
+  cultivo: DependenciasCultivo;
   invitaciones: DependenciasInvitaciones;
   derechosCliente: DependenciasDerechosCliente;
   derechosTrabajador: DependenciasDerechosTrabajador;
@@ -103,6 +106,7 @@ export function crearServicios(pool: Pool, opciones: { codigoInstalacion?: strin
     finanzas: { repo: new RepositorioFinanzasPg(), uow, auditor },
     pagos: { repo: new RepositorioPagosPg(), uow, auditor },
     invitaciones: { repo: new RepositorioUsuariosPg(), acceso: identidadRepo, cifrar: cifrarContrasena, uow, auditor },
+    cultivo: { repo: new RepositorioCultivoPg(), configuracion, uow, auditor },
     instalacion: { repo: new RepositorioInstalacionPg(), cifrar: cifrarContrasena, uow, auditor, codigoEsperado: opciones.codigoInstalacion ?? process.env.CODIGO_INSTALACION },
     derechosCliente: { repo: new RepositorioDerechosPg(), uow, auditor },
     derechosTrabajador: { repo: new RepositorioDerechosTrabajadorPg(), uow, auditor },
@@ -169,6 +173,7 @@ export {
 export { listarUsuarios, crearUsuario, asignarRolesYFincas, cambiarEstadoUsuario, restablecerContrasena, cambiarPermisoExtra, type FilaPermiso, type FilaRol, type FilaUsuario } from "@/modules/identidad/application/usuarios";
 export { consultarAuditoria, type FilaAuditoria, type FiltroAuditoria } from "@/modules/auditoria/application/consultarAuditoria";
 export { invitarUsuario, emitirEnlace, consultarInvitacion, activarCuenta, DURACION_INVITACION_MS } from "@/modules/identidad/application/invitaciones";
+export { consultarCultivo, registrarEventoLote, eliminarLote, type LoteConPlan, type ItemPlan, DENSIDAD_POR_DEFECTO } from "@/modules/produccion/application/cultivo";
 export { obtenerEstadoInstalacion, instalarSistema, LARGO_MINIMO_CODIGO } from "@/modules/identidad/application/instalacion";
 export { anularVenta } from "@/modules/comercial/application/anularVenta";
 export { exportarDatosCliente, rectificarCliente, anonimizarCliente } from "@/modules/comercial/application/derechosCliente";

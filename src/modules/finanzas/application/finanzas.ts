@@ -136,6 +136,7 @@ export async function listarCompras(deps: DependenciasFinanzas, ctx: ContextoUsu
 
 const esquemaGasto = z.object({
   fincaId: uuid,
+  ventaId: z.preprocess(vacio, uuid.optional()),
   loteId: z.preprocess(vacio, uuid.optional()),
   tipo: z.string().trim().min(2, "Seleccione el tipo de gasto"),
   clasificacion: z.enum(["agricola", "administrativo"], { message: "Clasificación inválida" }),
@@ -156,7 +157,8 @@ export async function registrarGasto(deps: DependenciasFinanzas, ctx: ContextoUs
     if (!(await deps.repo.tipoGastoExiste(tx, ctx.organizacionId, e.tipo))) throw new ErrorRegla("Tipo de gasto no configurado", "tipo_gasto_invalido");
     if (e.metodo && !(await deps.repo.metodoExiste(tx, ctx.organizacionId, e.metodo))) throw new ErrorRegla("Método de pago no configurado", "metodo_pago_invalido");
     if (e.loteId && !(await deps.repo.loteEsDeFinca(tx, ctx.organizacionId, e.loteId, e.fincaId))) throw new ErrorRegla("El lote no pertenece a la finca indicada", "lote_invalido");
-    const id = await deps.repo.insertarGasto(tx, { organizacionId: ctx.organizacionId, fincaId: e.fincaId, loteId: e.loteId, tipo: e.tipo, clasificacion: e.clasificacion, fecha: e.fecha, descripcion: e.descripcion, monto: e.monto, metodo: e.metodo, clave: e.claveIdempotencia, registradoPor: ctx.usuarioId });
+    if (e.ventaId && !(await deps.repo.ventaEsDeFinca(tx, ctx.organizacionId, e.ventaId, e.fincaId))) throw new ErrorRegla("La venta no pertenece a la finca indicada", "venta_invalida");
+    const id = await deps.repo.insertarGasto(tx, { organizacionId: ctx.organizacionId, fincaId: e.fincaId, ventaId: e.ventaId, loteId: e.loteId, tipo: e.tipo, clasificacion: e.clasificacion, fecha: e.fecha, descripcion: e.descripcion, monto: e.monto, metodo: e.metodo, clave: e.claveIdempotencia, registradoPor: ctx.usuarioId });
     await auditar(deps, ctx, tx, "gasto.registrar", "gasto", id, { tipo: e.tipo, monto: e.monto });
     return { id, repetido: false };
   });

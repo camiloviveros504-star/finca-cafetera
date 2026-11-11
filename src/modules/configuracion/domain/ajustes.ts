@@ -6,6 +6,7 @@ export type Catalogo = (typeof CATALOGOS)[number];
 /** Parámetros operativos permitidos. El valor y su rango se validan; ninguno está fijo en el código. */
 export const PARAMETROS = {
   descuento_maximo_pct: { descripcion: "Descuento máximo autorizado en una venta (%)", min: 0, max: 100 },
+  arboles_por_hectarea: { descripcion: "Árboles por hectárea sugeridos al sembrar un lote (referencia Cenicafé: unos 5.000)", min: 500, max: 20000 },
   stock_minimo_kg: { descripcion: "Existencias mínimas por producto antes de alertar (kg)", min: 0, max: 1_000_000 },
 } as const;
 export type ClaveParametro = keyof typeof PARAMETROS;
