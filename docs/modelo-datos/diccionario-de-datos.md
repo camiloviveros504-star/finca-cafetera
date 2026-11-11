@@ -2,7 +2,7 @@
 
 > Generado con `npx tsx db/diccionario.ts` desde el esquema real de PostgreSQL. No se edita a mano.
 
-Tablas: 60. Montos `numeric(14,2)`, cantidades `numeric(14,3)`, fechas `timestamptz`, claves primarias `uuid`.
+Tablas: 63. Montos `numeric(14,2)`, cantidades `numeric(14,3)`, fechas `timestamptz`, claves primarias `uuid`.
 
 ## actividad_programada
 
@@ -44,10 +44,16 @@ Restricciones:
 | unidad | text | no |  |
 | carencia_dias | integer | sí |  |
 | activo | boolean | no | `true` |
+| tipo | text | no | `'fertilizante'::text` |
+| gramos_por_unidad | numeric(14,3) | sí |  |
+| finca_id | uuid | sí |  |
 
 Restricciones:
 
 - `agroquimico_carencia_dias_check`: CHECK (((carencia_dias IS NULL) OR (carencia_dias >= 0)))
+- `agroquimico_gramos_por_unidad_check`: CHECK (((gramos_por_unidad IS NULL) OR (gramos_por_unidad > (0)::numeric)))
+- `agroquimico_tipo_check`: CHECK ((tipo = ANY (ARRAY['fertilizante'::text, 'fumigante'::text, 'herbicida'::text, 'herramienta'::text, 'otro'::text])))
+- `agroquimico_finca_id_fkey`: FOREIGN KEY (finca_id) REFERENCES finca(id)
 - `agroquimico_organizacion_id_fkey`: FOREIGN KEY (organizacion_id) REFERENCES organizacion(id)
 - `agroquimico_pkey`: PRIMARY KEY (id)
 - `agroquimico_organizacion_id_nombre_key`: UNIQUE (organizacion_id, nombre)
@@ -84,7 +90,7 @@ Restricciones:
 | finca_id | uuid | no |  |
 | agroquimico_id | uuid | no |  |
 | lote_comercial | text | no |  |
-| vencimiento | date | no |  |
+| vencimiento | date | sí |  |
 | cantidad | numeric(14,3) | no |  |
 
 Restricciones:
@@ -139,6 +145,8 @@ Restricciones:
 | responsable_id | uuid | no |  |
 | clave_idempotencia | text | no |  |
 | creado_en | timestamp with time zone | no | `now()` |
+| gramos_por_arbol | numeric(14,3) | sí |  |
+| arboles | integer | sí |  |
 
 Restricciones:
 
@@ -229,9 +237,11 @@ Restricciones:
 | activo | boolean | no | `true` |
 | creado_en | timestamp with time zone | no | `now()` |
 | anonimizado_en | timestamp with time zone | sí |  |
+| finca_id | uuid | sí |  |
 
 Restricciones:
 
+- `cliente_finca_id_fkey`: FOREIGN KEY (finca_id) REFERENCES finca(id)
 - `cliente_organizacion_id_fkey`: FOREIGN KEY (organizacion_id) REFERENCES organizacion(id)
 - `cliente_pkey`: PRIMARY KEY (id)
 - `cliente_id_organizacion_id_key`: UNIQUE (id, organizacion_id)
@@ -287,6 +297,7 @@ Restricciones:
 | unidad | text | no |  |
 | costo_unitario | numeric(14,2) | no |  |
 | subtotal | numeric(14,2) | no |  |
+| insumo_id | uuid | sí |  |
 
 Restricciones:
 
@@ -294,6 +305,7 @@ Restricciones:
 - `compra_detalle_costo_unitario_check`: CHECK ((costo_unitario >= (0)::numeric))
 - `compra_detalle_subtotal_check`: CHECK ((subtotal >= (0)::numeric))
 - `compra_detalle_compra_id_fkey`: FOREIGN KEY (compra_id) REFERENCES compra(id)
+- `compra_detalle_insumo_id_fkey`: FOREIGN KEY (insumo_id) REFERENCES agroquimico(id)
 - `compra_detalle_pkey`: PRIMARY KEY (id)
 
 ## conversion_unidad
@@ -431,6 +443,7 @@ Restricciones:
 | clave_idempotencia | text | no |  |
 | registrado_por | uuid | no |  |
 | creado_en | timestamp with time zone | no | `now()` |
+| venta_id | uuid | sí |  |
 
 Restricciones:
 
@@ -440,6 +453,7 @@ Restricciones:
 - `gasto_lote_id_finca_id_fkey`: FOREIGN KEY (lote_id, finca_id) REFERENCES lote(id, finca_id)
 - `gasto_organizacion_id_fkey`: FOREIGN KEY (organizacion_id) REFERENCES organizacion(id)
 - `gasto_registrado_por_fkey`: FOREIGN KEY (registrado_por) REFERENCES usuario(id)
+- `gasto_venta_id_fkey`: FOREIGN KEY (venta_id) REFERENCES venta(id)
 - `gasto_pkey`: PRIMARY KEY (id)
 - `gasto_organizacion_id_clave_idempotencia_key`: UNIQUE (organizacion_id, clave_idempotencia)
 
@@ -491,6 +505,33 @@ Restricciones:
 
 - `CREATE INDEX intento_acceso_correo_idx ON public.intento_acceso USING btree (correo_hash, creado_en DESC)`
 - `CREATE INDEX intento_acceso_ip_idx ON public.intento_acceso USING btree (ip, creado_en DESC)`
+
+## invitacion_usuario
+
+| Columna | Tipo | Nulo | Por defecto |
+|---|---|---|---|
+| id | uuid | no | `gen_random_uuid()` |
+| organizacion_id | uuid | no |  |
+| usuario_id | uuid | no |  |
+| tipo | text | no |  |
+| token_hash | text | no |  |
+| expira_en | timestamp with time zone | no |  |
+| usada_en | timestamp with time zone | sí |  |
+| creada_por | uuid | sí |  |
+| creada_en | timestamp with time zone | no | `now()` |
+
+Restricciones:
+
+- `invitacion_usuario_tipo_check`: CHECK ((tipo = ANY (ARRAY['alta'::text, 'restablecimiento'::text])))
+- `invitacion_usuario_creada_por_fkey`: FOREIGN KEY (creada_por) REFERENCES usuario(id)
+- `invitacion_usuario_organizacion_id_fkey`: FOREIGN KEY (organizacion_id) REFERENCES organizacion(id)
+- `invitacion_usuario_usuario_id_fkey`: FOREIGN KEY (usuario_id) REFERENCES usuario(id) ON DELETE CASCADE
+- `invitacion_usuario_pkey`: PRIMARY KEY (id)
+- `invitacion_usuario_token_hash_key`: UNIQUE (token_hash)
+
+Índices:
+
+- `CREATE INDEX invitacion_usuario_idx ON public.invitacion_usuario USING btree (usuario_id) WHERE (usada_en IS NULL)`
 
 ## liquidacion
 
@@ -570,19 +611,47 @@ Restricciones:
 | variedad | text | sí |  |
 | numero_arboles | integer | sí |  |
 | fecha_siembra | date | sí |  |
-| estado_productivo | text | no | `'produccion'::text` |
+| estado_productivo | text | no | `'sin_sembrar'::text` |
 | creado_en | timestamp with time zone | no | `now()` |
+| fecha_ultima_zoca | date | sí |  |
 
 Restricciones:
 
 - `lote_area_ha_check`: CHECK (((area_ha IS NULL) OR (area_ha > (0)::numeric)))
-- `lote_estado_productivo_check`: CHECK ((estado_productivo = ANY (ARRAY['levante'::text, 'produccion'::text, 'renovacion'::text, 'inactivo'::text])))
+- `lote_estado_productivo_check`: CHECK ((estado_productivo = ANY (ARRAY['sin_sembrar'::text, 'levante'::text, 'produccion'::text, 'zoca'::text, 'renovacion'::text, 'inactivo'::text])))
 - `lote_numero_arboles_check`: CHECK (((numero_arboles IS NULL) OR (numero_arboles >= 0)))
 - `lote_finca_id_organizacion_id_fkey`: FOREIGN KEY (finca_id, organizacion_id) REFERENCES finca(id, organizacion_id)
 - `lote_organizacion_id_fkey`: FOREIGN KEY (organizacion_id) REFERENCES organizacion(id)
 - `lote_pkey`: PRIMARY KEY (id)
 - `lote_finca_id_codigo_key`: UNIQUE (finca_id, codigo)
 - `lote_id_finca_id_key`: UNIQUE (id, finca_id)
+
+## lote_evento
+
+| Columna | Tipo | Nulo | Por defecto |
+|---|---|---|---|
+| id | uuid | no | `gen_random_uuid()` |
+| organizacion_id | uuid | no |  |
+| lote_id | uuid | no |  |
+| fecha | date | no |  |
+| tipo | text | no |  |
+| arboles | integer | sí |  |
+| detalle | text | sí |  |
+| creado_por | uuid | no |  |
+| creado_en | timestamp with time zone | no | `now()` |
+
+Restricciones:
+
+- `lote_evento_arboles_check`: CHECK (((arboles IS NULL) OR (arboles >= 0)))
+- `lote_evento_tipo_check`: CHECK ((tipo = ANY (ARRAY['siembra'::text, 'zoca'::text, 'tumba'::text, 'resiembra'::text, 'observacion'::text])))
+- `lote_evento_creado_por_fkey`: FOREIGN KEY (creado_por) REFERENCES usuario(id)
+- `lote_evento_lote_id_fkey`: FOREIGN KEY (lote_id) REFERENCES lote(id) ON DELETE CASCADE
+- `lote_evento_organizacion_id_fkey`: FOREIGN KEY (organizacion_id) REFERENCES organizacion(id)
+- `lote_evento_pkey`: PRIMARY KEY (id)
+
+Índices:
+
+- `CREATE INDEX lote_evento_lote ON public.lote_evento USING btree (lote_id, fecha DESC)`
 
 ## mantenimiento
 
@@ -934,9 +1003,11 @@ Restricciones:
 | activo | boolean | no | `true` |
 | autorizo_tratamiento_en | timestamp with time zone | sí |  |
 | creado_en | timestamp with time zone | no | `now()` |
+| finca_id | uuid | sí |  |
 
 Restricciones:
 
+- `proveedor_finca_id_fkey`: FOREIGN KEY (finca_id) REFERENCES finca(id)
 - `proveedor_organizacion_id_fkey`: FOREIGN KEY (organizacion_id) REFERENCES organizacion(id)
 - `proveedor_pkey`: PRIMARY KEY (id)
 - `proveedor_id_organizacion_id_key`: UNIQUE (id, organizacion_id)
@@ -970,6 +1041,30 @@ Restricciones:
 - `proyeccion_cosecha_temporada_id_fkey`: FOREIGN KEY (temporada_id) REFERENCES temporada(id)
 - `proyeccion_cosecha_pkey`: PRIMARY KEY (id)
 - `proyeccion_cosecha_organizacion_id_clave_idempotencia_key`: UNIQUE (organizacion_id, clave_idempotencia)
+
+## recomendacion_cultivo
+
+| Columna | Tipo | Nulo | Por defecto |
+|---|---|---|---|
+| id | uuid | no | `gen_random_uuid()` |
+| organizacion_id | uuid | no |  |
+| etapa | text | no |  |
+| edad_desde_meses | integer | no |  |
+| edad_hasta_meses | integer | sí |  |
+| labor | text | no |  |
+| titulo | text | no |  |
+| detalle | text | no |  |
+| gramos_por_planta | numeric(10,2) | sí |  |
+| fuente | text | no |  |
+
+Restricciones:
+
+- `recomendacion_cultivo_edad_desde_meses_check`: CHECK ((edad_desde_meses >= 0))
+- `recomendacion_cultivo_etapa_check`: CHECK ((etapa = ANY (ARRAY['levante'::text, 'produccion'::text, 'renovacion'::text])))
+- `recomendacion_cultivo_gramos_por_planta_check`: CHECK (((gramos_por_planta IS NULL) OR (gramos_por_planta > (0)::numeric)))
+- `recomendacion_cultivo_labor_check`: CHECK ((labor = ANY (ARRAY['abonada'::text, 'renovacion'::text, 'fumigacion'::text, 'plateo'::text, 'otra'::text])))
+- `recomendacion_cultivo_organizacion_id_fkey`: FOREIGN KEY (organizacion_id) REFERENCES organizacion(id)
+- `recomendacion_cultivo_pkey`: PRIMARY KEY (id)
 
 ## registro_ambiental
 
@@ -1022,15 +1117,17 @@ Restricciones:
 | clave_idempotencia | text | sí |  |
 | registrado_por | uuid | no |  |
 | creado_en | timestamp with time zone | no | `now()` |
+| labor | text | sí |  |
+| valor_manual | boolean | no | `false` |
 
 Restricciones:
 
 - `registro_trabajo_cantidad_declarada_check`: CHECK ((cantidad_declarada > (0)::numeric))
 - `registro_trabajo_cantidad_validada_check`: CHECK (((cantidad_validada IS NULL) OR (cantidad_validada >= (0)::numeric)))
-- `registro_trabajo_check`: CHECK (((estado <> 'validado'::text) OR ((cantidad_validada IS NOT NULL) AND (valor_calculado IS NOT NULL) AND (tarifa_version_id IS NOT NULL))))
 - `registro_trabajo_check1`: CHECK (((estado <> 'rechazado'::text) OR (motivo_rechazo IS NOT NULL)))
 - `registro_trabajo_estado_check`: CHECK ((estado = ANY (ARRAY['pendiente'::text, 'validado'::text, 'rechazado'::text, 'liquidado'::text])))
 - `registro_trabajo_modalidad_check`: CHECK ((modalidad = ANY (ARRAY['kg'::text, 'arroba'::text, 'jornada'::text, 'actividad'::text])))
+- `registro_trabajo_validado_completo`: CHECK (((estado <> 'validado'::text) OR ((cantidad_validada IS NOT NULL) AND (valor_calculado IS NOT NULL) AND ((tarifa_version_id IS NOT NULL) OR valor_manual))))
 - `registro_trabajo_finca_id_fkey`: FOREIGN KEY (finca_id) REFERENCES finca(id)
 - `registro_trabajo_lote_id_finca_id_fkey`: FOREIGN KEY (lote_id, finca_id) REFERENCES lote(id, finca_id)
 - `registro_trabajo_organizacion_id_fkey`: FOREIGN KEY (organizacion_id) REFERENCES organizacion(id)
@@ -1055,6 +1152,7 @@ Restricciones:
 | codigo | text | no |  |
 | nombre | text | no |  |
 | es_extension | boolean | no | `false` |
+| visible | boolean | no | `true` |
 
 Restricciones:
 
@@ -1325,6 +1423,7 @@ Restricciones:
 | activo | boolean | no | `true` |
 | autorizo_tratamiento_en | timestamp with time zone | sí |  |
 | creado_en | timestamp with time zone | no | `now()` |
+| activada_en | timestamp with time zone | sí | `now()` |
 
 Restricciones:
 
@@ -1395,6 +1494,9 @@ Restricciones:
 | anulada_por | uuid | sí |  |
 | anulada_en | timestamp with time zone | sí |  |
 | motivo_anulacion | text | sí |  |
+| variedad | text | sí |  |
+| taza | text | sí |  |
+| destino | text | sí |  |
 
 Restricciones:
 

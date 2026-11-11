@@ -6,7 +6,10 @@ Todo lo que está aquí **no está construido** (o está construido solo en part
 | Tema | Qué falta | Por qué quedó fuera |
 |---|---|---|
 | Caracterización de la finca | Linderos, vías de acceso, fuentes de agua, áreas de protección y de erosión, mapa de distribución (prompt §9) | Requiere datos geográficos y un componente de mapas; no afecta los tres drivers |
-| Detalle de cultivos y lotes | Edad y densidad calculadas, zoca, renovación con historial por lote | Hoy hay variedad, número de árboles, fecha de siembra y estado productivo |
+| Registros agronómicos adicionales | Floración (para proyectar la mano de obra de cosecha), análisis de suelo y dosis de abonada en producción derivada de él, croquis del predio | La dosis depende del análisis de suelo y no se obtuvo una fuente verificable; no se inventó. Ver `docs/investigacion/control-de-finca.md` |
+| Cumplimiento de Buenas Prácticas Agrícolas (ICA) | Registros y capacitaciones exigidos por la Resolución 30021 de 2017; el sistema no certifica BPA | No se leyó el texto completo de la norma y hay un proyecto de 2024 que podría reemplazarla |
+| Eliminación definitiva con historial | Hoy un registro con historial se archiva (deja de verse), no se borra | Borrarlo rompería la contabilidad y la trazabilidad |
+| Ventas con varios lotes de origen en la pantalla | La pantalla vende por tipo de café; el sistema descuenta de los lotes con la regla de asignación | Elegir lote a lote complicaría el formulario del dueño |
 | Modalidad de pago "otras" | Modalidades de remuneración distintas de kg, arroba, jornada y actividad | El esquema usa cuatro modalidades con tarifa propia; agregar una exige una migración |
 | Flujos de beneficio largos desde la pantalla | La pantalla crea flujos de hasta 3 etapas (el caso de uso admite hasta 15) y registra un lote por envío | Priorizar el núcleo; el caso de uso ya soporta varios lotes |
 | Envío de correos de invitación | El enlace de activación lo entrega el administrador | No hay servicio de correo configurado |
