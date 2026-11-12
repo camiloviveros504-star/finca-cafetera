@@ -60,10 +60,14 @@ describe("primer arranque (sin datos de ejemplo)", () => {
     expect((await q("SELECT es_demo FROM organizacion")).es_demo).toBe(false);
     expect((await q("SELECT count(*)::int AS n FROM finca")).n).toBe(0);
     expect((await q("SELECT count(*)::int AS n FROM usuario_finca")).n).toBe(0);
-    expect((await q("SELECT count(*)::int AS n FROM producto WHERE NOT es_demo")).n).toBe(7);
-    expect((await q("SELECT count(*)::int AS n FROM proceso_etapa")).n).toBe(5);
-    // Nada de precios, tarifas, equivalencias, clientes ni trabajadores inventados.
-    for (const t of ["tarifa", "tarifa_version", "conversion_unidad", "cliente", "trabajador", "movimiento_inventario", "venta"]) {
+    // Los estados del café (rojo, en lavado, húmedo, en secado, seco, pasilla, plumilla, almendra, tostado, molido) y los
+    // 7 pasos del camino del café.
+    expect((await q("SELECT count(*)::int AS n FROM producto WHERE NOT es_demo")).n).toBe(10);
+    expect((await q("SELECT count(*)::int AS n FROM proceso_etapa e JOIN proceso_tipo t ON t.id = e.proceso_tipo_id WHERE t.codigo = 'camino_cafe'")).n).toBe(7);
+    // Solo las medidas estándar de peso (1 arroba = 12,5 kg; 1 carga = 125 kg), que cada propietario puede cambiar.
+    expect((await pool.query("SELECT u.codigo, c.factor::float AS factor FROM conversion_unidad c JOIN unidad u ON u.id = c.unidad_origen_id ORDER BY u.codigo")).rows).toEqual([{ codigo: "arroba", factor: 12.5 }, { codigo: "carga", factor: 125 }]);
+    // Nada de precios, tarifas, clientes ni trabajadores inventados.
+    for (const t of ["tarifa", "tarifa_version", "cliente", "trabajador", "movimiento_inventario", "venta"]) {
       expect((await q(`SELECT count(*)::int AS n FROM ${t}`)).n, t).toBe(0);
     }
     expect(await obtenerEstadoInstalacion(servicios.instalacion)).toEqual({ instalado: true, habilitada: true });

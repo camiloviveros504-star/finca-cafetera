@@ -166,8 +166,8 @@ export {
   type FilaLiquidacion, type FilaRegistroTrabajo, type FilaTrabajador, type Modalidad,
 } from "@/modules/talento/application/talento";
 export {
-  crearProcesoTipo, listarProcesos, ejecutarEtapa, listarRegistrosProceso,
-  type FilaProceso, type FilaRegistroProceso, type EtapaProceso,
+  crearProcesoTipo, listarProcesos, ejecutarEtapa, listarRegistrosProceso, avanzarCafe, consultarEstadoCafe, ESTADOS_CAFE, PASOS_CAFE, nombreEstado,
+  type FilaProceso, type FilaRegistroProceso, type EtapaProceso, type FilaEstadoCafe, type EstadoCafe, type PasoCafe,
 } from "@/modules/beneficio/application/beneficio";
 export { registrarPagoCliente, listarCartera, type FilaCartera } from "@/modules/comercial/application/pagosClientes";
 export {

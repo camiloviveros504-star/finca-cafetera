@@ -36,7 +36,6 @@ const MENU: Array<EnlaceNav & { permiso?: string }> = [
   // Herramientas que una finca usa poco: siguen disponibles, plegadas.
   { href: "/planificacion", etiqueta: "Planificación", icono: "planificacion", permiso: "planificacion:ver", secundario: true },
   { href: "/maquinaria", etiqueta: "Maquinaria", icono: "maquinaria", permiso: "equipo:ver", secundario: true },
-  { href: "/beneficio", etiqueta: "Beneficio del café", icono: "beneficio", permiso: "proceso:ver", secundario: true },
   { href: "/inventario/operaciones", etiqueta: "Ajustes de inventario", icono: "ajusteInventario", permiso: "inventario:ajustar", secundario: true },
 ];
 

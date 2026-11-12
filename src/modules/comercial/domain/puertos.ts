@@ -60,6 +60,8 @@ export interface RepositorioVentas {
   opcionesVenta(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]): Promise<OpcionesVenta>;
   buscarPorClave(tx: Transaccion, organizacionId: string, clave: string): Promise<VentaRegistrada | null>;
   clienteExiste(tx: Transaccion, organizacionId: string, clienteId: string): Promise<boolean>;
+  /** Cuántos de esos productos se pueden vender (el café en lavado o en secado no se vende). */
+  contarVendibles(tx: Transaccion, organizacionId: string, ids: string[]): Promise<number>;
   /** Inserta el encabezado primero: la clave única serializa los reintentos concurrentes. Lanza ErrorClaveDuplicada. */
   insertarEncabezado(
     tx: Transaccion,

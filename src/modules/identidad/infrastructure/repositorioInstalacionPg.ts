@@ -17,7 +17,7 @@ const CATALOGOS: [string, string, string][] = [
   ["tipo_gasto", "servicios", "Servicios y otros pagos"],
 ];
 
-/** Productos básicos del café; el flujo de beneficio los encadena (cereza → pergamino húmedo → pergamino seco → excelso). */
+/** Tipos de café que se venden; los estados intermedios (en lavado, en secado) y el molido los agrega preparar_camino_cafe. */
 const PRODUCTOS: [string, string, boolean][] = [
   ["CER", "Café rojo sin despulpar (cereza)", true],
   ["PHU", "Café húmedo o mojado", true],
@@ -38,12 +38,6 @@ export const RECOMENDACIONES: [string, number, number | null, string, string, st
   ["levante", 18, 18, "abonada", "Quinta abonada (mes 18)", "Fertilizante con nitrógeno, al comenzar un período de lluvias.", 16, FUENTE_LEVANTE],
   ["produccion", 24, 59, "abonada", "Abonada anual en producción", "Fertilice al comenzar cada período de lluvias. El nitrógeno es el nutriente más limitante; la dosis la define su análisis de suelo y la producción esperada. Registre aquí la dosis que adopte.", null, "Cenicafé: fertilizar al comenzar los períodos lluviosos; dosis según análisis de suelo"],
   ["renovacion", 60, null, "renovacion", "Evaluar la renovación (año 5 o 6)", "Hacia el quinto o sexto año, con 4 o 5 cosechas, el cafetal llega a la edad de renovación. Opciones: zoca (corte a unos 30 cm; más económica y rinde otras 4 o 5 cosechas) o tumbar y resembrar (permite ajustar la densidad). La zoca se hace en período seco y con cosecha sanitaria previa.", null, "Cenicafé, Avances Técnicos sobre renovación de cafetales"],
-];
-
-/** Flujos iniciales sin porcentajes de merma: el administrador los define según su proceso. */
-const FLUJOS: [string, string, [string, string, string, string][]][] = [
-  ["cafe_lavado", "Café lavado", [["despulpado", "Despulpado", "CER", "PHU"], ["secado", "Secado", "PHU", "PSE"], ["trilla", "Trilla", "PSE", "EXC"]]],
-  ["cafe_natural", "Café natural", [["secado_natural", "Secado en cereza", "CER", "PSE"], ["trilla", "Trilla", "PSE", "EXC"]]],
 ];
 
 export class RepositorioInstalacionPg implements RepositorioInstalacion {
@@ -77,13 +71,8 @@ export class RepositorioInstalacionPg implements RepositorioInstalacion {
     for (const [etapa, desde, hasta, labor, titulo, detalle, gramos, fuente] of RECOMENDACIONES) {
       await c.query("INSERT INTO recomendacion_cultivo (organizacion_id, etapa, edad_desde_meses, edad_hasta_meses, labor, titulo, detalle, gramos_por_planta, fuente) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)", [org, etapa, desde, hasta, labor, titulo, detalle, gramos, fuente]);
     }
-    for (const [codigo, nombre, etapas] of FLUJOS) {
-      const tipo = (await c.query("INSERT INTO proceso_tipo (organizacion_id, codigo, nombre, creado_por) VALUES ($1,$2,$3,$4) RETURNING id", [org, codigo, nombre, usuario])).rows[0].id as string;
-      let orden = 1;
-      for (const [ec, en, entrada, salida] of etapas) {
-        await c.query("INSERT INTO proceso_etapa (proceso_tipo_id, orden, codigo, nombre, producto_entrada_id, producto_salida_id) VALUES ($1,$2,$3,$4,$5,$6)", [tipo, orden++, ec, en, productos[entrada], productos[salida]]);
-      }
-    }
+    // Camino del café (rojo → en lavado → húmedo → en secado → seco → almendra → tostado → molido) y equivalencias base.
+    await c.query("SELECT preparar_camino_cafe($1)", [org]);
     return { organizacionId: org, usuarioId: usuario };
   }
 }

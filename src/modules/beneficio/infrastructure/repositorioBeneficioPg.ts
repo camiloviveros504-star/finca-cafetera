@@ -1,7 +1,7 @@
 import type { Transaccion } from "@/shared/dominio/contexto";
 import { ErrorRegla } from "@/shared/dominio/errores";
 import { clienteDe } from "@/shared/infraestructura/baseDatos";
-import type { EtapaParaEjecutar, FilaProceso, FilaRegistroProceso, RepositorioBeneficio } from "../domain/puertos";
+import type { EtapaParaEjecutar, FilaEstadoCafe, FilaProceso, FilaRegistroProceso, RepositorioBeneficio } from "../domain/puertos";
 
 export class RepositorioBeneficioPg implements RepositorioBeneficio {
   async crearProceso(tx: Transaccion, p: Parameters<RepositorioBeneficio["crearProceso"]>[1]): Promise<string> {
@@ -59,6 +59,32 @@ export class RepositorioBeneficioPg implements RepositorioBeneficio {
     return x
       ? { id: x.id, orden: x.orden, codigo: x.codigo, nombre: x.nombre, productoEntradaId: x.producto_entrada_id, productoEntradaNombre: x.entrada, productoSalidaId: x.producto_salida_id, productoSalidaNombre: x.salida, mermaEsperadaPct: x.merma_esperada_pct, procesoTipoId: x.tipo_id, procesoNombre: x.tipo_nombre }
       : null;
+  }
+
+  async obtenerEtapaPorCodigo(tx: Transaccion, organizacionId: string, procesoCodigo: string, etapaCodigo: string): Promise<EtapaParaEjecutar | null> {
+    const r = await clienteDe(tx).query(
+      `SELECT e.id FROM proceso_etapa e JOIN proceso_tipo t ON t.id = e.proceso_tipo_id
+        WHERE t.organizacion_id = $1 AND t.codigo = $2 AND e.codigo = $3 AND t.activo`,
+      [organizacionId, procesoCodigo, etapaCodigo],
+    );
+    return r.rows[0] ? this.obtenerEtapa(tx, organizacionId, r.rows[0].id as string) : null;
+  }
+
+  async bodegaDeFinca(tx: Transaccion, organizacionId: string, fincaId: string): Promise<string | null> {
+    const r = await clienteDe(tx).query("SELECT b.id FROM bodega b JOIN finca f ON f.id = b.finca_id WHERE f.organizacion_id = $1 AND b.finca_id = $2 ORDER BY b.nombre LIMIT 1", [organizacionId, fincaId]);
+    return r.rows[0] ? (r.rows[0].id as string) : null;
+  }
+
+  async estadoDelCafe(tx: Transaccion, organizacionId: string, fincaIds: readonly string[], estados: readonly string[]): Promise<FilaEstadoCafe[]> {
+    const r = await clienteDe(tx).query(
+      `SELECT s.finca_id, f.nombre AS finca, s.lote_id, l.codigo AS lote_codigo, l.nombre AS lote_nombre, p.codigo AS estado, sum(s.cantidad)::text AS kg
+         FROM saldo_inventario s JOIN producto p ON p.id = s.producto_id JOIN finca f ON f.id = s.finca_id JOIN lote l ON l.id = s.lote_id
+        WHERE s.organizacion_id = $1 AND s.finca_id = ANY($2::uuid[]) AND p.codigo = ANY($3::text[]) AND s.cantidad > 0
+        GROUP BY s.finca_id, f.nombre, s.lote_id, l.codigo, l.nombre, p.codigo
+        ORDER BY f.nombre, l.codigo`,
+      [organizacionId, fincaIds, estados],
+    );
+    return r.rows.map((x) => ({ fincaId: x.finca_id, fincaNombre: x.finca, loteId: x.lote_id, loteCodigo: x.lote_codigo, loteNombre: x.lote_nombre, estado: x.estado, kg: x.kg }));
   }
 
   async registroPorTransformacion(tx: Transaccion, transformacionId: string): Promise<string | null> {

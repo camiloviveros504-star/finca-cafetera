@@ -48,6 +48,11 @@ export class RepositorioConfiguracionPg implements RepositorioConfiguracion {
     return f ? { valor: f.valor as string, tarifaVersionId: f.id as string } : null;
   }
 
+  async unidadPorCodigo(tx: Transaccion, codigo: string): Promise<string | null> {
+    const r = await clienteDe(tx).query("SELECT id FROM unidad WHERE codigo = $1", [codigo]);
+    return r.rows[0] ? (r.rows[0].id as string) : null;
+  }
+
   async factorConversion(
     tx: Transaccion,
     organizacionId: string,

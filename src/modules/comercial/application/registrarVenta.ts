@@ -3,7 +3,7 @@ import { z } from "zod";
 import { autorizar } from "@/shared/aplicacion/autorizar";
 import type { Auditor, UnidadDeTrabajo } from "@/shared/aplicacion/puertos";
 import type { ContextoUsuario } from "@/shared/dominio/contexto";
-import { aEscala, deEscala, ESCALA_CANTIDAD, ESCALA_MONTO, multiplicarCantidadPorPrecio } from "@/shared/dominio/decimal";
+import { aEscala, aplicarFactor, deEscala, ESCALA_CANTIDAD, ESCALA_MONTO, multiplicarCantidadPorPrecio } from "@/shared/dominio/decimal";
 import {
   ErrorClaveDuplicada,
   ErrorExistenciasInsuficientes,
@@ -13,7 +13,7 @@ import {
   ErrorRegla,
 } from "@/shared/dominio/errores";
 import { fechaColombia } from "@/shared/dominio/fechas";
-import { obtenerPrecioVigente } from "@/modules/configuracion/application/consultas";
+import { factorAKilos, obtenerPrecioVigente } from "@/modules/configuracion/application/consultas";
 import type { RepositorioConfiguracion } from "@/modules/configuracion/application/consultas";
 import { descontarParaVenta } from "@/modules/inventario/application/movimientos";
 import type { RepositorioInventario } from "@/modules/inventario/application/movimientos";
@@ -50,7 +50,9 @@ export const esquemaVenta = z.object({
         cantidad: cantidadTexto,
         loteId: z.string().uuid().optional(),
         bodegaId: z.string().uuid().optional(),
-        /** Precio por kg pactado en esta venta. Si se omite se usa la tarifa vigente del producto. */
+        /** Unidad en que se vende: la cantidad y el precio vienen en esa unidad y se pasan a kilos con la equivalencia vigente. */
+        unidad: z.enum(["kg", "arroba", "carga"]).default("kg"),
+        /** Precio por unidad pactado en esta venta (por kg si la unidad es kg). Si se omite se usa la tarifa vigente del producto. */
         precioKg: z.string().regex(/^\d{1,9}(\.\d{1,2})?$/, "Precio inválido (máximo 2 decimales)").optional(),
       }),
     )
@@ -103,6 +105,10 @@ export async function registrarVenta(
       if (!(await deps.ventas.clienteExiste(tx, ctx.organizacionId, entrada.clienteId))) {
         throw new ErrorNoEncontrado("Cliente");
       }
+      const productos = [...new Set(entrada.items.map((i) => i.productoId))];
+      if ((await deps.ventas.contarVendibles(tx, ctx.organizacionId, productos)) !== productos.length) {
+        throw new ErrorRegla("Ese café no se puede vender en el estado en que está (por ejemplo, en lavado o en secado)", "producto_no_vendible");
+      }
 
       const ventaId = randomUUID();
       await deps.ventas.insertarEncabezado(tx, {
@@ -125,10 +131,20 @@ export async function registrarVenta(
         }
       }
       const hoy = fechaColombia();
+      // Venta en arrobas o cargas: se pasa a kilos con la equivalencia vigente de la finca (el inventario y la trazabilidad
+      // siempre van en kilos). El precio por unidad se convierte a precio por kilo con 2 decimales.
+      const items = [];
+      for (const i of entrada.items) {
+        if (i.unidad === "kg") { items.push(i); continue; }
+        const factor = aEscala(await factorAKilos({ repo: deps.configuracion }, tx, { organizacionId: ctx.organizacionId, fincaId: entrada.fincaId, unidad: i.unidad, fecha: hoy }), 6);
+        const kg = aplicarFactor(aEscala(i.cantidad, ESCALA_CANTIDAD), factor);
+        const precioKg = i.precioKg === undefined ? undefined : deEscala((aEscala(i.precioKg, ESCALA_MONTO) * 1_000_000n + factor / 2n) / factor, ESCALA_MONTO);
+        items.push({ ...i, cantidad: deEscala(kg, ESCALA_CANTIDAD), precioKg, unidad: "kg" as const });
+      }
       // El precio lo fija quien vende (precio pactado con el comprador); si no lo indica se usa la tarifa vigente del producto.
       const precios = new Map<string, { valor: string; tarifaVersionId: string | null }>();
-      for (const productoId of new Set(entrada.items.map((i) => i.productoId))) {
-        const pactados = new Set(entrada.items.filter((i) => i.productoId === productoId && i.precioKg !== undefined).map((i) => i.precioKg));
+      for (const productoId of new Set(items.map((i) => i.productoId))) {
+        const pactados = new Set(items.filter((i) => i.productoId === productoId && i.precioKg !== undefined).map((i) => i.precioKg));
         if (pactados.size > 1) throw new ErrorValidacion("Un mismo tipo de café no puede llevar dos precios en la misma venta", { items: "Precio repetido" });
         const pactado = [...pactados][0];
         if (pactado !== undefined) {
@@ -141,7 +157,7 @@ export async function registrarVenta(
       const salidas = await descontarParaVenta({ repo: deps.inventario }, tx, ctx, {
         ventaId,
         fincaId: entrada.fincaId,
-        items: entrada.items,
+        items,
       });
 
       let total = 0n;

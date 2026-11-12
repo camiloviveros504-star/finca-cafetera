@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { Client } from "pg";
 
 const CLAVE = "Demo-2026!";
@@ -9,6 +9,12 @@ async function llenarVenta(page: Page, kg: string) {
   await page.locator('select[name="productoId1"]').selectOption({ label: "Pergamino seco DEMO" });
   await page.locator('input[name="kg1"]').fill(kg);
   await page.locator('input[name="precio1"]').fill("10000");
+}
+
+/** Elige la opción de una lista cuyo texto contiene `texto`. */
+async function elegir(lista: Locator, texto: string) {
+  const valor = await lista.locator("option", { hasText: texto }).first().getAttribute("value");
+  await lista.selectOption(valor ?? "");
 }
 
 async function entrar(page: Page, correo: string) {
@@ -132,6 +138,32 @@ test.describe("flujos con roles", () => {
     await admin.goto("/usuarios");
     await expect(admin.getByText("Cuenta de capataz")).toHaveCount(0);
     await expect(admin.locator("option", { hasText: /^Capataz$/ })).toHaveCount(0);
+  });
+
+  test("camino del café: recolección por trabajador más kilos sin trabajador, luego despulpar y ver el café en lavado", async ({ page }) => {
+    await entrar(page, "propietario@demo.local");
+    await page.goto("/cosechas");
+    const hoy = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
+    await expect(page.locator('input[name="fecha"]')).toHaveAttribute("max", hoy);
+    await elegir(page.locator('select[name="loteId"]'), "L-02");
+    await page.getByRole("radio", { name: /Por trabajador/ }).check();
+    await page.locator('select[name="trabajadorId0"]').selectOption({ index: 1 });
+    await page.locator('input[name="kg0"]').fill("20");
+    await page.locator('input[name="precio0"]').fill("800");
+    await page.locator('input[name="kgSinTrabajador"]').fill("5");
+    await expect(page.getByText("25 kg", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Registrar recolección" }).click();
+    await expect(page.getByRole("status")).toContainText("25 kg de café rojo", { timeout: 15000 });
+
+    await page.goto("/inventario?paso=despulpado#avanzar");
+    const form = page.locator("#avanzar");
+    await elegir(form.locator('select[name="loteId"]'), "L-02");
+    await form.locator('input[name="kgEntrada"]').fill("25");
+    await form.locator('input[name="kgSalida"]').fill("15");
+    await expect(form.getByText(/Rendimiento: 60 %/)).toBeVisible();
+    await form.getByRole("button", { name: "Registrar: despulpar" }).click();
+    await expect(form.getByRole("status")).toContainText("entraron 25 kg y quedaron 15 kg", { timeout: 15000 });
+    await expect(page.getByRole("listitem").filter({ hasText: "2. En lavado" })).toContainText("15");
   });
 
   test("plagas: el propietario reporta roya en un lote, la ve activa y la marca como controlada", async ({ page }) => {

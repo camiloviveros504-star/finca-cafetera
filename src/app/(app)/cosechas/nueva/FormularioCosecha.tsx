@@ -23,8 +23,8 @@ export function FormularioCosecha({ opciones }: { opciones: Opciones; csrfToken:
   const lotes = useMemo(() => opciones.lotes.filter((l) => l.fincaId === fincaId), [opciones.lotes, fincaId]);
   const [loteId, setLoteId] = useState("");
   const [fecha, setFecha] = useState(hoy());
-  const productosCosecha = opciones.productos;
-  const [productoId, setProductoId] = useState(productosCosecha.find((p) => p.codigo === "CER")?.id ?? productosCosecha[0]?.id ?? "");
+  // La recolección siempre es café rojo: los demás estados salen del camino del café en la bodega.
+  const productoId = opciones.productos.find((p) => p.codigo === "CER")?.id ?? "";
   const kg = opciones.unidades.find((u) => u.codigo === "kg");
   const [unidadId, setUnidadId] = useState(kg?.id ?? opciones.unidades[0]?.id ?? "");
   const [cantidad, setCantidad] = useState("");
@@ -38,6 +38,7 @@ export function FormularioCosecha({ opciones }: { opciones: Opciones; csrfToken:
     setError("");
     if (paso === 1 && !loteId) return setError("Seleccione el lote de origen");
     if (paso === 2 && !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return setError("Indique una fecha válida");
+    if (paso === 2 && fecha > hoy()) return setError("La fecha no puede ser futura");
     if (paso === 3) {
       if (!/^\d{1,11}([.,]\d{1,3})?$/.test(cantidad.trim()) || Number(cantidad.replace(",", ".")) <= 0) {
         return setError("Escriba una cantidad mayor que cero (máximo 3 decimales)");
@@ -48,6 +49,7 @@ export function FormularioCosecha({ opciones }: { opciones: Opciones; csrfToken:
 
   async function guardar() {
     if (!bodega) return setError("La finca no tiene bodega configurada");
+    if (!productoId) return setError("No está configurado el café rojo");
     const unidad = opciones.unidades.find((u) => u.id === unidadId)?.codigo ?? "";
     const op = nuevaOperacion(
       {
@@ -101,18 +103,13 @@ export function FormularioCosecha({ opciones }: { opciones: Opciones; csrfToken:
         )}
         {paso === 2 && (
           <div>
-            <label htmlFor="fecha" className="mb-1 block font-semibold">Fecha de la cosecha</label>
+            <label htmlFor="fecha" className="mb-1 block font-semibold">Fecha de la recolección (hoy o antes)</label>
             <input id="fecha" type="date" className={campo} value={fecha} max={hoy()} onChange={(e) => setFecha(e.target.value)} />
           </div>
         )}
         {paso === 3 && (
           <>
-            <div>
-              <label htmlFor="producto" className="mb-1 block font-semibold">Producto</label>
-              <select id="producto" className={campo} value={productoId} onChange={(e) => setProductoId(e.target.value)}>
-                {productosCosecha.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-              </select>
-            </div>
+            <p className="text-sm">Café rojo recogido en el lote.</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="cantidad" className="mb-1 block font-semibold">Cantidad</label>

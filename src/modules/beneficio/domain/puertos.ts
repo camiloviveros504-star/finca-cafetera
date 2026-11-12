@@ -41,7 +41,24 @@ export interface FilaRegistroProceso {
   transformacionId: string;
 }
 
+/** Kilos de café en un estado, por finca y lote de origen. */
+export interface FilaEstadoCafe {
+  fincaId: string;
+  fincaNombre: string;
+  loteId: string;
+  loteCodigo: string;
+  loteNombre: string;
+  estado: string;
+  kg: string;
+}
+
 export interface RepositorioBeneficio {
+  /** Etapa de un flujo por sus códigos (p. ej. camino_cafe / despulpado). */
+  obtenerEtapaPorCodigo(tx: Transaccion, organizacionId: string, procesoCodigo: string, etapaCodigo: string): Promise<EtapaParaEjecutar | null>;
+  /** Bodega principal de la finca (la primera creada). */
+  bodegaDeFinca(tx: Transaccion, organizacionId: string, fincaId: string): Promise<string | null>;
+  /** Existencias de café con kilos, por estado (código de producto), finca y lote. */
+  estadoDelCafe(tx: Transaccion, organizacionId: string, fincaIds: readonly string[], estados: readonly string[]): Promise<FilaEstadoCafe[]>;
   crearProceso(tx: Transaccion, p: { organizacionId: string; codigo: string; nombre: string; creadoPor: string; etapas: { codigo: string; nombre: string; productoEntradaId: string; productoSalidaId: string; mermaEsperadaPct?: string }[] }): Promise<string>;
   productosExisten(tx: Transaccion, organizacionId: string, ids: string[]): Promise<boolean>;
   listarProcesos(tx: Transaccion, organizacionId: string): Promise<FilaProceso[]>;

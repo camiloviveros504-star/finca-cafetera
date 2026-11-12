@@ -5,6 +5,7 @@ import type { Auditor, UnidadDeTrabajo } from "@/shared/aplicacion/puertos";
 import type { ContextoUsuario } from "@/shared/dominio/contexto";
 import { aEscala, aplicarFactor, deEscala, ESCALA_CANTIDAD } from "@/shared/dominio/decimal";
 import { ErrorClaveDuplicada, ErrorNegocio, ErrorRegla, ErrorValidacion } from "@/shared/dominio/errores";
+import { fechaColombia } from "@/shared/dominio/fechas";
 import { obtenerFactorConversion } from "@/modules/configuracion/application/consultas";
 import type { RepositorioConfiguracion } from "@/modules/configuracion/application/consultas";
 import { registrarEntradaPorCosecha } from "@/modules/inventario/application/movimientos";
@@ -56,6 +57,8 @@ export async function registrarCosecha(
   }
   const e = analizada.data;
   await autorizar(deps.auditor, ctx, "cosecha:registrar", { accion: "cosecha.registrar", entidad: "cosecha", fincaId: e.fincaId });
+  // Lo recogido ya pasó: una cosecha no puede llevar fecha futura (la cola sin conexión envía la fecha del día de captura).
+  if (e.fecha > fechaColombia()) throw new ErrorValidacion("La fecha de la cosecha no puede ser futura", { fecha: "No puede ser después de hoy" });
 
   const repetir = () =>
     deps.uow.consultar((tx) => deps.produccion.buscarCosechaPorClave(tx, e.claveIdempotencia, ctx.organizacionId));

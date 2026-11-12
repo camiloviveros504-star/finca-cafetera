@@ -13,7 +13,7 @@ const RUTAS = [
   // Extensiones (rol administrador, que ve todos los módulos)
   { nombre: "trabajadores", ruta: "/trabajadores", rol: "admin@demo.local" },
   { nombre: "produccion-trabajadores", ruta: "/trabajo", rol: "admin@demo.local" },
-  { nombre: "beneficio", ruta: "/beneficio", rol: "admin@demo.local" },
+  { nombre: "cafe-en-bodega", ruta: "/inventario", rol: "propietario@demo.local" },
   { nombre: "finanzas", ruta: "/finanzas", rol: "admin@demo.local" },
   { nombre: "compras", ruta: "/compras", rol: "admin@demo.local" },
   { nombre: "sanidad", ruta: "/sanidad", rol: "admin@demo.local" },

@@ -25,7 +25,7 @@ export async function accionRegistrarVenta(_previo: EstadoFormulario, datos: For
     if (!clienteId) return { error: "Elija el comprador o escriba uno nuevo" };
     const items = [1, 2, 3]
       .filter((n) => t("productoId" + n) !== "")
-      .map((n) => ({ productoId: t("productoId" + n), cantidad: dec("kg" + n), precioKg: dec("precio" + n) || undefined }));
+      .map((n) => ({ productoId: t("productoId" + n), cantidad: dec("kg" + n), unidad: t("unidad" + n) || "kg", precioKg: dec("precio" + n) || undefined }));
     const clave = t("claveIdempotencia");
     const r = await registrarVenta(servicios().comercial, ctx, {
       fincaId, clienteId, claveIdempotencia: clave, items,

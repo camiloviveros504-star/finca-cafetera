@@ -12,7 +12,7 @@ export class RepositorioVentasPg implements RepositorioVentas {
     const [fincas, clientes, productos, existencias] = await Promise.all([
       c.query("SELECT id, nombre FROM finca WHERE organizacion_id = $1 AND id = ANY($2::uuid[]) AND activa ORDER BY nombre", [organizacionId, fincaIds]),
       c.query("SELECT id, nombre FROM cliente WHERE organizacion_id = $1 AND activo AND (finca_id IS NULL OR finca_id = ANY($2::uuid[])) ORDER BY nombre", [organizacionId, fincaIds]),
-      c.query("SELECT id, codigo, nombre FROM producto WHERE organizacion_id = $1 AND activo AND vendible ORDER BY array_position(ARRAY['CER','PHU','PSE','PAS','PLU','EXC','TOS'], codigo), codigo", [organizacionId]),
+      c.query("SELECT id, codigo, nombre FROM producto WHERE organizacion_id = $1 AND activo AND vendible ORDER BY array_position(ARRAY['CER','PHU','PSE','PAS','PLU','EXC','TOS','MOL'], codigo), codigo", [organizacionId]),
       c.query("SELECT finca_id, producto_id, sum(cantidad) AS kg FROM saldo_inventario WHERE organizacion_id = $1 AND finca_id = ANY($2::uuid[]) AND cantidad > 0 GROUP BY finca_id, producto_id", [organizacionId, fincaIds]),
     ]);
     return {
@@ -60,6 +60,11 @@ export class RepositorioVentasPg implements RepositorioVentas {
       clave,
     ]);
     return r.rows[0] ? this.completar(tx, r.rows[0]) : null;
+  }
+
+  async contarVendibles(tx: Transaccion, organizacionId: string, ids: string[]): Promise<number> {
+    const r = await clienteDe(tx).query("SELECT count(*)::int AS n FROM producto WHERE organizacion_id = $1 AND vendible AND activo AND id = ANY($2::uuid[])", [organizacionId, ids]);
+    return r.rows[0].n as number;
   }
 
   async clienteExiste(tx: Transaccion, organizacionId: string, clienteId: string): Promise<boolean> {

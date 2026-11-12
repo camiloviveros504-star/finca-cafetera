@@ -32,4 +32,16 @@ export async function obtenerFactorConversion(
   return factor;
 }
 
+/** Factor (escala 6) para pasar una cantidad de la unidad indicada (kg, arroba, carga) a kilos, según la equivalencia vigente. */
+export async function factorAKilos(
+  deps: { repo: RepositorioConfiguracion },
+  tx: Transaccion,
+  entrada: { organizacionId: string; fincaId: string; unidad: string; fecha: string },
+): Promise<string> {
+  if (entrada.unidad === "kg") return "1.000000";
+  const [origenId, destinoId] = await Promise.all([deps.repo.unidadPorCodigo(tx, entrada.unidad), deps.repo.unidadPorCodigo(tx, "kg")]);
+  if (!origenId || !destinoId) throw new ErrorRegla("Unidad desconocida", "unidad_invalida");
+  return obtenerFactorConversion(deps, tx, { organizacionId: entrada.organizacionId, fincaId: entrada.fincaId, origenId, destinoId, fecha: entrada.fecha });
+}
+
 export type { RepositorioConfiguracion } from "../domain/puertos";

@@ -112,6 +112,9 @@ export async function sembrar(c: Client): Promise<void> {
       }
     }
 
+    // Camino del café (estados en lavado, en secado y molido; pasos de beneficio) y equivalencias base.
+    await c.query("SELECT preparar_camino_cafe($1)", [org.id]);
+
     // Precios de DEMOSTRACIÓN (no son valores comerciales).
     const precios: Array<[string, number]> = [["PSE", 14000], ["EXC", 19000]];
     for (const [codigo, valor] of precios) {

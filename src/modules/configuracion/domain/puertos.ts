@@ -25,6 +25,8 @@ export interface RepositorioConfiguracion {
     fecha: string,
   ): Promise<PrecioVigente | null>;
   /** Factor de conversión vigente (escala 6). Prefiere el de la finca sobre el general. */
+  /** Identificador de una unidad por su código (kg, arroba, carga…). */
+  unidadPorCodigo(tx: Transaccion, codigo: string): Promise<string | null>;
   factorConversion(
     tx: Transaccion,
     organizacionId: string,

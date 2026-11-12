@@ -11,6 +11,8 @@ import type { ContextoUsuario } from "@/shared/dominio/contexto";
 import { aEscala, deEscala, ESCALA_CANTIDAD } from "@/shared/dominio/decimal";
 import { ErrorNoEncontrado, ErrorRegla, ErrorValidacion } from "@/shared/dominio/errores";
 import type { RepositorioBeneficio } from "../domain/puertos";
+import { ESTADOS_CAFE, PASOS_CAFE } from "../domain/caminoCafe";
+import { fechaColombia } from "@/shared/dominio/fechas";
 
 export interface DependenciasBeneficio {
   repo: RepositorioBeneficio;
@@ -139,4 +141,53 @@ export async function listarRegistrosProceso(deps: DependenciasBeneficio, ctx: C
   return deps.uow.consultar((tx) => deps.repo.listarRegistros(tx, ctx.organizacionId, ctx.fincaIds, 100));
 }
 
-export type { FilaProceso, FilaRegistroProceso, EtapaProceso } from "../domain/puertos";
+const esquemaAvance = z.object({
+  paso: z.enum(PASOS_CAFE.map((p) => p.codigo) as [string, ...string[]], { message: "Elija el paso" }),
+  fincaId: uuid,
+  loteId: z.string().uuid({ message: "Elija el lote de origen" }),
+  fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida"),
+  kgEntrada: cantidadTxt,
+  kgSalida: z.preprocess((v) => (v === "" ? undefined : v), cantidadTxt.optional()),
+  claveIdempotencia: z.string().min(8).max(100),
+  nota: z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? undefined : v), z.string().trim().max(300).optional()),
+});
+
+/**
+ * Avanza café de un estado al siguiente en el camino del café (despulpar, lavar, poner a secar, terminar el secado,
+ * trillar, tostar, moler). Es una etapa del flujo `camino_cafe`: una transformación de inventario del mismo lote, que
+ * descuenta lo que entra (si no alcanza, se rechaza) y suma lo que sale. Los pasos que solo cambian el estado
+ * (poner a secar) no cambian el peso.
+ */
+export async function avanzarCafe(deps: DependenciasBeneficio, ctx: ContextoUsuario, cruda: unknown) {
+  const e = validar(esquemaAvance, cruda, "Revise los datos del paso");
+  await autorizar(deps.auditor, ctx, "proceso:registrar", { accion: "cafe.avanzar", entidad: "proceso_registro", fincaId: e.fincaId });
+  if (e.fecha > fechaColombia()) throw new ErrorValidacion("La fecha no puede ser futura", { fecha: "No puede ser después de hoy" });
+  const paso = PASOS_CAFE.find((p) => p.codigo === e.paso)!;
+  const kgSalida = paso.mismoPeso ? e.kgEntrada : e.kgSalida;
+  if (!kgSalida) throw new ErrorValidacion("Indique cuántos kilos quedaron", { kgSalida: "Obligatorio" });
+  const { etapa, bodegaId } = await deps.uow.consultar(async (tx) => ({
+    etapa: await deps.repo.obtenerEtapaPorCodigo(tx, ctx.organizacionId, "camino_cafe", paso.codigo),
+    bodegaId: await deps.repo.bodegaDeFinca(tx, ctx.organizacionId, e.fincaId),
+  }));
+  if (!etapa) throw new ErrorRegla("El camino del café no está configurado en esta organización", "sin_camino_cafe");
+  if (!bodegaId) throw new ErrorRegla("La finca no tiene bodega", "bodega_invalida");
+  const r = await ejecutarEtapa(deps, ctx, {
+    etapaId: etapa.id, fincaId: e.fincaId, bodegaId, fecha: e.fecha, claveIdempotencia: e.claveIdempotencia, justificacion: e.nota,
+    lineas: [{ loteId: e.loteId, cantidadEntrada: e.kgEntrada, cantidadSalida: kgSalida }],
+  });
+  return { ...r, paso: paso.nombre, kgEntrada: e.kgEntrada, kgSalida };
+}
+
+/** Cuánto café hay en cada estado (en tiempo real, de las existencias), en total y por lote. */
+export async function consultarEstadoCafe(deps: DependenciasBeneficio, ctx: ContextoUsuario) {
+  await autorizar(deps.auditor, ctx, "inventario:ver", { accion: "cafe.estado", entidad: "saldo_inventario" });
+  const filas = await deps.uow.consultar((tx) => deps.repo.estadoDelCafe(tx, ctx.organizacionId, ctx.fincaIds, ESTADOS_CAFE.map((x) => x.codigo)));
+  const estados = ESTADOS_CAFE.map((x) => {
+    const total = filas.filter((f) => f.estado === x.codigo).reduce((a, f) => a + aEscala(f.kg, ESCALA_CANTIDAD), 0n);
+    return { ...x, kg: deEscala(total, ESCALA_CANTIDAD) };
+  });
+  return { estados, porLote: filas };
+}
+
+export type { FilaProceso, FilaRegistroProceso, EtapaProceso, FilaEstadoCafe } from "../domain/puertos";
+export { ESTADOS_CAFE, PASOS_CAFE, nombreEstado, type EstadoCafe, type PasoCafe } from "../domain/caminoCafe";

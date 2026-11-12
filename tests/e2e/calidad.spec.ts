@@ -41,7 +41,7 @@ test("QA-08 · 50 cosechas sin señal se sincronizan solas en ≤ 60 s, sin pér
       for (let i = 0; i < 50; i++) {
         tx.objectStore("operaciones").put({
           id: crypto.randomUUID(), tipo: "cosecha", estado: "pendiente", resumen: `Prueba ${i}`, creadaEn: new Date(Date.now() + i).toISOString(), intentos: 0, proximoIntento: 0,
-          payload: { fincaId: d.finca, loteId: d.lote, bodegaId: d.bodega, productoId: d.producto, unidadId: d.unidad, fecha: new Date().toISOString().slice(0, 10), cantidad: "1", capturadaEn: new Date().toISOString(), claveIdempotencia: "" },
+          payload: { fincaId: d.finca, loteId: d.lote, bodegaId: d.bodega, productoId: d.producto, unidadId: d.unidad, fecha: new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date()), cantidad: "1", capturadaEn: new Date().toISOString(), claveIdempotencia: "" },
         });
       }
       tx.oncomplete = () => ok();
