@@ -12,7 +12,7 @@ Arquitectura de ejecución (C4 nivel 2): **Vercel Hobby** (aplicación Next.js) 
 ## 2. Variables de entorno (nunca en el repositorio)
 | Variable | Dónde | Valor |
 |---|---|---|
-| `DATABASE_URL` | Vercel y local | Cadena de conexión **externa** de Render con `?sslmode=require` (local: `postgresql://finca:finca_local@localhost:5433/finca`) |
+| `DATABASE_URL` | Vercel y local | Cadena de conexión **externa** de Render, tal como la da Render (sin agregarle `?sslmode=require`: el código ya activa SSL) (local: `postgresql://finca:finca_local@localhost:5433/finca`) |
 | `SESSION_SECRET` | Vercel y local | Texto aleatorio de 32 caracteres o más (por ejemplo `openssl rand -base64 48`) |
 | `APP_URL` | Vercel | URL pública de la aplicación (para la verificación de origen) |
 | `PG_POOL_MAX` | Vercel (opcional) | Conexiones por instancia; por defecto 5. Subirlo solo si Render lo permite |
@@ -23,10 +23,10 @@ Arquitectura de ejecución (C4 nivel 2): **Vercel Hobby** (aplicación Next.js) 
 
 ## 3. Despliegue paso a paso
 1. **Render:** crear *PostgreSQL* plan Free, región Virginia. Anotar la **fecha de creación** (expira a los 30 días). Copiar la *External Database URL*.
-2. **Migrar** desde un equipo con el repositorio: `DATABASE_URL="<externa>?sslmode=require" npm run db:iniciar` (aplica las migraciones `db/migraciones/*.sql` en orden; no siembra nada).
+2. **Migrar** desde un equipo con el repositorio: `DATABASE_URL="<externa>" npm run db:iniciar` (aplica las migraciones `db/migraciones/*.sql` en orden; no siembra nada).
 3. **GitHub:** subir el repositorio (rama `main`); el CI ejecuta lint, tipos, capas, migraciones y pruebas.
 4. **Vercel:** importar el repositorio, región `iad1`, y pegar `DATABASE_URL`, `SESSION_SECRET` y `APP_URL` en *Settings → Environment Variables*.
-5. **Instalar:** abrir `https://<su-url>/instalacion`, ingresar el `CODIGO_INSTALACION`, la organización, la primera finca y la cuenta del administrador. Luego, como administrador, crear los demás usuarios, configurar tarifas y equivalencias, y cargar clientes y trabajadores.
+5. **Instalar:** abrir `https://<su-url>/instalacion`, ingresar el `CODIGO_INSTALACION`, la organización y la cuenta del administrador. Luego el administrador crea las cuentas de los propietarios, y cada propietario registra sus fincas, lotes y equipo.
 6. **Verificar:** `GET /login` responde 200 e iniciar sesión con la cuenta creada.
 
 ## 4. Copias de seguridad y recuperación

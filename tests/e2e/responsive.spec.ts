@@ -33,7 +33,7 @@ async function entrar(page: Page, correo: string) {
   await page.waitForURL("**/inicio");
 }
 
-mkdirSync("docs/pruebas/capturas", { recursive: true });
+mkdirSync("test-results/capturas", { recursive: true });
 
 for (const t of TAMANOS) {
   test.describe(`tamaño ${t.nombre} (${t.ancho}×${t.alto})`, () => {
@@ -48,7 +48,7 @@ for (const t of TAMANOS) {
           visible: window.innerWidth,
         }));
         expect(ancho, `scrollWidth ${ancho} > innerWidth ${visible}`).toBeLessThanOrEqual(visible);
-        await page.screenshot({ path: `docs/pruebas/capturas/${r.nombre}-${t.nombre}.png` });
+        await page.screenshot({ path: `test-results/capturas/${r.nombre}-${t.nombre}.png` });
       });
     }
   });

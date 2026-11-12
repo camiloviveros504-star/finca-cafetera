@@ -98,7 +98,7 @@ fila("QA-15", "Usabilidad en campo", "≤ 60 s y ≤ 4 pasos; botones ≥ 44 × 
   q15 ? `${q15.pasos} pasos; ${q15.segundosAutomatizado} s con automatización (no sustituye una prueba con personas); ${q15.menoresDe44px} de ${q15.elementosInteractivosMedidos} elementos interactivos menores de 44 px` : "SIN MEDIR", q15?.entorno ?? "—", fmtFecha(q15?.fecha), q15?.comando ?? "—", q15 && q15.pasos <= 4 && q15.menoresDe44px === 0);
 const resp = resumenTests(/sin scroll horizontal/);
 fila("QA-16", "Responsive", "0 desbordes horizontales en 5 tamaños × flujos clave",
-  resp.total ? `${resp.ok} de ${resp.total} combinaciones tamaño × pantalla sin desborde (capturas en docs/pruebas/capturas)` : "SIN PRUEBAS EN EL REPORTE", "Chrome instalado, 5 tamaños de la sección 15.4", fmtFecha(leer("playwright.json")?.fecha), "npx playwright test tests/e2e/responsive.spec.ts", resp.total > 0 && resp.ok === resp.total);
+  resp.total ? `${resp.ok} de ${resp.total} combinaciones tamaño × pantalla sin desborde (capturas en test-results/capturas; no se versionan)` : "SIN PRUEBAS EN EL REPORTE", "Chrome instalado, 5 tamaños de la sección 15.4", fmtFecha(leer("playwright.json")?.fecha), "npx playwright test tests/e2e/responsive.spec.ts", resp.total > 0 && resp.ok === resp.total);
 
 const sinMedir = filas.filter((f) => f.obtenido.startsWith("SIN")).map((f) => f.id);
 const md = `# Informe de pruebas

@@ -48,5 +48,3 @@ test-results/
 playwright-report/
 .herramientas/
 
-# Capturas de pantalla generadas por las pruebas responsive: se regeneran, no se versionan
-/docs/pruebas/capturas/
