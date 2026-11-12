@@ -28,8 +28,8 @@ export function FormularioLote({ fincas, densidad }: { fincas: { id: string; nom
         { nombre: "nombre", etiqueta: "Nombre del lote", requerido: true, placeholder: "La Cima", ancho: "completo" },
         { nombre: "codigo", etiqueta: "Código", requerido: true, placeholder: "L-04" },
         { nombre: "areaHa", etiqueta: "Hectáreas", tipo: "number", requerido: true },
-        { nombre: "variedad", etiqueta: "Variedad (opcional)", placeholder: "Castillo, Cenicafé 1…", ancho: "completo" },
         { nombre: "yaSembrado", etiqueta: "Ya está sembrado", tipo: "checkbox" },
+        { nombre: "variedad", etiqueta: "Variedad de café (opcional)", placeholder: "Castillo, Cenicafé 1…", ancho: "completo", visibleSi: "yaSembrado" },
         { nombre: "fechaSiembra", etiqueta: "Fecha de siembra", tipo: "date", visibleSi: "yaSembrado" },
         { nombre: "numeroArboles", etiqueta: "Árboles", tipo: "number", inputMode: "numeric", visibleSi: "yaSembrado", ayuda: `Referencia: unos ${densidad.toLocaleString("es-CO")} por hectárea.` },
       ]}
@@ -59,6 +59,7 @@ export function FormularioEventoLote({ loteId, estado, densidad, areaHa }: { lot
         { nombre: "tipo", etiqueta: "¿Qué se hizo?", tipo: "select", opciones, requerido: true, ancho: "completo" },
         { nombre: "fecha", etiqueta: "Fecha", tipo: "date", requerido: true },
         { nombre: "arboles", etiqueta: sembrado ? "Árboles (solo si es siembra)" : "Árboles sembrados", tipo: "number", inputMode: "numeric", valorInicial: sembrado ? "" : sugeridos },
+        ...(sembrado ? [] : [{ nombre: "variedad", etiqueta: "Variedad de café sembrada (opcional)", placeholder: "Castillo, Cenicafé 1…" }]),
         { nombre: "detalle", etiqueta: "Detalle (opcional)" },
       ]}
     />

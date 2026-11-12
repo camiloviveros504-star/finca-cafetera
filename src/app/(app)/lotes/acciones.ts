@@ -29,7 +29,7 @@ export async function accionCrearLote(_p: EstadoFormulario, d: FormData): Promis
 export async function accionEventoLote(_p: EstadoFormulario, d: FormData): Promise<EstadoFormulario> {
   const ctx = await exigirContexto();
   try {
-    await registrarEventoLote(servicios().cultivo, ctx, { loteId: t(d, "loteId"), tipo: t(d, "tipo"), fecha: t(d, "fecha"), arboles: t(d, "arboles"), detalle: t(d, "detalle") });
+    await registrarEventoLote(servicios().cultivo, ctx, { loteId: t(d, "loteId"), tipo: t(d, "tipo"), fecha: t(d, "fecha"), arboles: t(d, "arboles"), variedad: t(d, "variedad"), detalle: t(d, "detalle") });
     revalidatePath("/lotes");
     return { ok: true, mensaje: "Registrado en el historial del lote." };
   } catch (error) {

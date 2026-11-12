@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { crearFinca, crearLote, ErrorProhibido, listarFincasYLotes } from "@/composicion";
+import { crearFinca, crearLote, ErrorProhibido, listarFincasYLotes, registrarEventoLote } from "@/composicion";
+import { fechaColombia } from "@/shared/dominio/fechas";
 import { crearEntorno, type Entorno } from "../ayudas/entorno";
 
 let e: Entorno;
@@ -35,5 +36,18 @@ describe("fincas y lotes", () => {
     await crearLote(e.servicios.fincasLotes, prod, { fincaId: e.ids.finca1, codigo: "L-50", nombre: "Lote del encargado" });
     await expect(crearFinca(e.servicios.fincasLotes, prod, { nombre: "Finca no permitida" })).rejects.toThrow(ErrorProhibido);
     await expect(crearLote(e.servicios.fincasLotes, prod, { fincaId: e.ids.finca2, codigo: "L-51", nombre: "Ajeno" })).rejects.toThrow(ErrorProhibido);
+  });
+
+  it("la variedad solo se guarda si el lote está sembrado: al sembrarlo se registra y al tumbarlo se borra", async () => {
+    const dueno = await e.contexto("propietario@demo.local");
+    const variedad = async (id: string) => (await e.pool.query("SELECT variedad FROM lote WHERE id = $1", [id])).rows[0].variedad;
+    const { id } = await crearLote(e.servicios.fincasLotes, dueno, { fincaId: e.ids.finca1, codigo: "L-70", nombre: "Lote por sembrar", areaHa: "1", variedad: "Castillo" });
+    expect(await variedad(id)).toBeNull();
+    await registrarEventoLote(e.servicios.cultivo, dueno, { loteId: id, tipo: "siembra", fecha: fechaColombia(), arboles: "5000", variedad: "Cenicafé 1" });
+    expect(await variedad(id)).toBe("Cenicafé 1");
+    await registrarEventoLote(e.servicios.cultivo, dueno, { loteId: id, tipo: "tumba", fecha: fechaColombia() });
+    expect(await variedad(id)).toBeNull();
+    const sembrado = await crearLote(e.servicios.fincasLotes, dueno, { fincaId: e.ids.finca1, codigo: "L-71", nombre: "Lote sembrado", areaHa: "1", variedad: "Castillo", fechaSiembra: "2024-03-01", numeroArboles: "5000" });
+    expect(await variedad(sembrado.id)).toBe("Castillo");
   });
 });

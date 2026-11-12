@@ -86,6 +86,8 @@ const esquemaEvento = z.object({
   tipo: z.enum(["siembra", "zoca", "tumba", "resiembra", "observacion"], { message: "Tipo de evento inválido" }),
   fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida"),
   arboles: z.preprocess((v) => (v === "" || v === undefined ? undefined : Number(v)), z.number().int().min(1).max(200000).optional()),
+  /** Variedad sembrada (solo en siembra o resiembra). */
+  variedad: z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? undefined : v), z.string().trim().max(60).optional()),
   detalle: z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? undefined : v), z.string().trim().max(300).optional()),
 });
 
@@ -110,7 +112,7 @@ export async function registrarEventoLote(deps: DependenciasCultivo, ctx: Contex
       if (!e.arboles) throw new ErrorValidacion("Indique cuántos árboles se sembraron", { arboles: "Obligatorio" });
     }
     if ((e.tipo === "zoca" || e.tipo === "tumba") && !sembrado) throw new ErrorRegla("El lote no está sembrado", "lote_sin_sembrar");
-    await deps.repo.aplicarEvento(tx, { organizacionId: ctx.organizacionId, loteId: e.loteId, tipo: e.tipo, fecha: e.fecha, arboles: e.arboles, detalle: e.detalle, creadoPor: ctx.usuarioId });
+    await deps.repo.aplicarEvento(tx, { organizacionId: ctx.organizacionId, loteId: e.loteId, tipo: e.tipo, fecha: e.fecha, arboles: e.arboles, variedad: e.tipo === "siembra" || e.tipo === "resiembra" ? e.variedad : undefined, detalle: e.detalle, creadoPor: ctx.usuarioId });
     await deps.auditor.registrar({ organizacionId: ctx.organizacionId, usuarioId: ctx.usuarioId, accion: "lote.evento", entidad: "lote", entidadId: e.loteId, resultado: "ok", despues: { tipo: e.tipo, fecha: e.fecha, arboles: e.arboles ?? null }, ip: ctx.ip }, tx);
     return { ok: true };
   });

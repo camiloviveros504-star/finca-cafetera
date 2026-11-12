@@ -36,15 +36,15 @@ export class RepositorioCultivoPg implements RepositorioCultivo {
     return x ? { id: x.id as string, fincaId: x.finca_id as string, estado: x.estado_productivo as string, numeroArboles: x.numero_arboles as number | null } : null;
   }
 
-  async aplicarEvento(tx: Transaccion, e: { organizacionId: string; loteId: string; tipo: string; fecha: string; arboles?: number; detalle?: string; creadoPor: string }) {
+  async aplicarEvento(tx: Transaccion, e: { organizacionId: string; loteId: string; tipo: string; fecha: string; arboles?: number; variedad?: string; detalle?: string; creadoPor: string }) {
     const c = clienteDe(tx);
     await c.query("INSERT INTO lote_evento (organizacion_id, lote_id, fecha, tipo, arboles, detalle, creado_por) VALUES ($1,$2,$3,$4,$5,$6,$7)", [e.organizacionId, e.loteId, e.fecha, e.tipo, e.arboles ?? null, e.detalle ?? null, e.creadoPor]);
     if (e.tipo === "siembra" || e.tipo === "resiembra") {
-      await c.query("UPDATE lote SET estado_productivo = 'levante', fecha_siembra = $2, numero_arboles = $3, fecha_ultima_zoca = NULL WHERE id = $1", [e.loteId, e.fecha, e.arboles]);
+      await c.query("UPDATE lote SET estado_productivo = 'levante', fecha_siembra = $2, numero_arboles = $3, variedad = $4, fecha_ultima_zoca = NULL WHERE id = $1", [e.loteId, e.fecha, e.arboles, e.variedad ?? null]);
     } else if (e.tipo === "zoca") {
       await c.query("UPDATE lote SET estado_productivo = 'zoca', fecha_ultima_zoca = $2 WHERE id = $1", [e.loteId, e.fecha]);
     } else if (e.tipo === "tumba") {
-      await c.query("UPDATE lote SET estado_productivo = 'sin_sembrar', numero_arboles = NULL, fecha_siembra = NULL, fecha_ultima_zoca = NULL WHERE id = $1", [e.loteId]);
+      await c.query("UPDATE lote SET estado_productivo = 'sin_sembrar', numero_arboles = NULL, variedad = NULL, fecha_siembra = NULL, fecha_ultima_zoca = NULL WHERE id = $1", [e.loteId]);
     }
   }
 
