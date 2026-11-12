@@ -3,18 +3,18 @@ import { Client } from "pg";
 
 const CLAVE = "Demo-2026!";
 
-/** Llena la venta por tipo de café: tipo, kilos y precio por kilo (el precio lo fija quien vende). */
-async function llenarVenta(page: Page, kg: string) {
-  await page.locator('select[name="clienteId"]').selectOption({ index: 1 });
-  await page.locator('select[name="productoId1"]').selectOption({ label: "Pergamino seco DEMO" });
-  await page.locator('input[name="kg1"]').fill(kg);
-  await page.locator('input[name="precio1"]').fill("10000");
-}
-
 /** Elige la opción de una lista cuyo texto contiene `texto`. */
 async function elegir(lista: Locator, texto: string) {
   const valor = await lista.locator("option", { hasText: texto }).first().getAttribute("value");
   await lista.selectOption(valor ?? "");
+}
+
+/** Llena la venta por tipo de café: tipo, kilos y precio por kilo (el precio lo fija quien vende). */
+async function llenarVenta(page: Page, kg: string) {
+  await page.locator('select[name="clienteId"]').selectOption({ index: 1 });
+  await elegir(page.locator('select[name="productoId1"]'), "Pergamino seco DEMO");
+  await page.locator('input[name="kg1"]').fill(kg);
+  await page.locator('input[name="precio1"]').fill("10000");
 }
 
 async function entrar(page: Page, correo: string) {
@@ -37,12 +37,19 @@ test.describe("flujos con roles", () => {
     await expect(page.getByText(/Cosechas del lote/).first()).toBeVisible();
   });
 
-  test("una venta mayor que las existencias se rechaza con mensaje claro", async ({ page }) => {
+  test("la venta muestra en tiempo real lo disponible, en kilos y en arrobas, y no deja pasar de ahí", async ({ page }) => {
     await entrar(page, "comercial@demo.local");
     await page.goto("/ventas/nueva");
+    // Solo se ofrecen tipos de café con kilos, y cada uno dice cuánto hay.
+    await expect(page.locator('select[name="productoId1"] option', { hasText: "Pergamino seco DEMO" })).toContainText("kg disponibles");
     await llenarVenta(page, "999999");
-    await page.getByRole("button", { name: "Registrar venta" }).click();
-    await expect(page.locator("main [role=alert]")).toContainText("Existencias insuficientes");
+    await expect(page.getByText(/No alcanza: hay/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Registrar venta" })).toBeDisabled();
+    // En arrobas se muestra lo disponible convertido.
+    await page.locator('input[name="kg1"]').fill("1");
+    await page.locator('select[name="unidad1"]').selectOption("arroba");
+    await expect(page.getByText(/Disponible: .* arrobas (.* kg)/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Registrar venta" })).toBeEnabled();
   });
 
   test("administrador de la plataforma: crea la cuenta de un propietario, no crea fincas y su menú no trae lo operativo", async ({ page }) => {
