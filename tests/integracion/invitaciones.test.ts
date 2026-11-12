@@ -31,14 +31,19 @@ afterAll(async () => {
   await e.cerrar();
 });
 
-const invitar = async (correo: string, roles = ["recolector"]) => {
+/** El administrador invita propietarios (sin fincas: las registran ellos); el propietario invita a su equipo en sus fincas. */
+const invitar = async (correo: string, roles = ["propietario"]) => {
+  if (roles.every((r) => r === "capataz" || r === "trabajador")) {
+    const dueno = await e.contexto("propietario.ambas@demo.local");
+    return invitarUsuario(e.servicios.invitaciones, dueno, { correo, nombre: "Persona Invitada DEMO", roles, fincaIds: [e.ids.finca1] });
+  }
   const admin = await e.contexto("admin@demo.local");
-  return invitarUsuario(e.servicios.invitaciones, admin, { correo, nombre: "Persona Invitada DEMO", roles, fincaIds: [e.ids.finca1] });
+  return invitarUsuario(e.servicios.invitaciones, admin, { correo, nombre: "Persona Invitada DEMO", roles, fincaIds: [] });
 };
 const activar = (token: string, extra: Record<string, unknown> = {}) =>
   activarCuenta(e.servicios.invitaciones, { token, contrasena: CLAVE, confirmacion: CLAVE, aceptaTratamiento: true, ip: ip(), ...extra });
 
-describe("alta de usuarios por invitación (todo parte del administrador)", () => {
+describe("alta de usuarios por invitación", () => {
   it("el administrador define los roles; la persona fija su propia contraseña y entra con los permisos de su rol", async () => {
     const inv = await invitar("nueva.persona@finca.co");
     // Antes de activar no puede entrar: la cuenta existe pero nadie conoce una contraseña.
@@ -53,9 +58,10 @@ describe("alta de usuarios por invitación (todo parte del administrador)", () =
     await activar(inv.token);
     const sesion = await iniciarSesion(e.servicios.sesion, { correo: "nueva.persona@finca.co", contrasena: CLAVE, ip: ip() });
     const ctx = await obtenerContexto(e.servicios.sesion, sesion.token, ip());
-    expect(ctx.roles).toEqual(["recolector"]);
-    expect(ctx.permisos.has("trabajo:registrar_propio")).toBe(true);
-    expect(ctx.permisos.has("venta:crear")).toBe(false);
+    expect(ctx.roles).toEqual(["propietario"]);
+    expect(ctx.fincaIds).toEqual([]); // registra sus fincas al entrar
+    expect(ctx.permisos.has("finca:crear")).toBe(true);
+    expect(ctx.permisos.has("usuario:administrar")).toBe(false);
     const despues = (await e.pool.query("SELECT activo, autorizo_tratamiento_en, password_hash FROM usuario WHERE correo = 'nueva.persona@finca.co'")).rows[0];
     expect(despues.activo).toBe(true);
     expect(despues.autorizo_tratamiento_en).not.toBeNull();
@@ -71,7 +77,7 @@ describe("alta de usuarios por invitación (todo parte del administrador)", () =
   });
 
   it("el enlace es de un solo uso: reutilizarlo falla, y solo se guarda su huella (nunca el token)", async () => {
-    const inv = await invitar("un.solo.uso@finca.co", ["bodega"].map((r) => (r === "bodega" ? "responsable_bodega" : r)));
+    const inv = await invitar("un.solo.uso@finca.co");
     const guardado = (await e.pool.query("SELECT token_hash FROM invitacion_usuario i JOIN usuario u ON u.id = i.usuario_id WHERE u.correo = 'un.solo.uso@finca.co'")).rows[0].token_hash;
     expect(guardado).toBe(sha256(inv.token));
     expect(guardado).not.toContain(inv.token);
@@ -83,18 +89,18 @@ describe("alta de usuarios por invitación (todo parte del administrador)", () =
   });
 
   it("dos activaciones simultáneas con el mismo enlace: solo una prospera", async () => {
-    const inv = await invitar("carrera@finca.co", ["auditor"]);
+    const inv = await invitar("carrera@finca.co");
     const r = await Promise.allSettled(Array.from({ length: 6 }, () => activar(inv.token)));
     expect(r.filter((x) => x.status === "fulfilled")).toHaveLength(1);
   });
 
   it("un enlace vencido, uno inventado y uno revocado se rechazan igual (sin revelar cuál es el motivo)", async () => {
-    const inv = await invitar("vencido@finca.co", ["auditor"]);
+    const inv = await invitar("vencido@finca.co");
     await e.pool.query("UPDATE invitacion_usuario SET expira_en = now() - interval '1 minute' WHERE token_hash = $1", [sha256(inv.token)]);
     await expect(activar(inv.token)).rejects.toThrow(/no es válido o ya venció/);
     await expect(activar("t".repeat(43))).rejects.toThrow(/no es válido o ya venció/);
 
-    const otra = await invitar("revocado@finca.co", ["auditor"]);
+    const otra = await invitar("revocado@finca.co");
     const admin = await e.contexto("admin@demo.local");
     const usuarioId = (await listarUsuarios(e.servicios.usuarios, admin)).usuarios.find((u) => u.correo === "revocado@finca.co")!.id;
     const nuevo = await emitirEnlace(e.servicios.invitaciones, admin, { usuarioId });
@@ -103,7 +109,7 @@ describe("alta de usuarios por invitación (todo parte del administrador)", () =
   });
 
   it("rechaza contraseñas débiles, distintas o sin aceptar el tratamiento de datos", async () => {
-    const inv = await invitar("debil@finca.co", ["auditor"]);
+    const inv = await invitar("debil@finca.co");
     await expect(activar(inv.token, { contrasena: "corta1", confirmacion: "corta1" })).rejects.toThrow(ErrorValidacion);
     await expect(activar(inv.token, { contrasena: "password12345", confirmacion: "password12345" })).rejects.toThrow(ErrorValidacion);
     await expect(activar(inv.token, { contrasena: "debil2026abcd", confirmacion: "debil2026abcd" })).rejects.toThrow(ErrorValidacion); // contiene su usuario de correo
@@ -139,7 +145,7 @@ describe("alta de usuarios por invitación (todo parte del administrador)", () =
   });
 
   it("una cuenta pendiente no se activa ni desactiva con el interruptor; se le genera un enlace", async () => {
-    await invitar("pendiente@finca.co", ["auditor"]);
+    await invitar("pendiente@finca.co");
     const admin = await e.contexto("admin@demo.local");
     const u = (await listarUsuarios(e.servicios.usuarios, admin)).usuarios.find((x) => x.correo === "pendiente@finca.co")!;
     expect(u).toMatchObject({ pendiente: true, invitacionVigente: true });
@@ -149,8 +155,8 @@ describe("alta de usuarios por invitación (todo parte del administrador)", () =
   it("el propietario vincula la cuenta de un trabajador con su ficha, una sola vez; el administrador de la plataforma no opera fichas", async () => {
     const admin = await e.contexto("admin@demo.local");
     const dueno = await e.contexto("propietario.ambas@demo.local");
-    const inv = await invitar("trabajador.nuevo@finca.co");
-    const usuarioId = (await listarUsuarios(e.servicios.usuarios, admin)).usuarios.find((x) => x.correo === "trabajador.nuevo@finca.co")!.id;
+    const inv = await invitar("trabajador.nuevo@finca.co", ["trabajador"]);
+    const usuarioId = (await listarUsuarios(e.servicios.usuarios, dueno)).usuarios.find((x) => x.correo === "trabajador.nuevo@finca.co")!.id;
     const trabajadorId = (await e.pool.query("SELECT id FROM trabajador WHERE numero_documento = '1000000002'")).rows[0].id; // sin cuenta de acceso
     await expect(vincularUsuarioATrabajador(e.servicios.talento, admin, { trabajadorId, usuarioId })).rejects.toThrow(ErrorProhibido);
     await vincularUsuarioATrabajador(e.servicios.talento, dueno, { trabajadorId, usuarioId });

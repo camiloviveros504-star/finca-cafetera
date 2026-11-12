@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ErrorProhibido, listarFincasYLotes, obtenerAjustes, servicios, type ValorCatalogo } from "@/composicion";
 import { EncabezadoModulo } from "../../../_componentes/EncabezadoModulo";
 import { FormularioGenerico } from "../../../_componentes/FormularioGenerico";
@@ -51,7 +52,7 @@ export default async function AjustesFinca() {
     return (
       <div className="space-y-6">
         <EncabezadoModulo titulo="Ajustes de mi finca" />
-        <p className="rounded-xl border border-dashed border-borde bg-white p-6 text-sm text-suave">Todavía no tiene fincas asignadas. Cuando el administrador le asigne una, aquí podrá ajustar cómo trabaja.</p>
+        <p className="rounded-xl border border-dashed border-borde bg-white p-6 text-sm text-suave">Todavía no tiene fincas. Regístrela en <Link href="/mis-fincas" className="font-medium text-bosque underline">Mis fincas</Link> y aquí podrá ajustar cómo trabaja.</p>
       </div>
     );
   }

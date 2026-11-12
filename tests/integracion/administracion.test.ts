@@ -41,24 +41,24 @@ afterAll(async () => {
 describe("usuarios, roles y permisos", () => {
   it("el administrador crea un usuario: contraseña con Argon2id, nunca en claro, y puede iniciar sesión", async () => {
     const admin = await e.contexto("admin@demo.local");
-    const { id } = await crearUsuario(e.servicios.usuarios, admin, { correo: "Nuevo@Demo.local", nombre: "Usuario Nuevo DEMO", contrasena: "ClaveNueva2026", roles: ["supervisor_campo"], fincaIds: [e.ids.finca1], autorizaTratamiento: true });
+    const { id } = await crearUsuario(e.servicios.usuarios, admin, { correo: "Nuevo@Demo.local", nombre: "Usuario Nuevo DEMO", contrasena: "ClaveNueva2026", roles: ["propietario"], fincaIds: [], autorizaTratamiento: true });
     const fila = await e.pool.query("SELECT correo, password_hash FROM usuario WHERE id = $1", [id]);
     expect(fila.rows[0].correo).toBe("nuevo@demo.local");
     expect(fila.rows[0].password_hash).toMatch(/^\$argon2id\$/);
     expect(fila.rows[0].password_hash).not.toContain("ClaveNueva2026");
     const sesion = await iniciarSesion(e.servicios.sesion, { correo: "nuevo@demo.local", contrasena: "ClaveNueva2026", ip: ip() });
     const ctx = await obtenerContexto(e.servicios.sesion, sesion.token, ip());
-    expect(ctx.roles).toEqual(["supervisor_campo"]);
-    expect(ctx.permisos.has("trabajo:validar")).toBe(true);
-    expect(ctx.permisos.has("tarifa:modificar")).toBe(false);
+    expect(ctx.roles).toEqual(["propietario"]);
+    expect(ctx.permisos.has("finca:crear")).toBe(true);
+    expect(ctx.permisos.has("usuario:administrar")).toBe(false);
     // La auditoría no contiene la contraseña ni el hash.
     const aud = await e.pool.query("SELECT count(*)::int AS n FROM auditoria WHERE despues::text LIKE '%ClaveNueva2026%' OR despues::text LIKE '%argon2%'");
     expect(aud.rows[0].n).toBe(0);
   });
 
-  it("rechaza contraseñas débiles, correos repetidos y fincas ajenas", async () => {
+  it("rechaza contraseñas débiles, correos repetidos y que el administrador asigne fincas", async () => {
     const admin = await e.contexto("admin@demo.local");
-    const base = { correo: "otro@demo.local", nombre: "Otro Usuario DEMO", contrasena: "ClaveNueva2026", roles: ["auditor"], fincaIds: [e.ids.finca1], autorizaTratamiento: true };
+    const base = { correo: "otro@demo.local", nombre: "Otro Usuario DEMO", contrasena: "ClaveNueva2026", roles: ["propietario"], fincaIds: [] as string[], autorizaTratamiento: true };
     await expect(crearUsuario(e.servicios.usuarios, admin, { ...base, contrasena: "corta1" })).rejects.toThrow(ErrorValidacion);
     await expect(crearUsuario(e.servicios.usuarios, admin, { ...base, contrasena: "sololetrasaqui" })).rejects.toThrow(ErrorValidacion);
     await expect(crearUsuario(e.servicios.usuarios, admin, { ...base, autorizaTratamiento: false })).rejects.toThrow(ErrorValidacion);

@@ -2,13 +2,14 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   activarCuenta,
-  altaDeFinca,
   asignarRolesYFincas,
   cambiarEstadoUsuario,
   emitirEnlace,
   invitarUsuario,
   ErrorNoEncontrado,
+  crearFinca,
   crearLote,
+  editarFinca,
   ErrorProhibido,
   ErrorRegla,
   ErrorValidacion,
@@ -35,41 +36,38 @@ afterAll(async () => {
 });
 
 describe("administrador de la plataforma", () => {
-  it("da de alta una finca con su propietario en un solo paso; el propietario activa su cuenta y solo ve su finca", async () => {
+  it("crea la cuenta del propietario sin fincas; al activarla, el propietario registra su finca y sus lotes", async () => {
     const admin = await e.contexto("admin@demo.local");
-    const r = await altaDeFinca(e.servicios, admin, { nombre: "Finca El Roble", ubicacion: "Vereda Alta", areaHa: "12", propietarioNombre: "María Gómez", propietarioCorreo: "maria@elroble.co" });
-    expect(r.invitacion).not.toBeNull();
-    expect((await e.pool.query("SELECT count(*)::int AS n FROM bodega WHERE finca_id = $1", [r.fincaId])).rows[0].n).toBe(1);
-
+    const inv = await invitarUsuario(e.servicios.invitaciones, admin, { correo: "maria@elroble.co", nombre: "María Gómez", roles: ["propietario"], fincaIds: [] });
     const usuario = (await listarUsuarios(e.servicios.usuarios, admin)).usuarios.find((u) => u.correo === "maria@elroble.co")!;
-    expect(usuario).toMatchObject({ pendiente: true, roles: ["propietario"] });
-    expect(usuario.fincas.map((f) => f.id)).toEqual([r.fincaId]);
+    expect(usuario).toMatchObject({ pendiente: true, roles: ["propietario"], fincas: [] });
 
-    await activarCuenta(e.servicios.invitaciones, { token: r.invitacion!.token, contrasena: CLAVE, confirmacion: CLAVE, aceptaTratamiento: true, ip: "10.7.7.7" });
+    await activarCuenta(e.servicios.invitaciones, { token: inv.token, contrasena: CLAVE, confirmacion: CLAVE, aceptaTratamiento: true, ip: "10.7.7.7" });
     const sesion = await iniciarSesion(e.servicios.sesion, { correo: "maria@elroble.co", contrasena: CLAVE, ip: "10.7.7.8" });
-    const dueno = await obtenerContexto(e.servicios.sesion, sesion.token, "10.7.7.8");
-    expect(dueno.fincaIds).toEqual([r.fincaId]);
+    let dueno = await obtenerContexto(e.servicios.sesion, sesion.token, "10.7.7.8");
+    expect(dueno.fincaIds).toEqual([]);
 
-    // Ella maneja su finca: crea lotes. No ve las demás fincas.
-    await crearLote(e.servicios.fincasLotes, dueno, { fincaId: r.fincaId, codigo: "L-01", nombre: "Lote Alto", areaHa: "2" });
+    // Ella registra su finca: queda a su nombre, con su bodega, y la ve de inmediato.
+    const { id: fincaId } = await crearFinca(e.servicios.fincasLotes, dueno, { nombre: "Finca El Roble", ubicacion: "Vereda Alta", areaHa: "12" });
+    expect((await e.pool.query("SELECT count(*)::int AS n FROM bodega WHERE finca_id = $1", [fincaId])).rows[0].n).toBe(1);
+    expect((await e.pool.query("SELECT propietario_id FROM finca WHERE id = $1", [fincaId])).rows[0].propietario_id).toBe(usuario.id);
+    dueno = await obtenerContexto(e.servicios.sesion, sesion.token, "10.7.7.8");
+    expect(dueno.fincaIds).toEqual([fincaId]);
+
+    await crearLote(e.servicios.fincasLotes, dueno, { fincaId, codigo: "L-01", nombre: "Lote Alto", areaHa: "2" });
     const vista = await listarFincasYLotes(e.servicios.fincasLotes, dueno);
     expect(vista.fincas.map((f) => f.nombre)).toEqual(["Finca El Roble"]);
+    // El administrador la ve a nombre de ella.
+    expect((await listarFincasYLotes(e.servicios.fincasLotes, await e.contexto("admin@demo.local"))).fincas.find((f) => f.id === fincaId)!.propietarioId).toBe(usuario.id);
   });
 
-  it("valida antes de crear: correo repetido o incompleto no deja una finca sin dueño", async () => {
+  it("el administrador no crea fincas ni se las asigna a nadie", async () => {
     const admin = await e.contexto("admin@demo.local");
-    const antes = (await e.pool.query("SELECT count(*)::int AS n FROM finca")).rows[0].n;
-    await expect(altaDeFinca(e.servicios, admin, { nombre: "Finca Repetida", propietarioNombre: "Otro", propietarioCorreo: "propietario@demo.local" })).rejects.toThrow(ErrorRegla);
-    await expect(altaDeFinca(e.servicios, admin, { nombre: "Finca Sin Correo", propietarioNombre: "Alguien" })).rejects.toThrow(ErrorValidacion);
-    await expect(altaDeFinca(e.servicios, admin, { nombre: "Finca Correo Malo", propietarioNombre: "Alguien", propietarioCorreo: "no-es-correo" })).rejects.toThrow(ErrorValidacion);
-    expect((await e.pool.query("SELECT count(*)::int AS n FROM finca")).rows[0].n).toBe(antes);
-    // Sin propietario también se puede crear: queda para asignarlo después.
-    expect((await altaDeFinca(e.servicios, admin, { nombre: "Finca Sin Dueño Aún" })).invitacion).toBeNull();
-  });
-
-  it("solo el administrador da de alta fincas", async () => {
-    const dueno = await e.contexto("propietario@demo.local");
-    await expect(altaDeFinca(e.servicios, dueno, { nombre: "Finca Ajena" })).rejects.toThrow(ErrorProhibido);
+    await expect(crearFinca(e.servicios.fincasLotes, admin, { nombre: "Finca Del Admin" })).rejects.toThrow(ErrorProhibido);
+    await expect(invitarUsuario(e.servicios.invitaciones, admin, { correo: "con.finca@prueba.co", nombre: "Dueño Con Finca", roles: ["propietario"], fincaIds: [e.ids.finca1] })).rejects.toThrow(ErrorRegla);
+    const duenoId = (await e.pool.query("SELECT id FROM usuario WHERE correo = $1", ["propietario@demo.local"])).rows[0].id;
+    await expect(asignarRolesYFincas(e.servicios.usuarios, admin, { usuarioId: duenoId, roles: ["propietario"], fincaIds: [e.ids.finca2] })).rejects.toThrow(ErrorRegla);
+    expect((await e.contexto("propietario@demo.local")).fincaIds).not.toContain(e.ids.finca2);
   });
 
   it("consulta todo en solo lectura pero no opera: no vende, no cosecha, no compra, no crea lotes", async () => {
@@ -125,9 +123,9 @@ describe("quién crea qué cuenta", () => {
     for (const rol of ["capataz", "trabajador"]) {
       await expect(invitarUsuario(e.servicios.invitaciones, admin, { correo: `${rol}.admin@prueba.co`, nombre: "No Debe", roles: [rol], fincaIds: [e.ids.finca1] })).rejects.toThrow(ErrorRegla);
     }
-    // Otro administrador no necesita finca; un propietario sí.
+    // Ni otro administrador ni un propietario necesitan finca: el propietario registra las suyas.
     await invitarUsuario(e.servicios.invitaciones, admin, { correo: "otro.admin@prueba.co", nombre: "Otro Administrador", roles: ["administrador"], fincaIds: [] });
-    await expect(invitarUsuario(e.servicios.invitaciones, admin, { correo: "sin.finca@prueba.co", nombre: "Dueño Sin Finca", roles: ["propietario"], fincaIds: [] })).rejects.toThrow(ErrorValidacion);
+    await invitarUsuario(e.servicios.invitaciones, admin, { correo: "sin.finca@prueba.co", nombre: "Dueño Sin Finca", roles: ["propietario"], fincaIds: [] });
     const roles = (await listarUsuarios(e.servicios.usuarios, admin)).roles.map((r) => r.codigo);
     expect(roles).not.toContain("capataz");
     expect(roles).not.toContain("trabajador");
@@ -151,7 +149,7 @@ describe("quién crea qué cuenta", () => {
     const otro = await e.contexto("propietario@demo.local");
     await expect(invitarUsuario(e.servicios.invitaciones, otro, { correo: "ajeno@prueba.co", nombre: "Capataz Ajeno", roles: ["capataz"], fincaIds: [e.ids.finca2] })).rejects.toThrow(ErrorProhibido);
     await expect(invitarUsuario(e.servicios.invitaciones, otro, { correo: "dueno2@prueba.co", nombre: "Otro Dueño", roles: ["propietario"], fincaIds: [e.ids.finca1] })).rejects.toThrow(ErrorProhibido);
-    await expect(invitarUsuario(e.servicios.invitaciones, otro, { correo: "sin.fincas@prueba.co", nombre: "Capataz Sin Finca", roles: ["capataz"], fincaIds: [] })).rejects.toThrow(ErrorProhibido);
+    await expect(invitarUsuario(e.servicios.invitaciones, otro, { correo: "sin.fincas@prueba.co", nombre: "Capataz Sin Finca", roles: ["capataz"], fincaIds: [] })).rejects.toThrow(ErrorValidacion);
     await expect(asignarRolesYFincas(e.servicios.usuarios, otro, { usuarioId: r.usuarioId, roles: ["capataz"], fincaIds: [e.ids.finca1] })).rejects.toThrow(ErrorNoEncontrado);
     const adminId = (await e.pool.query("SELECT id FROM usuario WHERE correo = $1", ["admin@demo.local"])).rows[0].id;
     await expect(asignarRolesYFincas(e.servicios.usuarios, otro, { usuarioId: adminId, roles: ["capataz"], fincaIds: [e.ids.finca1] })).rejects.toThrow(ErrorNoEncontrado);
@@ -159,20 +157,25 @@ describe("quién crea qué cuenta", () => {
 });
 
 describe("propietarios con varias fincas y su equipo", () => {
-  it("el administrador le da una segunda finca a un propietario existente; el dueño la ve y crea lotes en ella", async () => {
-    const admin = await e.contexto("admin@demo.local");
-    const dueno = (await listarUsuarios(e.servicios.usuarios, admin)).usuarios.find((u) => u.correo === "propietario@demo.local")!;
-    const r = await altaDeFinca(e.servicios, admin, { nombre: "Finca La Segunda", areaHa: "4", propietarioId: dueno.id });
-    expect(r).toMatchObject({ invitacion: null, propietario: dueno.nombre });
-    const ctx = await e.contexto("propietario@demo.local");
-    expect(ctx.fincaIds).toContain(r.fincaId);
-    expect(ctx.fincaIds).toContain(e.ids.finca1); // conserva la que ya tenía
-    await crearLote(e.servicios.fincasLotes, ctx, { fincaId: r.fincaId, codigo: "S-01", nombre: "Lote de la segunda", areaHa: "1" });
-    // Un correo ya usado por un capataz no deja crear la finca con un "dueño nuevo".
-    const antes = (await e.pool.query("SELECT count(*)::int AS n FROM finca")).rows[0].n;
-    await expect(altaDeFinca(e.servicios, admin, { nombre: "Finca Repetida", propietarioNombre: "Alguien", propietarioCorreo: "capataz@demo.local" })).rejects.toThrow(ErrorRegla);
-    await expect(altaDeFinca(e.servicios, admin, { nombre: "Finca De Nadie", propietarioId: (await e.pool.query("SELECT id FROM usuario WHERE correo = $1", ["capataz@demo.local"])).rows[0].id })).rejects.toThrow(ErrorRegla);
-    expect((await e.pool.query("SELECT count(*)::int AS n FROM finca")).rows[0].n).toBe(antes);
+  it("el propietario registra otra finca con su propio nombre, crea lotes en ella y solo él la edita", async () => {
+    let dueno = await e.contexto("propietario@demo.local");
+    const { id: segunda } = await crearFinca(e.servicios.fincasLotes, dueno, { nombre: "Finca La Segunda", areaHa: "4" });
+    dueno = await e.contexto("propietario@demo.local");
+    expect(dueno.fincaIds).toContain(segunda);
+    expect(dueno.fincaIds).toContain(e.ids.finca1); // conserva la que ya tenía
+    await crearLote(e.servicios.fincasLotes, dueno, { fincaId: segunda, codigo: "S-01", nombre: "Lote de la segunda", areaHa: "1" });
+
+    // No repite el nombre de una finca suya, pero otro propietario sí puede usar ese nombre.
+    await expect(crearFinca(e.servicios.fincasLotes, dueno, { nombre: "finca la segunda" })).rejects.toThrow(ErrorRegla);
+    const otro = await e.contexto("propietario.ambas@demo.local");
+    await expect(crearFinca(e.servicios.fincasLotes, otro, { nombre: "Finca La Segunda" })).resolves.toHaveProperty("id");
+
+    await editarFinca(e.servicios.fincasLotes, dueno, { fincaId: segunda, nombre: "Finca La Segunda Alta", ubicacion: "Vereda El Palmar", areaHa: "4.5" });
+    expect((await e.pool.query("SELECT nombre, ubicacion FROM finca WHERE id = $1", [segunda])).rows[0]).toEqual({ nombre: "Finca La Segunda Alta", ubicacion: "Vereda El Palmar" });
+    // El capataz no registra ni edita fincas; otro dueño no edita la ajena.
+    const capataz = await e.contexto("capataz@demo.local");
+    await expect(crearFinca(e.servicios.fincasLotes, capataz, { nombre: "Finca Del Capataz" })).rejects.toThrow(ErrorProhibido);
+    await expect(editarFinca(e.servicios.fincasLotes, otro, { fincaId: segunda, nombre: "Robada" })).rejects.toThrow(ErrorProhibido);
   });
 
   it("el administrador ve de cada propietario cuántos capataces y trabajadores tiene, pero no gestiona esas cuentas", async () => {

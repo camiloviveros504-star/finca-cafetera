@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { consultarCultivo, DENSIDAD_POR_DEFECTO, ErrorProhibido, listarAgroquimicos, listarCasosSanitarios, listarFincasYLotes, servicios, type CasoSanitario, type LoteConPlan } from "@/composicion";
 import { AvisoPlaga, FormularioReportarPlaga, TarjetaCaso } from "../../_componentes/CasosSanitarios";
 import { cantidad } from "../../_servidor/formatos";
@@ -144,7 +145,11 @@ export default async function Lotes() {
       />
       <div className={`grid gap-6 ${puedeAdministrar && datos.fincas.length > 0 ? "lg:grid-cols-[1fr_340px]" : ""}`}>
         {lotes.length === 0 ? (
-          <p className="h-fit rounded-xl border border-dashed border-borde bg-white p-6 text-center text-sm text-suave">Todavía no hay lotes.{puedeAdministrar ? " Cree el primero con el formulario." : ""}</p>
+          <p className="h-fit rounded-xl border border-dashed border-borde bg-white p-6 text-center text-sm text-suave">
+            {datos.fincas.length === 0 && ctx.permisos.has("finca:crear")
+              ? <>Primero registre su finca en <Link href="/mis-fincas" className="font-medium text-bosque underline">Mis fincas</Link>; después cree aquí sus lotes.</>
+              : <>Todavía no hay lotes.{puedeAdministrar && datos.fincas.length > 0 ? " Cree el primero con el formulario." : ""}</>}
+          </p>
         ) : (
           <div className="h-fit space-y-6">
             {/* Con varias fincas, los lotes se agrupan bajo el nombre de su finca. */}

@@ -11,14 +11,14 @@ afterAll(async () => {
 });
 
 describe("fincas y lotes", () => {
-  it("el administrador crea la finca (con su bodega) pero no opera sus lotes; el propietario sí", async () => {
+  it("el propietario crea su finca (con su bodega) y sus lotes; el administrador ni crea fincas ni opera lotes", async () => {
     const admin = await e.contexto("admin@demo.local");
-    const { id } = await crearFinca(e.servicios.fincasLotes, admin, { nombre: "Finca Nueva", ubicacion: "Vereda X", areaHa: "5.5" });
+    await expect(crearFinca(e.servicios.fincasLotes, admin, { nombre: "Finca Del Admin" })).rejects.toThrow(ErrorProhibido);
+    const { id } = await crearFinca(e.servicios.fincasLotes, await e.contexto("propietario@demo.local"), { nombre: "Finca Nueva", ubicacion: "Vereda X", areaHa: "5.5" });
     const b = await e.pool.query("SELECT count(*)::int AS n FROM bodega WHERE finca_id = $1", [id]);
     expect(b.rows[0].n).toBe(1);
-    await expect(crearLote(e.servicios.fincasLotes, admin, { fincaId: id, codigo: "L-98", nombre: "No debe" })).rejects.toThrow(ErrorProhibido);
-    await e.pool.query("INSERT INTO usuario_finca (usuario_id, finca_id) SELECT id, $1 FROM usuario WHERE correo = $2", [id, "propietario@demo.local"]);
-    const dueno = await e.contexto("propietario@demo.local"); // contexto nuevo: recarga las fincas asignadas
+    await expect(crearLote(e.servicios.fincasLotes, await e.contexto("admin@demo.local"), { fincaId: id, codigo: "L-98", nombre: "No debe" })).rejects.toThrow(ErrorProhibido);
+    const dueno = await e.contexto("propietario@demo.local"); // contexto nuevo: recarga sus fincas
     await crearLote(e.servicios.fincasLotes, dueno, { fincaId: id, codigo: "L-99", nombre: "Lote nuevo", areaHa: "1.2", numeroArboles: "3000" });
     const datos = await listarFincasYLotes(e.servicios.fincasLotes, dueno);
     expect(datos.fincas.map((f) => f.nombre)).toContain("Finca Nueva");

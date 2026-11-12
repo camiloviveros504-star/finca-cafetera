@@ -10,8 +10,8 @@ export const metadata = { title: "Cuentas · Gestión de Finca Cafetera" };
 
 const NOMBRE_ROL: Record<string, string> = { administrador: "Administrador", propietario: "Propietario", capataz: "Capataz", trabajador: "Trabajador" };
 const DESCRIPCION: Record<string, string> = {
-  administrador: "Administra la plataforma: fincas, cuentas y ajustes. No opera ninguna finca.",
-  propietario: "Dueño de una o varias fincas: maneja lotes, insumos, equipo, recolección, ventas y dinero.",
+  administrador: "Administra la plataforma: crea las cuentas de los propietarios, consulta sus fincas y la auditoría. No opera ninguna finca.",
+  propietario: "Dueño de una o varias fincas: las registra él mismo y maneja lotes, insumos, equipo, recolección, ventas y dinero.",
   capataz: "Anota la recolección, las labores y las aplicaciones de las fincas que se le asignen. No ve ventas ni dinero.",
   trabajador: "Consulta sus propios kilos, jornales y lo que le han pagado.",
 };
@@ -75,12 +75,6 @@ export default async function Cuentas() {
                           <p className="mb-1 text-xs text-suave">{u.pendiente ? "La persona aún no activa su cuenta." : "Para cambiar la contraseña se genera un enlace: la persona escribe la nueva. Nadie más la conoce."}</p>
                           <FormularioGenerico compacto accion={accionEmitirEnlace} boton={u.pendiente ? "Generar enlace de activación" : "Cambiar contraseña (generar enlace)"} ocultos={{ usuarioId: u.id }} campos={[]} />
                         </div>
-                        {administra && (
-                          <FormularioGenerico accion={accionAsignar} boton="Guardar rol y fincas" ocultos={{ usuarioId: u.id }} campos={[
-                            { nombre: "roles", etiqueta: "Rol", tipo: "multiple", opciones: rolesAsignables, valorInicial: u.roles.join(",") },
-                            { nombre: "fincaIds", etiqueta: "Fincas (no aplica a administradores)", tipo: "multiple", opciones: opcionesFinca, valorInicial: u.fincas.map((f) => f.id).join(",") },
-                          ]} />
-                        )}
                         {invitaEquipo && u.roles.includes("capataz") && (
                           <FormularioGenerico accion={accionAsignar} boton="Guardar fincas del capataz" ocultos={{ usuarioId: u.id, roles: "capataz" }} campos={[
                             { nombre: "fincaIds", etiqueta: "Fincas que maneja", tipo: "multiple", opciones: opcionesFinca, valorInicial: u.fincas.map((f) => f.id).join(",") },
@@ -110,19 +104,18 @@ export default async function Cuentas() {
         <div className="space-y-4">
           {administra && (
             <Tarjeta titulo="Nueva cuenta">
-              <p className="-mt-2 mb-3 text-xs text-suave">Para dar de alta una finca nueva con su dueño use <Link href="/fincas" className="font-medium text-bosque underline">Fincas</Link>; aquí puede crear otro administrador o agregar un propietario a fincas existentes.</p>
+              <p className="-mt-2 mb-3 text-xs text-suave">Cree la cuenta del propietario: al entrar con su enlace, él mismo registra sus fincas y los lotes de cada una. Puede verlas después en <Link href="/fincas" className="font-medium text-bosque underline">Fincas</Link>.</p>
               <FormularioGenerico accion={accionInvitar} boton="Crear y generar enlace" campos={[
                 { nombre: "nombre", etiqueta: "Nombre completo", requerido: true, ancho: "completo" },
                 { nombre: "correo", etiqueta: "Correo (será su usuario)", requerido: true, ancho: "completo" },
-                { nombre: "roles", etiqueta: "Rol", tipo: "select", opciones: rolesAsignables.map((r) => ({ valor: r.valor, texto: NOMBRE_ROL[r.valor] })), ancho: "completo" },
-                ...(opcionesFinca.length > 0 ? [{ nombre: "fincaIds", etiqueta: "Fincas (solo para propietarios)", tipo: "multiple" as const, opciones: opcionesFinca }] : []),
+                { nombre: "roles", etiqueta: "Rol", tipo: "select", opciones: rolesAsignables.filter((r) => r.valor === "propietario" || r.valor === "administrador").map((r) => ({ valor: r.valor, texto: NOMBRE_ROL[r.valor] })), ancho: "completo" },
               ]} />
             </Tarjeta>
           )}
 
           {invitaEquipo && fincas.length === 0 && (
             <Tarjeta titulo="Todavía no tiene fincas">
-              <p className="text-sm text-suave">Para crear la cuenta de un capataz o de un trabajador primero necesita una finca asignada. Pídale al administrador de la plataforma que la dé de alta.</p>
+              <p className="text-sm text-suave">Para crear la cuenta de un capataz o de un trabajador primero registre su finca en <Link href="/mis-fincas" className="font-medium text-bosque underline">Mis fincas</Link>.</p>
             </Tarjeta>
           )}
 

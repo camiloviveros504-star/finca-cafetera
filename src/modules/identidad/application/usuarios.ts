@@ -32,14 +32,17 @@ export const ROLES_DE_EQUIPO = ["capataz", "trabajador"];
 /**
  * Reglas de quién crea qué cuenta (también se aplican al invitar):
  * - El administrador de la plataforma NO crea capataces ni trabajadores: esos los crea el dueño de cada finca.
- * - Toda cuenta que no sea de administrador necesita al menos una finca; el administrador no necesita ninguna (ve todas).
+ * - El administrador no asigna fincas: el propietario nace sin fincas y crea las suyas (Mis fincas).
+ * - El capataz y el trabajador necesitan al menos una finca de su propietario.
  */
 export function validarRolesYFincas(ctx: ContextoUsuario, roles: readonly string[], fincaIds: readonly string[]) {
   if (ctx.permisos.has("usuario:administrar") && roles.some((r) => ROLES_DE_EQUIPO.includes(r))) {
     throw new ErrorRegla("Las cuentas de capataz y de trabajador las crea el propietario de cada finca", "rol_de_equipo");
   }
-  const soloAdministrador = roles.length > 0 && roles.every((r) => r === "administrador");
-  if (!soloAdministrador && fincaIds.length === 0) throw new ErrorValidacion("Asigne al menos una finca", { fincaIds: "Asigne al menos una finca" });
+  if (ctx.permisos.has("usuario:administrar") && fincaIds.length > 0) {
+    throw new ErrorRegla("Las fincas las crea cada propietario desde su cuenta; el administrador no las asigna", "fincas_del_propietario");
+  }
+  if (roles.some((r) => ROLES_DE_EQUIPO.includes(r)) && fincaIds.length === 0) throw new ErrorValidacion("Asigne al menos una finca", { fincaIds: "Asigne al menos una finca" });
 }
 const contrasena = esquemaContrasena();
 
@@ -128,29 +131,10 @@ export async function asignarRolesYFincas(deps: DependenciasUsuarios, ctx: Conte
     if (u.id === ctx.usuarioId && u.roles.includes("administrador") && !e.roles.includes("administrador")) throw new ErrorRegla("No puede quitarse a sí mismo el rol de administrador", "autoexclusion");
     if (u.roles.includes("administrador") && !e.roles.includes("administrador") && (await deps.repo.contarAdministradoresActivos(tx, ctx.organizacionId)) <= 1) throw new ErrorRegla("La organización debe conservar al menos un administrador", "ultimo_administrador");
     if (!(await deps.repo.asignarRoles(tx, e.usuarioId, e.roles))) throw new ErrorRegla("Algún rol no existe", "rol_invalido");
-    if (!(await deps.repo.asignarFincas(tx, ctx.organizacionId, e.usuarioId, e.fincaIds))) throw new ErrorRegla("Alguna finca no pertenece a la organización", "finca_invalida");
+    // El administrador solo cambia el rol: las fincas de un propietario son las que él creó.
+    if (!esAdministrador && !(await deps.repo.asignarFincas(tx, ctx.organizacionId, e.usuarioId, e.fincaIds))) throw new ErrorRegla("Alguna finca no pertenece a la organización", "finca_invalida");
     await deps.repo.revocarSesiones(tx, e.usuarioId);
     await auditar(deps, ctx, tx, "usuario.asignar", e.usuarioId, { antes: u.roles, roles: e.roles, fincas: e.fincaIds.length });
-    return { ok: true };
-  });
-}
-
-/** ¿El correo ya pertenece a alguna cuenta de la organización (de cualquier rol)? Sirve para validar antes de crear. */
-export async function correoEnUso(deps: DependenciasUsuarios, ctx: ContextoUsuario, correo: string) {
-  await autorizar(deps.auditor, ctx, "usuario:administrar", { accion: "usuario.verificar_correo", entidad: "usuario" });
-  const buscado = correo.trim().toLowerCase();
-  return deps.uow.consultar(async (tx) => (await deps.repo.listarUsuarios(tx, ctx.organizacionId)).some((u) => u.correo.toLowerCase() === buscado));
-}
-
-/** El administrador le suma una finca a un propietario que ya existe (un dueño puede tener varias fincas). */
-export async function agregarFincaAPropietario(deps: DependenciasUsuarios, ctx: ContextoUsuario, cruda: unknown) {
-  const e = validar(z.object({ usuarioId: uuid, fincaId: uuid }), cruda, "Revise los datos");
-  await autorizar(deps.auditor, ctx, "usuario:administrar", { accion: "usuario.agregar_finca", entidad: "usuario" });
-  return deps.uow.ejecutar(async (tx) => {
-    const u = await cargarUsuario(deps, ctx, tx, e.usuarioId);
-    if (!u.roles.includes("propietario")) throw new ErrorRegla("La cuenta elegida no es de un propietario", "no_es_propietario");
-    if (!(await deps.repo.agregarFinca(tx, ctx.organizacionId, u.id, e.fincaId))) throw new ErrorRegla("La finca no pertenece a la organización", "finca_invalida");
-    await auditar(deps, ctx, tx, "usuario.agregar_finca", u.id, { fincaId: e.fincaId });
     return { ok: true };
   });
 }

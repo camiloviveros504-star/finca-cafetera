@@ -136,7 +136,7 @@ export default async function Inicio() {
   const fechaTexto = new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", weekday: "long", day: "numeric", month: "long" }).format(new Date());
   const fecha = fechaTexto.charAt(0).toUpperCase() + fechaTexto.slice(1);
   const hectareas = fincas.reduce((t, f) => t + Number(f.areaHa ?? 0), 0);
-  const lugar = panel.plataforma ? `${fincas.length} finca(s) en la plataforma` : fincas.length === 1 ? fincas[0].nombre : `${fincas.length} fincas`;
+  const lugar = panel.plataforma ? `${fincas.length} finca(s) en la plataforma` : fincas.length === 0 ? "su finca" : fincas.length === 1 ? fincas[0].nombre : `${fincas.length} fincas`;
   const rol = ctx.roles.includes("administrador") ? "Administrador" : ctx.roles.includes("propietario") ? "Propietario" : ctx.roles.includes("capataz") ? "Capataz" : null;
 
   return (
@@ -179,11 +179,18 @@ export default async function Inicio() {
         <section className="rounded-xl border border-dashed border-borde bg-white p-5">
           <h2 className="font-semibold">Empiece en tres pasos</h2>
           <ol className="mt-3 grid gap-3 sm:grid-cols-3">
-            {[
-              ["1", "Registre sus lotes", "Hectáreas, si están sembrados y desde cuándo.", "/lotes"],
-              ["2", "Agregue a su equipo", "Trabajadores y capataz, con cómo se les paga.", "/trabajadores"],
-              ["3", "Anote cada recolección", "Kilos por lote y por trabajador; el resto se calcula solo.", "/cosechas"],
-            ].map(([n, t, d, href]) => (
+            {(fincas.length === 0 && ctx.permisos.has("finca:crear")
+              ? [
+                  ["1", "Registre su finca", "Con su nombre, ubicación y área. Si tiene varias, regístrelas todas.", "/mis-fincas"],
+                  ["2", "Cree los lotes de cada finca", "Hectáreas, si están sembrados y desde cuándo.", "/lotes"],
+                  ["3", "Agregue a su equipo", "Trabajadores y capataz, con cómo se les paga.", "/trabajadores"],
+                ]
+              : [
+                  ["1", "Registre sus lotes", "Hectáreas, si están sembrados y desde cuándo.", "/lotes"],
+                  ["2", "Agregue a su equipo", "Trabajadores y capataz, con cómo se les paga.", "/trabajadores"],
+                  ["3", "Anote cada recolección", "Kilos por lote y por trabajador; el resto se calcula solo.", "/cosechas"],
+                ]
+            ).map(([n, t, d, href]) => (
               <li key={n}>
                 <Link href={href} className="flex h-full gap-3 rounded-lg border border-borde p-4 hover:border-bosque/40 hover:bg-bosque-claro/40">
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-bosque text-sm font-semibold text-white">{n}</span>

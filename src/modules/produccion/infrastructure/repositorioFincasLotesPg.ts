@@ -7,19 +7,33 @@ export class RepositorioFincasLotesPg implements RepositorioFincasLotes {
   async crearFinca(tx: Transaccion, f: { organizacionId: string; nombre: string; ubicacion?: string; areaHa?: string; creadoPor: string }): Promise<string> {
     const c = clienteDe(tx);
     try {
-      const r = await c.query("INSERT INTO finca (organizacion_id, nombre, ubicacion, area_ha) VALUES ($1,$2,$3,$4) RETURNING id", [
+      const r = await c.query("INSERT INTO finca (organizacion_id, nombre, ubicacion, area_ha, propietario_id) VALUES ($1,$2,$3,$4,$5) RETURNING id", [
         f.organizacionId,
         f.nombre,
         f.ubicacion ?? null,
         f.areaHa ?? null,
+        f.creadoPor,
       ]);
       const id = r.rows[0].id as string;
-      // La finca nace con su bodega principal para poder registrar cosechas. No se asigna a quien la crea: el administrador
-      // de la plataforma ya ve todas las fincas, y el dueño la recibe al darle de alta su cuenta.
+      // La finca es de quien la crea (su propietario), que la ve de inmediato; nace con su bodega principal para las cosechas.
+      await c.query("INSERT INTO usuario_finca (usuario_id, finca_id) VALUES ($1,$2)", [f.creadoPor, id]);
       await c.query("INSERT INTO bodega (organizacion_id, finca_id, nombre) VALUES ($1,$2,'Bodega principal')", [f.organizacionId, id]);
       return id;
     } catch (error) {
-      if ((error as { code?: string }).code === "23505") throw new ErrorRegla("Ya existe una finca con ese nombre", "finca_duplicada");
+      if ((error as { code?: string }).code === "23505") throw new ErrorRegla("Ya tiene una finca con ese nombre", "finca_duplicada");
+      throw error;
+    }
+  }
+
+  async editarFinca(tx: Transaccion, f: { organizacionId: string; propietarioId: string; fincaId: string; nombre: string; ubicacion?: string; areaHa?: string }): Promise<boolean> {
+    try {
+      const r = await clienteDe(tx).query(
+        "UPDATE finca SET nombre = $4, ubicacion = $5, area_ha = $6 WHERE id = $1 AND organizacion_id = $2 AND propietario_id = $3",
+        [f.fincaId, f.organizacionId, f.propietarioId, f.nombre, f.ubicacion ?? null, f.areaHa ?? null],
+      );
+      return r.rowCount === 1;
+    } catch (error) {
+      if ((error as { code?: string }).code === "23505") throw new ErrorRegla("Ya tiene una finca con ese nombre", "finca_duplicada");
       throw error;
     }
   }
@@ -51,7 +65,7 @@ export class RepositorioFincasLotesPg implements RepositorioFincasLotes {
 
   async listarFincas(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]) {
     const r = await clienteDe(tx).query(
-      `SELECT f.id, f.nombre, f.ubicacion, f.area_ha, (SELECT count(*)::int FROM lote l WHERE l.finca_id = f.id) AS lotes
+      `SELECT f.id, f.nombre, f.ubicacion, f.area_ha, f.propietario_id, (SELECT count(*)::int FROM lote l WHERE l.finca_id = f.id) AS lotes
          FROM finca f WHERE f.organizacion_id = $1 AND f.id = ANY($2::uuid[]) ORDER BY f.nombre`,
       [organizacionId, fincaIds],
     );
@@ -60,6 +74,7 @@ export class RepositorioFincasLotesPg implements RepositorioFincasLotes {
       nombre: x.nombre as string,
       ubicacion: x.ubicacion as string | null,
       areaHa: x.area_ha as string | null,
+      propietarioId: x.propietario_id as string | null,
       lotes: x.lotes as number,
     }));
   }

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { autorizar } from "@/shared/aplicacion/autorizar";
 import type { Auditor, UnidadDeTrabajo } from "@/shared/aplicacion/puertos";
 import type { ContextoUsuario } from "@/shared/dominio/contexto";
-import { ErrorValidacion } from "@/shared/dominio/errores";
+import { ErrorNoEncontrado, ErrorValidacion } from "@/shared/dominio/errores";
 import type { RepositorioFincasLotes } from "../domain/puertos";
 
 export interface DependenciasFincasLotes {
@@ -28,9 +28,10 @@ const esquemaFinca = z.object({
   areaHa: area,
 });
 
+/** El propietario crea sus fincas (cada una con su nombre); la finca queda a su nombre. El administrador no crea fincas. */
 export async function crearFinca(deps: DependenciasFincasLotes, ctx: ContextoUsuario, cruda: unknown) {
   const e = validar(esquemaFinca, cruda, "Revise los datos de la finca");
-  await autorizar(deps.auditor, ctx, "finca:administrar", { accion: "finca.crear", entidad: "finca" });
+  await autorizar(deps.auditor, ctx, "finca:crear", { accion: "finca.crear", entidad: "finca" });
   return deps.uow.ejecutar(async (tx) => {
     const id = await deps.repo.crearFinca(tx, { organizacionId: ctx.organizacionId, ...e, creadoPor: ctx.usuarioId });
     await deps.auditor.registrar(
@@ -38,6 +39,21 @@ export async function crearFinca(deps: DependenciasFincasLotes, ctx: ContextoUsu
       tx,
     );
     return { id };
+  });
+}
+
+/** Solo el dueño corrige el nombre, la ubicación o el área de su finca. */
+export async function editarFinca(deps: DependenciasFincasLotes, ctx: ContextoUsuario, cruda: unknown) {
+  const e = validar(esquemaFinca.extend({ fincaId: z.string().uuid() }), cruda, "Revise los datos de la finca");
+  await autorizar(deps.auditor, ctx, "finca:crear", { accion: "finca.editar", entidad: "finca", fincaId: e.fincaId });
+  return deps.uow.ejecutar(async (tx) => {
+    const ok = await deps.repo.editarFinca(tx, { organizacionId: ctx.organizacionId, propietarioId: ctx.usuarioId, fincaId: e.fincaId, nombre: e.nombre, ubicacion: e.ubicacion, areaHa: e.areaHa });
+    if (!ok) throw new ErrorNoEncontrado("Finca");
+    await deps.auditor.registrar(
+      { organizacionId: ctx.organizacionId, usuarioId: ctx.usuarioId, accion: "finca.editar", entidad: "finca", entidadId: e.fincaId, resultado: "ok", despues: { nombre: e.nombre }, ip: ctx.ip },
+      tx,
+    );
+    return { ok: true };
   });
 }
 

@@ -53,6 +53,9 @@ export async function sembrar(c: Client): Promise<void> {
       await c.query("INSERT INTO usuario_rol (usuario_id, rol_id) VALUES ($1,$2)", [u.id, roles[rol]]);
       for (const f of fincas) await c.query("INSERT INTO usuario_finca (usuario_id, finca_id) VALUES ($1,$2)", [u.id, f]);
     }
+    // Dueño de cada finca (quien la registró).
+    await c.query("UPDATE finca SET propietario_id = $2 WHERE id = $1", [f1.id, idUsuario["propietario@demo.local"]]);
+    await c.query("UPDATE finca SET propietario_id = $2 WHERE id = $1", [f2.id, idUsuario["propietario.ambas@demo.local"]]);
 
     const unidades = Object.fromEntries(
       (await c.query<{ id: string; codigo: string }>("SELECT id, codigo FROM unidad")).rows.map((r) => [r.codigo, r.id]),

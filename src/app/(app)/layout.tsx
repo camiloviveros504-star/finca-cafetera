@@ -13,6 +13,7 @@ import { exigirContexto } from "../_servidor/sesion";
 const MENU: Array<EnlaceNav & { permiso?: string }> = [
   { href: "/inicio", etiqueta: "Inicio", icono: "inicio" },
   { href: "/fincas", etiqueta: "Fincas", icono: "finca", permiso: "finca:administrar", grupo: "Plataforma" },
+  { href: "/mis-fincas", etiqueta: "Mis fincas", icono: "finca", permiso: "finca:crear", grupo: "Mi finca" },
   { href: "/lotes", etiqueta: "Lotes", icono: "lote", permiso: "lote:ver", grupo: "Mi finca" },
   { href: "/cosechas", etiqueta: "Recolección", icono: "recoleccion", permiso: "cosecha:ver", grupo: "Mi finca" },
   { href: "/trabajo", etiqueta: "Labores", icono: "labores", permiso: "trabajo:validar", grupo: "Mi finca" },

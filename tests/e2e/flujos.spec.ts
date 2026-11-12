@@ -39,35 +39,50 @@ test.describe("flujos con roles", () => {
     await expect(page.locator("main [role=alert]")).toContainText("Existencias insuficientes");
   });
 
-  test("administrador de la plataforma: da de alta una finca con su propietario y su menú no trae lo operativo", async ({ page }) => {
+  test("administrador de la plataforma: crea la cuenta de un propietario, no crea fincas y su menú no trae lo operativo", async ({ page }) => {
     await entrar(page, "admin@demo.local");
     const menu = page.getByRole("navigation", { name: "Principal" }).first();
-    await expect(menu.getByRole("link", { name: "Fincas" })).toBeVisible();
+    await expect(menu.getByRole("link", { name: "Fincas", exact: true })).toBeVisible();
+    await expect(menu.getByRole("link", { name: "Mis fincas" })).toHaveCount(0);
     await expect(menu.getByRole("link", { name: "Compra de insumos" })).toHaveCount(0);
     await expect(menu.getByRole("link", { name: "Insumos" })).toHaveCount(0);
-    await page.goto("/fincas");
-    const nombre = `Finca E2E ${Date.now()}`;
+    await page.goto("/usuarios");
     const dueno = `Dueño ${Date.now()}`;
-    const nueva = page.locator("section", { hasText: "Nueva finca" });
-    await nueva.locator('input[name="nombre"]').fill(nombre);
-    await nueva.locator('input[name="areaHa"]').fill("7.5");
-    await nueva.locator('input[name="propietarioNuevo"]').check();
-    await nueva.locator('input[name="propietarioNombre"]').fill(dueno);
-    await nueva.locator('input[name="propietarioCorreo"]').fill(`dueno.${Date.now()}@e2e.test`);
-    await nueva.getByRole("button", { name: "Crear finca" }).click();
+    const nueva = page.locator("section", { hasText: "Nueva cuenta" });
+    await expect(nueva.locator('[name="fincaIds"]')).toHaveCount(0);
+    await nueva.locator('input[name="nombre"]').fill(dueno);
+    await nueva.locator('input[name="correo"]').fill(`dueno.${Date.now()}@e2e.test`);
+    await nueva.locator('select[name="roles"]').selectOption("propietario");
+    await nueva.getByRole("button", { name: "Crear y generar enlace" }).click();
     await expect(nueva.locator('input[aria-label="Enlace de activación"]')).toBeVisible({ timeout: 15000 });
-    // El propietario aparece con su finca, y la finca con su espacio para lotes.
-    const tarjeta = page.locator("section", { hasText: dueno }).first();
-    await expect(tarjeta.getByText(nombre)).toBeVisible();
+    // En Fincas aparece el propietario, todavía sin fincas, y no hay formulario para crearlas.
+    await page.goto("/fincas");
+    await expect(page.locator("section", { hasText: dueno }).first()).toContainText("Cuando active su cuenta podrá registrar sus fincas");
+    await expect(page.getByRole("button", { name: "Crear finca" })).toHaveCount(0);
   });
 
-  test("propietario: ve lo operativo de su finca y no la administración de la plataforma", async ({ page }) => {
-    await entrar(page, "propietario@demo.local");
-    const menu = page.getByRole("navigation", { name: "Principal" }).first();
+  test("propietario: registra una finca suya en Mis fincas y el administrador la ve a su nombre", async ({ browser }) => {
+    const dueno = await (await browser.newContext()).newPage();
+    await entrar(dueno, "propietario@demo.local");
+    const menu = dueno.getByRole("navigation", { name: "Principal" }).first();
     await expect(menu.getByRole("link", { name: "Compra de insumos" })).toBeVisible();
-    await expect(menu.getByRole("link", { name: "Fincas" })).toHaveCount(0);
-    await page.goto("/fincas");
-    await expect(page.locator("main [role=alert]")).toContainText("administrador de la plataforma");
+    await expect(menu.getByRole("link", { name: "Fincas", exact: true })).toHaveCount(0);
+    await dueno.goto("/fincas");
+    await expect(dueno.locator("main [role=alert]")).toContainText("administrador de la plataforma");
+
+    await dueno.goto("/mis-fincas");
+    const nombre = `Finca E2E ${Date.now()}`;
+    const nueva = dueno.locator("section", { hasText: "Nueva finca" });
+    await nueva.locator('input[name="nombre"]').fill(nombre);
+    await nueva.locator('input[name="ubicacion"]').fill("Vereda La Prueba");
+    await nueva.locator('input[name="areaHa"]').fill("7.5");
+    await nueva.getByRole("button", { name: "Crear finca" }).click();
+    await expect(dueno.getByRole("heading", { name: nombre })).toBeVisible({ timeout: 15000 });
+
+    const admin = await (await browser.newContext()).newPage();
+    await entrar(admin, "admin@demo.local");
+    await admin.goto("/fincas");
+    await expect(admin.locator("section", { hasText: "propietario@demo.local" }).first()).toContainText(nombre);
   });
 
   test("propietario: crea la cuenta de su capataz; el administrador no ve formularios de capataz ni trabajador", async ({ browser }) => {
@@ -77,6 +92,9 @@ test.describe("flujos con roles", () => {
     const tarjeta = dueno.locator("section", { hasText: "Cuenta de capataz" });
     await tarjeta.locator('input[name="nombre"]').fill("Capataz de Prueba");
     await tarjeta.locator('input[name="correo"]').fill(`capataz.${Date.now()}@e2e.test`);
+    // Si tiene varias fincas, elige cuáles manejará.
+    const fincas = tarjeta.getByRole("group", { name: "Fincas que manejará" });
+    if (await fincas.count()) await fincas.getByRole("checkbox", { name: "Finca El Mirador DEMO" }).check();
     await tarjeta.getByRole("button", { name: "Crear y generar enlace" }).click();
     await expect(tarjeta.locator('input[aria-label="Enlace de activación"]')).toBeVisible({ timeout: 15000 });
 

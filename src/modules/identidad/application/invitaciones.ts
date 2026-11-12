@@ -54,7 +54,8 @@ function validar<T extends z.ZodTypeAny>(esquema: T, entrada: unknown, mensaje: 
 async function autorizarGestionDeCuentas(deps: DependenciasInvitaciones, ctx: ContextoUsuario, accion: string, roles: readonly string[], fincaIds: readonly string[]) {
   if (ctx.permisos.has("usuario:administrar")) return;
   await autorizar(deps.auditor, ctx, "usuario:invitar_equipo", { accion, entidad: "usuario" });
-  const fueraDeAlcance = roles.some((r) => !ROLES_DE_EQUIPO.includes(r)) || fincaIds.some((f) => !ctx.fincaIds.includes(f)) || fincaIds.length === 0;
+  const fueraDeAlcance = roles.some((r) => !ROLES_DE_EQUIPO.includes(r)) || fincaIds.some((f) => !ctx.fincaIds.includes(f));
+  if (!fueraDeAlcance && fincaIds.length === 0) throw new ErrorValidacion("Elija al menos una de sus fincas", { fincaIds: "Elija al menos una finca" });
   if (fueraDeAlcance) {
     await deps.auditor.registrar({ organizacionId: ctx.organizacionId, usuarioId: ctx.usuarioId, accion, entidad: "usuario", resultado: "denegado", despues: { motivo: "fuera_de_alcance_del_propietario" }, ip: ctx.ip });
     throw new ErrorProhibido();

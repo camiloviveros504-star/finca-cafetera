@@ -155,7 +155,7 @@ export { registrarVenta, listarVentas, obtenerOpcionesVenta } from "@/modules/co
 export { crearVersionTarifa, crearTarifa, listarTarifas, historialTarifa } from "@/modules/configuracion/application/tarifas";
 export { crearCliente, registrarComprador, listarClientes, crearPedido, listarPedidos } from "@/modules/comercial/application/clientesPedidos";
 export { obtenerPanel, type ResumenPanel } from "@/modules/panel/application/obtenerPanel";
-export { crearFinca, crearLote, listarFincasYLotes } from "@/modules/produccion/application/fincasLotes";
+export { crearFinca, editarFinca, crearLote, listarFincasYLotes } from "@/modules/produccion/application/fincasLotes";
 export { consultarSaldos } from "@/modules/inventario/application/movimientos";
 export { registrarAjuste, trasladar, transformar, reversarMovimiento, listarMovimientos } from "@/modules/inventario/application/operaciones";
 export { registrarCosecha, listarCosechas, obtenerOpcionesRegistro } from "@/modules/produccion/application/cosechas";
@@ -187,7 +187,7 @@ export {
   obtenerAjustes, opcionesDeCatalogo, crearValorCatalogo, cambiarEstadoValorCatalogo, crearEquivalencia, guardarParametro, CATALOGOS, PARAMETROS,
   type Catalogo, type Equivalencia, type ParametroConfigurado, type ValorCatalogo,
 } from "@/modules/configuracion/application/ajustes";
-export { listarUsuarios, crearUsuario, asignarRolesYFincas, agregarFincaAPropietario, correoEnUso, cambiarEstadoUsuario, restablecerContrasena, cambiarPermisoExtra, type FilaPermiso, type FilaRol, type FilaUsuario } from "@/modules/identidad/application/usuarios";
+export { listarUsuarios, crearUsuario, asignarRolesYFincas, cambiarEstadoUsuario, restablecerContrasena, cambiarPermisoExtra, type FilaPermiso, type FilaRol, type FilaUsuario } from "@/modules/identidad/application/usuarios";
 export { consultarAuditoria, type FilaAuditoria, type FiltroAuditoria } from "@/modules/auditoria/application/consultarAuditoria";
 export { invitarUsuario, emitirEnlace, consultarInvitacion, activarCuenta, DURACION_INVITACION_MS } from "@/modules/identidad/application/invitaciones";
 export { consultarCultivo, registrarEventoLote, eliminarLote, type LoteConPlan, type ItemPlan, DENSIDAD_POR_DEFECTO } from "@/modules/produccion/application/cultivo";
@@ -201,7 +201,6 @@ export type { ContextoUsuario } from "@/shared/dominio/contexto";
 
 export { registrarRecoleccion } from "./recoleccion";
 export { eliminarRegistro } from "@/shared/aplicacion/eliminar";
-export { altaDeFinca } from "./altaFinca";
 export {
   reportarCasoSanitario, registrarSeguimientoCaso, listarCasosSanitarios, NOMBRE_ESTADO, NOMBRE_PLAGA, TIPOS_PLAGA, ESTADOS_CASO,
   type CasoSanitario, type EstadoCaso, type TipoPlaga,

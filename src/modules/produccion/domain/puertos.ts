@@ -69,6 +69,8 @@ export interface FilaLote {
 
 export interface RepositorioFincasLotes {
   crearFinca(tx: Transaccion, f: { organizacionId: string; nombre: string; ubicacion?: string; areaHa?: string; creadoPor: string }): Promise<string>;
+  /** Falso si la finca no existe o no es de ese propietario. */
+  editarFinca(tx: Transaccion, f: { organizacionId: string; propietarioId: string; fincaId: string; nombre: string; ubicacion?: string; areaHa?: string }): Promise<boolean>;
   crearLote(
     tx: Transaccion,
     l: { organizacionId: string; fincaId: string; codigo: string; nombre: string; areaHa?: string; variedad?: string; numeroArboles?: number; fechaSiembra?: string; creadoPor?: string },
@@ -77,6 +79,6 @@ export interface RepositorioFincasLotes {
     tx: Transaccion,
     organizacionId: string,
     fincaIds: readonly string[],
-  ): Promise<{ id: string; nombre: string; ubicacion: string | null; areaHa: string | null; lotes: number }[]>;
+  ): Promise<{ id: string; nombre: string; ubicacion: string | null; areaHa: string | null; propietarioId: string | null; lotes: number }[]>;
   listarLotes(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]): Promise<FilaLote[]>;
 }
