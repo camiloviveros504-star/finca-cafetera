@@ -146,14 +146,27 @@ export default async function Lotes() {
         {lotes.length === 0 ? (
           <p className="h-fit rounded-xl border border-dashed border-borde bg-white p-6 text-center text-sm text-suave">Todavía no hay lotes.{puedeAdministrar ? " Cree el primero con el formulario." : ""}</p>
         ) : (
-          <ul className="grid h-fit gap-4 xl:grid-cols-2">
-            {lotes.map((l) => (
-              <TarjetaLote key={l.id} l={l} puedeAdministrar={puedeAdministrar} variasFincas={variasFincas} sanidad={{
-                casos: casos.filter((c) => c.loteId === l.id), ve: veSanidad, registra: registraSanidad,
-                aplicaciones: aplicaciones.filter((a) => a.loteId === l.id).slice(0, 10).map((a) => ({ id: a.id, texto: `${a.fecha} · ${a.agroquimico} · ${a.cantidadTotal}` })),
-              }} />
+          <div className="h-fit space-y-6">
+            {/* Con varias fincas, los lotes se agrupan bajo el nombre de su finca. */}
+            {datos.fincas.filter((f) => lotes.some((l) => l.fincaId === f.id)).map((f) => (
+              <section key={f.id} aria-label={f.nombre}>
+                {variasFincas && (
+                  <h2 className="mb-3 flex items-baseline gap-2 text-base font-semibold">
+                    {f.nombre}
+                    <span className="text-xs font-normal text-suave">{lotes.filter((l) => l.fincaId === f.id).length} lote(s){f.areaHa ? ` · ${f.areaHa} ha` : ""}</span>
+                  </h2>
+                )}
+                <ul className="grid gap-4 xl:grid-cols-2">
+                  {lotes.filter((l) => l.fincaId === f.id).map((l) => (
+                    <TarjetaLote key={l.id} l={l} puedeAdministrar={puedeAdministrar} variasFincas={false} sanidad={{
+                      casos: casos.filter((c) => c.loteId === l.id), ve: veSanidad, registra: registraSanidad,
+                      aplicaciones: aplicaciones.filter((a) => a.loteId === l.id).slice(0, 10).map((a) => ({ id: a.id, texto: `${a.fecha} · ${a.agroquimico} · ${a.cantidadTotal}` })),
+                    }} />
+                  ))}
+                </ul>
+              </section>
             ))}
-          </ul>
+          </div>
         )}
         {puedeAdministrar && datos.fincas.length > 0 && (
           <section className="h-fit rounded-xl border border-borde bg-white p-5 shadow-sm">

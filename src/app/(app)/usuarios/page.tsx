@@ -62,6 +62,7 @@ export default async function Cuentas() {
                         {u.roles.map((r) => NOMBRE_ROL[r] ?? r.replaceAll("_", " ")).join(", ") || "Sin rol"}
                         {u.roles.includes("administrador") ? " · todas las fincas" : u.fincas.length > 0 ? ` · ${u.fincas.map((f) => f.nombre).join(", ")}` : " · sin finca"}
                       </p>
+                      {u.equipo && <p className="mt-1 text-xs text-suave">Equipo: <span className="font-medium text-tinta">{u.equipo.capataces} capataz(ces)</span> · <span className="font-medium text-tinta">{u.equipo.trabajadores} trabajador(es)</span></p>}
                     </div>
                     <Estado activo={u.activo} pendiente={u.pendiente} />
                   </div>
@@ -70,7 +71,10 @@ export default async function Cuentas() {
                     <details className="mt-2">
                       <summary className="min-h-10 cursor-pointer py-2 text-sm font-medium text-bosque">Administrar</summary>
                       <div className="mt-2 space-y-4 rounded-lg bg-fondo/70 p-4">
-                        <FormularioGenerico compacto accion={accionEmitirEnlace} boton={u.pendiente ? "Generar enlace de activación" : "Generar enlace para cambiar contraseña"} ocultos={{ usuarioId: u.id }} campos={[]} />
+                        <div>
+                          <p className="mb-1 text-xs text-suave">{u.pendiente ? "La persona aún no activa su cuenta." : "Para cambiar la contraseña se genera un enlace: la persona escribe la nueva. Nadie más la conoce."}</p>
+                          <FormularioGenerico compacto accion={accionEmitirEnlace} boton={u.pendiente ? "Generar enlace de activación" : "Cambiar contraseña (generar enlace)"} ocultos={{ usuarioId: u.id }} campos={[]} />
+                        </div>
                         {administra && (
                           <FormularioGenerico accion={accionAsignar} boton="Guardar rol y fincas" ocultos={{ usuarioId: u.id }} campos={[
                             { nombre: "roles", etiqueta: "Rol", tipo: "multiple", opciones: rolesAsignables, valorInicial: u.roles.join(",") },
@@ -82,7 +86,7 @@ export default async function Cuentas() {
                             { nombre: "fincaIds", etiqueta: "Fincas que maneja", tipo: "multiple", opciones: opcionesFinca, valorInicial: u.fincas.map((f) => f.id).join(",") },
                           ]} />
                         )}
-                        {administra && !u.pendiente && <FormularioGenerico compacto accion={accionEstadoUsuario} boton={u.activo ? "Desactivar cuenta" : "Reactivar cuenta"} ocultos={{ usuarioId: u.id, activo: u.activo ? "no" : "si" }} campos={[]} />}
+                        {(administra || invitaEquipo) && !u.pendiente && <FormularioGenerico compacto accion={accionEstadoUsuario} boton={u.activo ? "Desactivar cuenta" : "Reactivar cuenta"} ocultos={{ usuarioId: u.id, activo: u.activo ? "no" : "si" }} campos={[]} />}
                         {administra && (
                           <details>
                             <summary className="cursor-pointer text-xs font-medium text-suave">Permiso adicional (avanzado)</summary>

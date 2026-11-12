@@ -30,6 +30,8 @@ export interface RepositorioUsuarios {
   activarUsuario(tx: Transaccion, usuarioId: string, hash: string, esAlta: boolean): Promise<void>;
   asignarRoles(tx: Transaccion, usuarioId: string, codigos: string[]): Promise<boolean>;
   asignarFincas(tx: Transaccion, organizacionId: string, usuarioId: string, fincaIds: string[]): Promise<boolean>;
+  /** Suma una finca a las que ya tiene la cuenta (sin quitarle ninguna). Falso si la finca no es de la organización. */
+  agregarFinca(tx: Transaccion, organizacionId: string, usuarioId: string, fincaId: string): Promise<boolean>;
   fijarActivo(tx: Transaccion, usuarioId: string, activo: boolean): Promise<void>;
   cambiarHash(tx: Transaccion, usuarioId: string, hash: string): Promise<void>;
   revocarSesiones(tx: Transaccion, usuarioId: string): Promise<void>;

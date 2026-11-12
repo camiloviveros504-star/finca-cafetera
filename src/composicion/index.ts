@@ -187,7 +187,7 @@ export {
   obtenerAjustes, crearValorCatalogo, cambiarEstadoValorCatalogo, crearEquivalencia, crearTemporada, guardarParametro,
   type Equivalencia, type ParametroConfigurado, type Temporada, type ValorCatalogo,
 } from "@/modules/configuracion/application/ajustes";
-export { listarUsuarios, crearUsuario, asignarRolesYFincas, cambiarEstadoUsuario, restablecerContrasena, cambiarPermisoExtra, type FilaPermiso, type FilaRol, type FilaUsuario } from "@/modules/identidad/application/usuarios";
+export { listarUsuarios, crearUsuario, asignarRolesYFincas, agregarFincaAPropietario, correoEnUso, cambiarEstadoUsuario, restablecerContrasena, cambiarPermisoExtra, type FilaPermiso, type FilaRol, type FilaUsuario } from "@/modules/identidad/application/usuarios";
 export { consultarAuditoria, type FilaAuditoria, type FiltroAuditoria } from "@/modules/auditoria/application/consultarAuditoria";
 export { invitarUsuario, emitirEnlace, consultarInvitacion, activarCuenta, DURACION_INVITACION_MS } from "@/modules/identidad/application/invitaciones";
 export { consultarCultivo, registrarEventoLote, eliminarLote, type LoteConPlan, type ItemPlan, DENSIDAD_POR_DEFECTO } from "@/modules/produccion/application/cultivo";

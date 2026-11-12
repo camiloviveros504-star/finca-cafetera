@@ -61,6 +61,13 @@ export class RepositorioUsuariosPg implements RepositorioUsuarios {
     for (const f of unicas) await c.query("INSERT INTO usuario_finca (usuario_id, finca_id) VALUES ($1,$2)", [usuarioId, f]);
     return true;
   }
+  async agregarFinca(tx: Transaccion, o: string, usuarioId: string, fincaId: string): Promise<boolean> {
+    const c = clienteDe(tx);
+    const ok = await c.query("SELECT 1 FROM finca WHERE id = $1 AND organizacion_id = $2", [fincaId, o]);
+    if (ok.rowCount !== 1) return false;
+    await c.query("INSERT INTO usuario_finca (usuario_id, finca_id) VALUES ($1,$2) ON CONFLICT DO NOTHING", [usuarioId, fincaId]);
+    return true;
+  }
   async fijarActivo(tx: Transaccion, usuarioId: string, activo: boolean) {
     await clienteDe(tx).query("UPDATE usuario SET activo = $2 WHERE id = $1", [usuarioId, activo]);
   }

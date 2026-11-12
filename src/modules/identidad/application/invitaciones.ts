@@ -17,7 +17,7 @@ import { problemaDeContrasena } from "@/shared/dominio/contrasena";
 import { ErrorBloqueado, ErrorNoEncontrado, ErrorProhibido, ErrorRegla, ErrorValidacion } from "@/shared/dominio/errores";
 import type { RepositorioUsuarios } from "../domain/usuarios";
 import { MAX_FALLOS_POR_IP, VENTANA_BLOQUEO_MS } from "./sesiones";
-import { ROLES_DE_EQUIPO, validarRolesYFincas } from "./usuarios";
+import { esCuentaDeEquipo, ROLES_DE_EQUIPO, validarRolesYFincas } from "./usuarios";
 
 export const DURACION_INVITACION_MS = 72 * 60 * 60 * 1000;
 
@@ -93,6 +93,8 @@ export async function emitirEnlace(deps: DependenciasInvitaciones, ctx: Contexto
   return deps.uow.ejecutar(async (tx) => {
     const u = await deps.repo.usuarioDeOrganizacion(tx, ctx.organizacionId, e.usuarioId);
     if (!u) throw new ErrorNoEncontrado("Usuario");
+    // La contraseña de un capataz o trabajador la restablece su propietario; el administrador, la de propietarios y administradores.
+    if (ctx.permisos.has("usuario:administrar") && esCuentaDeEquipo(u.roles)) throw new ErrorRegla("Las cuentas de capataz y de trabajador las gestiona su propietario", "cuenta_de_equipo");
     if (!ctx.permisos.has("usuario:administrar")) {
       // El propietario solo gestiona enlaces de su equipo: roles de equipo y fincas suyas.
       const fincas = await deps.repo.fincasDeUsuario(tx, u.id);

@@ -42,6 +42,13 @@ export function validarRolesYFincas(ctx: ContextoUsuario, roles: readonly string
   if (!soloAdministrador && fincaIds.length === 0) throw new ErrorValidacion("Asigne al menos una finca", { fincaIds: "Asigne al menos una finca" });
 }
 const contrasena = esquemaContrasena();
+
+/** Una cuenta de equipo (capataz o trabajador) pertenece al propietario de sus fincas y solo él la gestiona. */
+export const esCuentaDeEquipo = (roles: readonly string[]) => roles.length > 0 && roles.every((r) => ROLES_DE_EQUIPO.includes(r));
+const ERROR_CUENTA_DE_EQUIPO = () => new ErrorRegla("Las cuentas de capataz y de trabajador las gestiona su propietario", "cuenta_de_equipo");
+
+/** Cuántos capataces y trabajadores tiene un propietario: los que trabajan en alguna de sus fincas. */
+export interface EquipoDePropietario { capataces: number; trabajadores: number }
 const auditar = (deps: DependenciasUsuarios, ctx: ContextoUsuario, tx: Parameters<Auditor["registrar"]>[1], accion: string, usuarioId: string, despues: unknown) =>
   deps.auditor.registrar({ organizacionId: ctx.organizacionId, usuarioId: ctx.usuarioId, accion, entidad: "usuario", entidadId: usuarioId, resultado: "ok", despues, ip: ctx.ip }, tx);
 
@@ -49,14 +56,24 @@ export async function listarUsuarios(deps: DependenciasUsuarios, ctx: ContextoUs
   await autorizar(deps.auditor, ctx, "usuario:ver", { accion: "usuario.listar", entidad: "usuario" });
   // El administrador ve todas las cuentas; el propietario, solo el equipo (capataces y trabajadores) de sus fincas.
   const global = ctx.permisos.has("usuario:administrar");
-  return deps.uow.consultar(async (tx) => ({
-    // El propietario ve solo a su equipo: capataces y trabajadores de sus fincas (ni a sí mismo ni a otros dueños).
-    usuarios: (await deps.repo.listarUsuarios(tx, ctx.organizacionId, global ? undefined : ctx.fincaIds)).filter(
-      (u) => global || (u.id !== ctx.usuarioId && u.roles.length > 0 && u.roles.every((r) => ROLES_DE_EQUIPO.includes(r))),
-    ),
+  return deps.uow.consultar(async (tx) => {
+    const todas = await deps.repo.listarUsuarios(tx, ctx.organizacionId, global ? undefined : ctx.fincaIds);
+    const equipo = todas.filter((u) => esCuentaDeEquipo(u.roles));
+    const equipoDe = (fincas: { id: string }[]): EquipoDePropietario => {
+      const ids = new Set(fincas.map((f) => f.id));
+      const suyos = equipo.filter((m) => m.fincas.some((f) => ids.has(f.id)));
+      return { capataces: suyos.filter((m) => m.roles.includes("capataz")).length, trabajadores: suyos.filter((m) => m.roles.includes("trabajador")).length };
+    };
+    return {
+    // Administrador: propietarios y administradores, y de cada propietario solo cuántos capataces y trabajadores tiene.
+    // Propietario: solo su equipo (capataces y trabajadores de sus fincas), ni él mismo ni otros dueños.
+    usuarios: global
+      ? todas.filter((u) => !esCuentaDeEquipo(u.roles)).map((u) => ({ ...u, equipo: u.roles.includes("propietario") ? equipoDe(u.fincas) : undefined }))
+      : equipo.filter((u) => u.id !== ctx.usuarioId).map((u) => ({ ...u, equipo: undefined as EquipoDePropietario | undefined })),
     roles: (await deps.repo.listarRoles(tx, true)).filter((r) => (global ? !ROLES_DE_EQUIPO.includes(r.codigo) : ROLES_DE_EQUIPO.includes(r.codigo))),
     permisos: await deps.repo.listarPermisos(tx),
-  }));
+    };
+  });
 }
 
 const esquemaCrear = z.object({
@@ -101,6 +118,7 @@ export async function asignarRolesYFincas(deps: DependenciasUsuarios, ctx: Conte
   validarRolesYFincas(ctx, e.roles, e.fincaIds);
   return deps.uow.ejecutar(async (tx) => {
     const u = await cargarUsuario(deps, ctx, tx, e.usuarioId);
+    if (esAdministrador && esCuentaDeEquipo(u.roles)) throw ERROR_CUENTA_DE_EQUIPO();
     if (!esAdministrador) {
       // El propietario solo reorganiza a su propio equipo, y solo entre sus fincas.
       const actuales = await deps.repo.fincasDeUsuario(tx, u.id);
@@ -117,11 +135,37 @@ export async function asignarRolesYFincas(deps: DependenciasUsuarios, ctx: Conte
   });
 }
 
-export async function cambiarEstadoUsuario(deps: DependenciasUsuarios, ctx: ContextoUsuario, cruda: unknown) {
-  const e = validar(z.object({ usuarioId: uuid, activo: z.boolean() }), cruda, "Revise los datos");
-  await autorizar(deps.auditor, ctx, "usuario:administrar", { accion: "usuario.estado", entidad: "usuario" });
+/** ¿El correo ya pertenece a alguna cuenta de la organización (de cualquier rol)? Sirve para validar antes de crear. */
+export async function correoEnUso(deps: DependenciasUsuarios, ctx: ContextoUsuario, correo: string) {
+  await autorizar(deps.auditor, ctx, "usuario:administrar", { accion: "usuario.verificar_correo", entidad: "usuario" });
+  const buscado = correo.trim().toLowerCase();
+  return deps.uow.consultar(async (tx) => (await deps.repo.listarUsuarios(tx, ctx.organizacionId)).some((u) => u.correo.toLowerCase() === buscado));
+}
+
+/** El administrador le suma una finca a un propietario que ya existe (un dueño puede tener varias fincas). */
+export async function agregarFincaAPropietario(deps: DependenciasUsuarios, ctx: ContextoUsuario, cruda: unknown) {
+  const e = validar(z.object({ usuarioId: uuid, fincaId: uuid }), cruda, "Revise los datos");
+  await autorizar(deps.auditor, ctx, "usuario:administrar", { accion: "usuario.agregar_finca", entidad: "usuario" });
   return deps.uow.ejecutar(async (tx) => {
     const u = await cargarUsuario(deps, ctx, tx, e.usuarioId);
+    if (!u.roles.includes("propietario")) throw new ErrorRegla("La cuenta elegida no es de un propietario", "no_es_propietario");
+    if (!(await deps.repo.agregarFinca(tx, ctx.organizacionId, u.id, e.fincaId))) throw new ErrorRegla("La finca no pertenece a la organización", "finca_invalida");
+    await auditar(deps, ctx, tx, "usuario.agregar_finca", u.id, { fincaId: e.fincaId });
+    return { ok: true };
+  });
+}
+
+export async function cambiarEstadoUsuario(deps: DependenciasUsuarios, ctx: ContextoUsuario, cruda: unknown) {
+  const e = validar(z.object({ usuarioId: uuid, activo: z.boolean() }), cruda, "Revise los datos");
+  const esAdministrador = ctx.permisos.has("usuario:administrar");
+  await autorizar(deps.auditor, ctx, esAdministrador ? "usuario:administrar" : "usuario:invitar_equipo", { accion: "usuario.estado", entidad: "usuario" });
+  return deps.uow.ejecutar(async (tx) => {
+    const u = await cargarUsuario(deps, ctx, tx, e.usuarioId);
+    if (esAdministrador && esCuentaDeEquipo(u.roles)) throw ERROR_CUENTA_DE_EQUIPO();
+    if (!esAdministrador) {
+      const fincas = await deps.repo.fincasDeUsuario(tx, u.id);
+      if (!esCuentaDeEquipo(u.roles) || fincas.length === 0 || fincas.some((f) => !ctx.fincaIds.includes(f))) throw new ErrorNoEncontrado("Usuario");
+    }
     if (!u.activada) throw new ErrorRegla("La cuenta aún no fue activada por la persona; genere un nuevo enlace en vez de cambiar su estado", "cuenta_pendiente");
     if (!e.activo) {
       if (u.id === ctx.usuarioId) throw new ErrorRegla("No puede desactivar su propio usuario", "autoexclusion");

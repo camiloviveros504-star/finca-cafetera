@@ -4,6 +4,8 @@ import {
   activarCuenta,
   altaDeFinca,
   asignarRolesYFincas,
+  cambiarEstadoUsuario,
+  emitirEnlace,
   invitarUsuario,
   ErrorNoEncontrado,
   crearLote,
@@ -153,5 +155,51 @@ describe("quién crea qué cuenta", () => {
     await expect(asignarRolesYFincas(e.servicios.usuarios, otro, { usuarioId: r.usuarioId, roles: ["capataz"], fincaIds: [e.ids.finca1] })).rejects.toThrow(ErrorNoEncontrado);
     const adminId = (await e.pool.query("SELECT id FROM usuario WHERE correo = $1", ["admin@demo.local"])).rows[0].id;
     await expect(asignarRolesYFincas(e.servicios.usuarios, otro, { usuarioId: adminId, roles: ["capataz"], fincaIds: [e.ids.finca1] })).rejects.toThrow(ErrorNoEncontrado);
+  });
+});
+
+describe("propietarios con varias fincas y su equipo", () => {
+  it("el administrador le da una segunda finca a un propietario existente; el dueño la ve y crea lotes en ella", async () => {
+    const admin = await e.contexto("admin@demo.local");
+    const dueno = (await listarUsuarios(e.servicios.usuarios, admin)).usuarios.find((u) => u.correo === "propietario@demo.local")!;
+    const r = await altaDeFinca(e.servicios, admin, { nombre: "Finca La Segunda", areaHa: "4", propietarioId: dueno.id });
+    expect(r).toMatchObject({ invitacion: null, propietario: dueno.nombre });
+    const ctx = await e.contexto("propietario@demo.local");
+    expect(ctx.fincaIds).toContain(r.fincaId);
+    expect(ctx.fincaIds).toContain(e.ids.finca1); // conserva la que ya tenía
+    await crearLote(e.servicios.fincasLotes, ctx, { fincaId: r.fincaId, codigo: "S-01", nombre: "Lote de la segunda", areaHa: "1" });
+    // Un correo ya usado por un capataz no deja crear la finca con un "dueño nuevo".
+    const antes = (await e.pool.query("SELECT count(*)::int AS n FROM finca")).rows[0].n;
+    await expect(altaDeFinca(e.servicios, admin, { nombre: "Finca Repetida", propietarioNombre: "Alguien", propietarioCorreo: "capataz@demo.local" })).rejects.toThrow(ErrorRegla);
+    await expect(altaDeFinca(e.servicios, admin, { nombre: "Finca De Nadie", propietarioId: (await e.pool.query("SELECT id FROM usuario WHERE correo = $1", ["capataz@demo.local"])).rows[0].id })).rejects.toThrow(ErrorRegla);
+    expect((await e.pool.query("SELECT count(*)::int AS n FROM finca")).rows[0].n).toBe(antes);
+  });
+
+  it("el administrador ve de cada propietario cuántos capataces y trabajadores tiene, pero no gestiona esas cuentas", async () => {
+    const admin = await e.contexto("admin@demo.local");
+    const lista = (await listarUsuarios(e.servicios.usuarios, admin)).usuarios;
+    expect(lista.some((u) => u.roles.includes("capataz") || u.roles.includes("trabajador"))).toBe(false);
+    const ambas = lista.find((u) => u.correo === "propietario.ambas@demo.local")!;
+    expect(ambas.equipo!.capataces).toBeGreaterThanOrEqual(1);
+    expect(ambas.equipo!.trabajadores).toBeGreaterThanOrEqual(1);
+
+    const capatazId = (await e.pool.query("SELECT id FROM usuario WHERE correo = $1", ["capataz@demo.local"])).rows[0].id;
+    await expect(emitirEnlace(e.servicios.invitaciones, admin, { usuarioId: capatazId })).rejects.toThrow(ErrorRegla);
+    await expect(cambiarEstadoUsuario(e.servicios.usuarios, admin, { usuarioId: capatazId, activo: false })).rejects.toThrow(ErrorRegla);
+    // A un propietario sí le puede generar el enlace para cambiar la contraseña.
+    const duenoId = (await e.pool.query("SELECT id FROM usuario WHERE correo = $1", ["propietario@demo.local"])).rows[0].id;
+    await expect(emitirEnlace(e.servicios.invitaciones, admin, { usuarioId: duenoId })).resolves.toMatchObject({ tipo: "restablecimiento" });
+  });
+
+  it("el propietario cambia la contraseña y desactiva o reactiva a su capataz y a sus trabajadores", async () => {
+    const dueno = await e.contexto("propietario@demo.local");
+    const ids = async (correo: string) => (await e.pool.query("SELECT id FROM usuario WHERE correo = $1", [correo])).rows[0].id as string;
+    await expect(emitirEnlace(e.servicios.invitaciones, dueno, { usuarioId: await ids("capataz@demo.local") })).resolves.toMatchObject({ tipo: "restablecimiento" });
+    await cambiarEstadoUsuario(e.servicios.usuarios, dueno, { usuarioId: await ids("trabajador@demo.local"), activo: false });
+    expect((await e.pool.query("SELECT activo FROM usuario WHERE correo = $1", ["trabajador@demo.local"])).rows[0].activo).toBe(false);
+    await cambiarEstadoUsuario(e.servicios.usuarios, dueno, { usuarioId: await ids("trabajador@demo.local"), activo: true });
+    // No toca a otros propietarios ni al administrador.
+    await expect(cambiarEstadoUsuario(e.servicios.usuarios, dueno, { usuarioId: await ids("propietario.ambas@demo.local"), activo: false })).rejects.toThrow(ErrorNoEncontrado);
+    await expect(emitirEnlace(e.servicios.invitaciones, dueno, { usuarioId: await ids("admin@demo.local") })).rejects.toThrow(ErrorNoEncontrado);
   });
 });

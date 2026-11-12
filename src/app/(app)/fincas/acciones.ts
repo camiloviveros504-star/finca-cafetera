@@ -1,36 +1,54 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { altaDeFinca, invitarUsuario, servicios } from "@/composicion";
+import { agregarFincaAPropietario, altaDeFinca, invitarUsuario, servicios } from "@/composicion";
 import { aEstadoError, type EstadoFormulario } from "../../_servidor/errores";
 import { formatoVencimiento, urlDeActivacion } from "../../_servidor/enlaces";
 import { exigirContexto } from "../../_servidor/sesion";
 
 const t = (d: FormData, k: string) => String(d.get(k) ?? "").trim();
+const RUTAS = ["/fincas", "/usuarios", "/inicio"];
 
-/** Alta de una finca y, si se indica, de su propietario: en un solo paso. */
+/**
+ * Nueva finca: para un propietario que ya existe (su segunda, tercera… finca) o para uno nuevo, que recibe su enlace.
+ * La casilla “Es un propietario nuevo” decide cuál de los dos; sin propietario, la finca queda para asignarla después.
+ */
 export async function accionAltaFinca(_p: EstadoFormulario, d: FormData): Promise<EstadoFormulario> {
   const ctx = await exigirContexto();
   try {
+    const nuevo = d.get("propietarioNuevo") === "on";
     const r = await altaDeFinca(servicios(), ctx, {
       nombre: t(d, "nombre"), ubicacion: t(d, "ubicacion"), areaHa: t(d, "areaHa").replace(",", "."),
-      propietarioNombre: t(d, "propietarioNombre"), propietarioCorreo: t(d, "propietarioCorreo"),
+      propietarioId: nuevo ? undefined : t(d, "propietarioId"),
+      propietarioNombre: nuevo ? t(d, "propietarioNombre") : undefined, propietarioCorreo: nuevo ? t(d, "propietarioCorreo") : undefined,
     });
-    revalidatePath("/fincas");
-    if (!r.invitacion) return { ok: true, mensaje: "Finca creada con su bodega principal. Aún no tiene propietario: agréguelo desde su tarjeta." };
-    return { ok: true, mensaje: "Finca creada y propietario registrado. Entréguele el enlace para que cree su contraseña.", enlace: await urlDeActivacion(r.invitacion.token), enlaceVence: formatoVencimiento(r.invitacion.expiraEn) };
+    for (const ruta of RUTAS) revalidatePath(ruta);
+    if (r.invitacion) return { ok: true, mensaje: `Finca creada y cuenta de ${r.propietario} registrada. Entréguele el enlace para que cree su contraseña.`, enlace: await urlDeActivacion(r.invitacion.token), enlaceVence: formatoVencimiento(r.invitacion.expiraEn) };
+    if (r.propietario) return { ok: true, mensaje: `Finca creada y asignada a ${r.propietario}. Ya puede registrar sus lotes.` };
+    return { ok: true, mensaje: "Finca creada sin propietario. Asígnelo desde “Fincas sin propietario”." };
   } catch (error) {
     return aEstadoError(error);
   }
 }
 
-/** Agrega otro propietario (o administrador de finca) a una finca que ya existe. */
+/** Asigna una finca existente a un propietario que ya tiene cuenta. */
+export async function accionAsignarFinca(_p: EstadoFormulario, d: FormData): Promise<EstadoFormulario> {
+  const ctx = await exigirContexto();
+  try {
+    await agregarFincaAPropietario(servicios().usuarios, ctx, { usuarioId: t(d, "propietarioId"), fincaId: t(d, "fincaId") });
+    for (const ruta of RUTAS) revalidatePath(ruta);
+    return { ok: true, mensaje: "Finca asignada." };
+  } catch (error) {
+    return aEstadoError(error);
+  }
+}
+
+/** Registra un propietario nuevo para una finca que ya existe (por ejemplo, un socio). */
 export async function accionAgregarPropietario(_p: EstadoFormulario, d: FormData): Promise<EstadoFormulario> {
   const ctx = await exigirContexto();
   try {
     const r = await invitarUsuario(servicios().invitaciones, ctx, { nombre: t(d, "nombre"), correo: t(d, "correo"), roles: ["propietario"], fincaIds: [t(d, "fincaId")] });
-    revalidatePath("/fincas");
-    revalidatePath("/usuarios");
+    for (const ruta of RUTAS) revalidatePath(ruta);
     return { ok: true, mensaje: "Propietario registrado. Entréguele el enlace para que cree su contraseña.", enlace: await urlDeActivacion(r.token), enlaceVence: formatoVencimiento(r.expiraEn) };
   } catch (error) {
     return aEstadoError(error);
