@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   asignarRolesYFincas,
@@ -5,18 +6,20 @@ import {
   cambiarPermisoExtra,
   consultarAuditoria,
   crearEquivalencia,
-  crearTemporada,
   crearUsuario,
   crearValorCatalogo,
   ErrorCredenciales,
   ErrorNoAutenticado,
   ErrorProhibido,
-  ErrorRegla,
   ErrorValidacion,
   guardarParametro,
   iniciarSesion,
   listarUsuarios,
   obtenerAjustes,
+  opcionesDeCatalogo,
+  registrarGasto,
+  cambiarEstadoValorCatalogo,
+  ErrorNoEncontrado,
   obtenerContexto,
   restablecerContrasena,
 } from "@/composicion";
@@ -102,48 +105,58 @@ describe("usuarios, roles y permisos", () => {
   });
 });
 
-describe("configuración general (sin valores en el código)", () => {
-  it("catálogos configurables: nuevo método de pago utilizable, sin duplicados", async () => {
-    const admin = await e.contexto("admin@demo.local");
-    await crearValorCatalogo(e.servicios.ajustes, admin, { catalogo: "metodo_pago", codigo: "nequi_demo", nombre: "Billetera digital DEMO" });
-    await expect(crearValorCatalogo(e.servicios.ajustes, admin, { catalogo: "metodo_pago", codigo: "nequi_demo", nombre: "Repetido" })).rejects.toThrow(/Ya existe/);
-    await expect(crearValorCatalogo(e.servicios.ajustes, admin, { catalogo: "inventado", codigo: "x1", nombre: "Xx" })).rejects.toThrow(ErrorValidacion);
-    const a = await obtenerAjustes(e.servicios.ajustes, admin);
-    expect(a.catalogos.some((c) => c.codigo === "nequi_demo")).toBe(true);
+describe("ajustes de cada finca (los maneja su propietario, no el administrador)", () => {
+  it("el propietario agrega un método de pago para su finca y lo usa en su billetera; quien trabaja en otra finca no lo ve", async () => {
+    const dueno = await e.contexto("propietario@demo.local"); // finca 1
+    const otro = await e.contexto("comercial2@demo.local"); // trabaja en la finca 2
+    const r = await crearValorCatalogo(e.servicios.ajustes, dueno, { fincaId: e.ids.finca1, catalogo: "metodo_pago", nombre: "Nequi Finca Uno" });
+    expect(r.codigo).toBe("nequi_finca_uno");
+    await expect(crearValorCatalogo(e.servicios.ajustes, dueno, { fincaId: e.ids.finca1, catalogo: "metodo_pago", nombre: "Nequi finca uno" })).rejects.toThrow(/ya existe/);
+    await expect(crearValorCatalogo(e.servicios.ajustes, dueno, { fincaId: e.ids.finca1, catalogo: "metodo_pago", nombre: "Efectivo" })).rejects.toThrow(/ya existe/); // ya está en la base
+    await expect(crearValorCatalogo(e.servicios.ajustes, dueno, { fincaId: e.ids.finca2, catalogo: "metodo_pago", nombre: "Ajeno" })).rejects.toThrow(ErrorProhibido);
+    await expect(crearValorCatalogo(e.servicios.ajustes, dueno, { fincaId: e.ids.finca1, catalogo: "tipo_cafe", nombre: "Xx" })).rejects.toThrow(ErrorValidacion);
+
+    expect((await opcionesDeCatalogo(e.servicios.ajustes, dueno, "metodo_pago")).map((o) => o.valor)).toContain("nequi_finca_uno");
+    expect((await opcionesDeCatalogo(e.servicios.ajustes, otro, "metodo_pago")).map((o) => o.valor)).not.toContain("nequi_finca_uno");
+    await registrarGasto(e.servicios.finanzas, dueno, { fincaId: e.ids.finca1, tipo: "flete", clasificacion: "agricola", fecha: fechaColombia(), descripcion: "Flete pagado por Nequi", monto: "10000", metodo: "nequi_finca_uno", claveIdempotencia: randomUUID() });
+
+    // Los valores del sistema no se desactivan; los propios sí.
+    const todos = (await obtenerAjustes(e.servicios.ajustes, dueno)).catalogos;
+    const base = todos.find((c) => c.codigo === "efectivo" && !c.fincaId)!;
+    await expect(cambiarEstadoValorCatalogo(e.servicios.ajustes, dueno, { id: base.id, activo: false })).rejects.toThrow(ErrorNoEncontrado);
+    await cambiarEstadoValorCatalogo(e.servicios.ajustes, dueno, { id: r.id, activo: false });
+    expect((await opcionesDeCatalogo(e.servicios.ajustes, dueno, "metodo_pago")).map((o) => o.valor)).not.toContain("nequi_finca_uno");
   });
 
-  it("equivalencias con vigencia: la nueva cierra la anterior, no se reescribe el pasado y solo se convierte lo compatible", async () => {
-    const admin = await e.contexto("admin@demo.local");
-    await crearEquivalencia(e.servicios.ajustes, admin, { origen: "arroba", destino: "kg", factor: "12.000000", desde: manana() });
-    const eq = (await obtenerAjustes(e.servicios.ajustes, admin)).equivalencias.filter((x) => x.origen === "arroba" && x.destino === "kg" && !x.fincaId);
+  it("equivalencias de la finca con vigencia: la nueva cierra la anterior y no se reescribe el pasado", async () => {
+    const dueno = await e.contexto("propietario@demo.local");
+    await crearEquivalencia(e.servicios.ajustes, dueno, { fincaId: e.ids.finca1, origen: "carga", destino: "kg", factor: "125", desde: fechaColombia() });
+    await crearEquivalencia(e.servicios.ajustes, dueno, { fincaId: e.ids.finca1, origen: "carga", destino: "kg", factor: "126", desde: manana() });
+    const eq = (await obtenerAjustes(e.servicios.ajustes, dueno)).equivalencias.filter((x) => x.origen === "carga" && x.fincaId === e.ids.finca1);
     expect(eq).toHaveLength(2);
-    const anterior = eq.find((x) => x.factor === "12.500000")!;
-    expect(anterior.hasta).toBe(manana());
-    expect(anterior.vigente).toBe(true); // hoy sigue rigiendo 12,5
-    await expect(crearEquivalencia(e.servicios.ajustes, admin, { origen: "arroba", destino: "kg", factor: "11", desde: "2020-01-01" })).rejects.toThrow(/pasado/);
-    await expect(crearEquivalencia(e.servicios.ajustes, admin, { origen: "kg", destino: "jornada", factor: "2", desde: manana() })).rejects.toThrow(/mismo tipo/);
-    // Equivalencia propia de una finca: prevalece sobre la general en esa finca.
-    await crearEquivalencia(e.servicios.ajustes, admin, { origen: "carga", destino: "kg", factor: "126", desde: fechaColombia(), fincaId: e.ids.finca1 });
+    expect(eq.find((x) => x.factor === "125.000000")!).toMatchObject({ hasta: manana(), vigente: true });
+    await expect(crearEquivalencia(e.servicios.ajustes, dueno, { fincaId: e.ids.finca1, origen: "carga", destino: "kg", factor: "100", desde: "2020-01-01" })).rejects.toThrow(/pasado/);
+    await expect(crearEquivalencia(e.servicios.ajustes, dueno, { fincaId: e.ids.finca1, origen: "kg", destino: "jornada", factor: "2", desde: manana() })).rejects.toThrow(/mismo tipo/);
+    await expect(crearEquivalencia(e.servicios.ajustes, dueno, { fincaId: e.ids.finca2, origen: "carga", destino: "kg", factor: "120", desde: manana() })).rejects.toThrow(ErrorProhibido);
   });
 
-  it("temporadas sin solapamiento y parámetros validados por rango, con valor anterior en la auditoría", async () => {
-    const admin = await e.contexto("admin@demo.local");
-    await crearTemporada(e.servicios.ajustes, admin, { nombre: "Cosecha principal DEMO", desde: "2026-09-01", hasta: "2026-12-31" });
-    await expect(crearTemporada(e.servicios.ajustes, admin, { nombre: "Solapada", desde: "2026-12-01", hasta: "2027-01-31" })).rejects.toThrow(ErrorRegla);
-    await guardarParametro(e.servicios.ajustes, admin, { clave: "descuento_maximo_pct", valor: "5" });
-    await guardarParametro(e.servicios.ajustes, admin, { clave: "descuento_maximo_pct", valor: "8" });
-    await expect(guardarParametro(e.servicios.ajustes, admin, { clave: "descuento_maximo_pct", valor: "150" })).rejects.toThrow(/entre/);
-    await expect(guardarParametro(e.servicios.ajustes, admin, { clave: "parametro_inventado", valor: "1" })).rejects.toThrow(/desconocido/);
+  it("parámetros de la finca validados por rango, con valor anterior en la auditoría", async () => {
+    const dueno = await e.contexto("propietario@demo.local");
+    await guardarParametro(e.servicios.ajustes, dueno, { fincaId: e.ids.finca1, clave: "descuento_maximo_pct", valor: "5" });
+    await guardarParametro(e.servicios.ajustes, dueno, { fincaId: e.ids.finca1, clave: "descuento_maximo_pct", valor: "8" });
+    await expect(guardarParametro(e.servicios.ajustes, dueno, { fincaId: e.ids.finca1, clave: "descuento_maximo_pct", valor: "150" })).rejects.toThrow(/entre/);
+    await expect(guardarParametro(e.servicios.ajustes, dueno, { fincaId: e.ids.finca1, clave: "stock_minimo_kg", valor: "1" })).rejects.toThrow(/desconocido/);
+    await expect(guardarParametro(e.servicios.ajustes, dueno, { clave: "descuento_maximo_pct", valor: "5" })).rejects.toThrow(ErrorValidacion); // siempre de una finca
     const aud = await e.pool.query("SELECT antes, despues FROM auditoria WHERE accion = 'parametro.guardar' AND resultado = 'ok' ORDER BY id DESC LIMIT 1");
     expect(aud.rows[0].antes).toEqual({ valor: "5" });
     expect(aud.rows[0].despues).toMatchObject({ valor: "8" });
   });
 
-  it("el encargado de producción y el responsable de bodega no modifican la configuración", async () => {
-    for (const correo of ["produccion@demo.local", "bodega@demo.local"]) {
+  it("el administrador de la plataforma y el capataz no tocan los ajustes de una finca", async () => {
+    for (const correo of ["admin@demo.local", "capataz@demo.local", "bodega@demo.local"]) {
       const ctx = await e.contexto(correo);
-      await expect(crearTemporada(e.servicios.ajustes, ctx, { nombre: "No permitida", desde: "2030-01-01", hasta: "2030-02-01" })).rejects.toThrow(ErrorProhibido);
-      await expect(guardarParametro(e.servicios.ajustes, ctx, { clave: "stock_minimo_kg", valor: "10" })).rejects.toThrow(ErrorProhibido);
+      await expect(obtenerAjustes(e.servicios.ajustes, ctx)).rejects.toThrow(ErrorProhibido);
+      await expect(guardarParametro(e.servicios.ajustes, ctx, { fincaId: e.ids.finca1, clave: "descuento_maximo_pct", valor: "10" })).rejects.toThrow(ErrorProhibido);
     }
   });
 });

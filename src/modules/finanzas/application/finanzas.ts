@@ -133,7 +133,7 @@ export async function pagarCompra(deps: DependenciasFinanzas, ctx: ContextoUsuar
   return deps.uow.ejecutar(async (tx) => {
     const previo = await deps.repo.buscarPagoProveedorPorClave(tx, ctx.organizacionId, e.claveIdempotencia);
     if (previo) return { id: previo, repetido: true };
-    if (!(await deps.repo.metodoExiste(tx, ctx.organizacionId, e.metodo))) throw new ErrorRegla("Método de pago no configurado", "metodo_pago_invalido");
+    if (!(await deps.repo.metodoExiste(tx, ctx.organizacionId, e.metodo, ctx.fincaIds))) throw new ErrorRegla("Método de pago no configurado", "metodo_pago_invalido");
     const c = await deps.repo.bloquearCompra(tx, ctx.organizacionId, e.compraId);
     if (!c || !ctx.fincaIds.includes(c.fincaId)) throw new ErrorNoEncontrado("Compra");
     if (c.estado !== "recibida") throw new ErrorRegla("Solo se paga una compra ya recibida", "compra_no_recibida");
@@ -172,8 +172,8 @@ export async function registrarGasto(deps: DependenciasFinanzas, ctx: ContextoUs
   return deps.uow.ejecutar(async (tx) => {
     const previo = await deps.repo.buscarGastoPorClave(tx, ctx.organizacionId, e.claveIdempotencia);
     if (previo) return { id: previo, repetido: true };
-    if (!(await deps.repo.tipoGastoExiste(tx, ctx.organizacionId, e.tipo))) throw new ErrorRegla("Tipo de gasto no configurado", "tipo_gasto_invalido");
-    if (e.metodo && !(await deps.repo.metodoExiste(tx, ctx.organizacionId, e.metodo))) throw new ErrorRegla("Método de pago no configurado", "metodo_pago_invalido");
+    if (!(await deps.repo.tipoGastoExiste(tx, ctx.organizacionId, e.tipo, ctx.fincaIds))) throw new ErrorRegla("Tipo de gasto no configurado", "tipo_gasto_invalido");
+    if (e.metodo && !(await deps.repo.metodoExiste(tx, ctx.organizacionId, e.metodo, ctx.fincaIds))) throw new ErrorRegla("Método de pago no configurado", "metodo_pago_invalido");
     if (e.loteId && !(await deps.repo.loteEsDeFinca(tx, ctx.organizacionId, e.loteId, e.fincaId))) throw new ErrorRegla("El lote no pertenece a la finca indicada", "lote_invalido");
     if (e.ventaId && !(await deps.repo.ventaEsDeFinca(tx, ctx.organizacionId, e.ventaId, e.fincaId))) throw new ErrorRegla("La venta no pertenece a la finca indicada", "venta_invalida");
     const id = await deps.repo.insertarGasto(tx, { organizacionId: ctx.organizacionId, fincaId: e.fincaId, ventaId: e.ventaId, loteId: e.loteId, tipo: e.tipo, clasificacion: e.clasificacion, fecha: e.fecha, descripcion: e.descripcion, monto: e.monto, metodo: e.metodo, clave: e.claveIdempotencia, registradoPor: ctx.usuarioId });

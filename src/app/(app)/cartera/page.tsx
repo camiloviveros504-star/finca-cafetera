@@ -4,12 +4,14 @@ import { FormularioGenerico } from "../../_componentes/FormularioGenerico";
 import { moneda } from "../../_servidor/formatos";
 import { exigirContexto } from "../../_servidor/sesion";
 import { accionPagoCliente } from "../finanzas/acciones";
+import { opcionesCatalogo } from "../../_servidor/catalogos";
 
 export const metadata = { title: "Cartera · Gestión de Finca Cafetera" };
 const hoy = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
 
 export default async function Cartera() {
   const ctx = await exigirContexto();
+  const METODOS = await opcionesCatalogo(ctx, "metodo_pago");
   let filas;
   try {
     filas = await listarCartera(servicios().pagos, ctx, true);
@@ -37,7 +39,7 @@ export default async function Cartera() {
                   ocultos={{ ventaId: f.ventaId }}
                   campos={[
                     { nombre: "monto", etiqueta: "Monto", tipo: "number", requerido: true, valorInicial: f.saldo },
-                    { nombre: "metodo", etiqueta: "Método", tipo: "select", opciones: [{ valor: "efectivo", texto: "Efectivo" }, { valor: "transferencia", texto: "Transferencia" }] },
+                    { nombre: "metodo", etiqueta: "Método", tipo: "select", opciones: METODOS },
                     { nombre: "fecha", etiqueta: "Fecha", tipo: "date", requerido: true, valorInicial: hoy() },
                   ]}
                 />

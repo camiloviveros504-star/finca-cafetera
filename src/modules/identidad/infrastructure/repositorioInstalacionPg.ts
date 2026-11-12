@@ -15,7 +15,6 @@ const CATALOGOS: [string, string, string][] = [
   ["tipo_gasto", "fertilizacion", "Fertilización"],
   ["tipo_gasto", "fumigacion", "Fumigación"],
   ["tipo_gasto", "servicios", "Servicios y otros pagos"],
-  ["categoria_producto", "cafe", "Café"],
 ];
 
 /** Productos básicos del café; el flujo de beneficio los encadena (cereza → pergamino húmedo → pergamino seco → excelso). */

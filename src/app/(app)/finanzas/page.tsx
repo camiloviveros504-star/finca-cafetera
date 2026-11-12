@@ -4,14 +4,11 @@ import { estiloCampo, FormularioGenerico } from "../../_componentes/FormularioGe
 import { moneda } from "../../_servidor/formatos";
 import { exigirContexto } from "../../_servidor/sesion";
 import { accionRegistrarGasto } from "./acciones";
+import { opcionesCatalogo } from "../../_servidor/catalogos";
 
 export const metadata = { title: "Billetera · Gestión de Finca Cafetera" };
 const hoy = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
 
-const TIPOS_GASTO = [
-  ["flete", "Flete (transporte de café)"], ["jornales", "Jornales y mano de obra"], ["fertilizacion", "Fertilización"], ["fumigacion", "Fumigación"],
-  ["insumos", "Insumos agrícolas"], ["combustible", "Combustible"], ["mantenimiento", "Mantenimiento"], ["servicios", "Servicios y otros pagos"], ["administrativo", "Gasto administrativo"],
-].map(([valor, texto]) => ({ valor, texto }));
 
 function Cifra({ titulo, valor, tono }: { titulo: string; valor: string; tono?: "entra" | "sale" | "saldo" }) {
   const color = tono === "entra" ? "text-bosque" : tono === "sale" ? "text-alerta" : Number(valor) < 0 ? "text-alerta" : "text-tinta";
@@ -39,6 +36,8 @@ export default async function Billetera({ searchParams }: { searchParams: Promis
     if (error instanceof ErrorValidacion) return <p role="alert" className="font-semibold text-alerta">{error.message}</p>;
     throw error;
   }
+  const TIPOS_GASTO = await opcionesCatalogo(ctx, "tipo_gasto");
+  const METODOS = await opcionesCatalogo(ctx, "metodo_pago");
   const { fincas, lotes } = await listarFincasYLotes(servicios().fincasLotes, ctx).catch(() => ({ fincas: [], lotes: [] }));
   const movimientos = [...mov.movimientos].reverse(); // lo más reciente primero
   return (
@@ -101,7 +100,7 @@ export default async function Billetera({ searchParams }: { searchParams: Promis
                   { nombre: "fecha", etiqueta: "Fecha", tipo: "date", requerido: true, valorInicial: fin, ancho: "completo" },
                   { nombre: "conLote", etiqueta: "Es de un lote en particular", tipo: "checkbox" },
                   { nombre: "loteId", etiqueta: "Lote", tipo: "select", visibleSi: "conLote", ancho: "completo", opciones: lotes.map((l) => ({ valor: l.id, texto: fincas.length > 1 ? `${l.fincaNombre} · ${l.codigo} ${l.nombre}` : `${l.codigo} ${l.nombre}` })) },
-                  { nombre: "metodo", etiqueta: "Cómo se pagó", tipo: "select", ancho: "completo", opciones: [{ valor: "efectivo", texto: "Efectivo" }, { valor: "transferencia", texto: "Transferencia" }] },
+                  { nombre: "metodo", etiqueta: "Cómo se pagó", tipo: "select", ancho: "completo", opciones: METODOS },
                 ]}
               />
             </section>

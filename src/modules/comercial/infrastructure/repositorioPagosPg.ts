@@ -19,9 +19,10 @@ export class RepositorioPagosPg implements RepositorioPagosClientes {
     return r.rows[0] ? (r.rows[0].id as string) : null;
   }
 
-  async metodoExiste(tx: Transaccion, organizacionId: string, codigo: string): Promise<boolean> {
-    const r = await clienteDe(tx).query("SELECT 1 FROM catalogo_valor WHERE organizacion_id = $1 AND catalogo = 'metodo_pago' AND codigo = $2 AND activo", [organizacionId, codigo]);
-    return r.rowCount === 1;
+  async metodoExiste(tx: Transaccion, organizacionId: string, codigo: string, fincaIds: readonly string[]): Promise<boolean> {
+    // Vale si es de la base del sistema o propio de alguna finca de la persona.
+    const r = await clienteDe(tx).query("SELECT 1 FROM catalogo_valor WHERE organizacion_id = $1 AND catalogo = 'metodo_pago' AND codigo = $2 AND activo AND (finca_id IS NULL OR finca_id = ANY($3::uuid[]))", [organizacionId, codigo, fincaIds]);
+    return (r.rowCount ?? 0) > 0;
   }
 
   async insertarPago(tx: Transaccion, p: { organizacionId: string; ventaId: string; monto: string; metodo: string; fecha: string; clave: string; registradoPor: string }): Promise<string> {

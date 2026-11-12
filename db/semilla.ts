@@ -67,9 +67,6 @@ export async function sembrar(c: Client): Promise<void> {
     for (const [catalogo, codigo, nombre] of [
       ["metodo_pago", "efectivo", "Efectivo"],
       ["metodo_pago", "transferencia", "Transferencia"],
-      ["tipo_cafe", "caturra", "Caturra"],
-      ["tipo_cafe", "castillo", "Castillo"],
-      ["categoria_producto", "cafe", "Café"],
       ["tipo_gasto", "insumos", "Insumos agrícolas"],
       ["tipo_gasto", "mano_obra", "Mano de obra"],
       ["tipo_gasto", "administrativo", "Gasto administrativo"],

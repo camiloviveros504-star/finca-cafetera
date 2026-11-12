@@ -1,32 +1,44 @@
 import type { Transaccion } from "@/shared/dominio/contexto";
 import { ErrorRegla } from "@/shared/dominio/errores";
 import { clienteDe } from "@/shared/infraestructura/baseDatos";
-import type { Equivalencia, ParametroConfigurado, RepositorioAjustes, Temporada, ValorCatalogo } from "../domain/ajustes";
+import type { Equivalencia, ParametroConfigurado, RepositorioAjustes, ValorCatalogo } from "../domain/ajustes";
 
 export class RepositorioAjustesPg implements RepositorioAjustes {
-  async listarCatalogos(tx: Transaccion, o: string): Promise<ValorCatalogo[]> {
-    const r = await clienteDe(tx).query("SELECT id, catalogo, codigo, nombre, activo FROM catalogo_valor WHERE organizacion_id = $1 ORDER BY catalogo, nombre", [o]);
-    return r.rows;
+  async listarCatalogos(tx: Transaccion, o: string, fincaIds: readonly string[]): Promise<ValorCatalogo[]> {
+    const r = await clienteDe(tx).query(
+      `SELECT c.id, c.catalogo, c.codigo, c.nombre, c.activo, c.finca_id, f.nombre AS finca
+         FROM catalogo_valor c LEFT JOIN finca f ON f.id = c.finca_id
+        WHERE c.organizacion_id = $1 AND (c.finca_id IS NULL OR c.finca_id = ANY($2::uuid[]))
+        ORDER BY c.catalogo, c.finca_id NULLS FIRST, c.nombre`,
+      [o, fincaIds],
+    );
+    return r.rows.map((x) => ({ id: x.id, catalogo: x.catalogo, codigo: x.codigo, nombre: x.nombre, activo: x.activo, fincaId: x.finca_id, fincaNombre: x.finca }));
   }
-  async crearValorCatalogo(tx: Transaccion, v: { organizacionId: string; catalogo: string; codigo: string; nombre: string }): Promise<string> {
+  async codigoEnUso(tx: Transaccion, o: string, catalogo: string, codigo: string, fincaId: string) {
+    const r = await clienteDe(tx).query("SELECT 1 FROM catalogo_valor WHERE organizacion_id = $1 AND catalogo = $2 AND codigo = $3 AND (finca_id IS NULL OR finca_id = $4)", [o, catalogo, codigo, fincaId]);
+    return (r.rowCount ?? 0) > 0;
+  }
+  async crearValorCatalogo(tx: Transaccion, v: Parameters<RepositorioAjustes["crearValorCatalogo"]>[1]): Promise<string> {
     try {
-      const r = await clienteDe(tx).query("INSERT INTO catalogo_valor (organizacion_id, catalogo, codigo, nombre) VALUES ($1,$2,$3,$4) RETURNING id", [v.organizacionId, v.catalogo, v.codigo, v.nombre]);
+      const r = await clienteDe(tx).query("INSERT INTO catalogo_valor (organizacion_id, finca_id, catalogo, codigo, nombre) VALUES ($1,$2,$3,$4,$5) RETURNING id", [v.organizacionId, v.fincaId, v.catalogo, v.codigo, v.nombre]);
       return r.rows[0].id as string;
     } catch (error) {
-      if ((error as { code?: string }).code === "23505") throw new ErrorRegla("Ya existe ese código en el catálogo", "valor_duplicado");
+      if ((error as { code?: string }).code === "23505") throw new ErrorRegla("Ya existe ese valor en el catálogo", "valor_duplicado");
       throw error;
     }
   }
-  async cambiarEstadoValor(tx: Transaccion, o: string, id: string, activo: boolean): Promise<boolean> {
-    return (await clienteDe(tx).query("UPDATE catalogo_valor SET activo = $3 WHERE id = $1 AND organizacion_id = $2", [id, o, activo])).rowCount === 1;
+  async cambiarEstadoValor(tx: Transaccion, o: string, id: string, activo: boolean, fincaIds: readonly string[]): Promise<boolean> {
+    const r = await clienteDe(tx).query("UPDATE catalogo_valor SET activo = $3 WHERE id = $1 AND organizacion_id = $2 AND finca_id = ANY($4::uuid[])", [id, o, activo, fincaIds]);
+    return r.rowCount === 1;
   }
-  async listarEquivalencias(tx: Transaccion, o: string, hoy: string): Promise<Equivalencia[]> {
+  async listarEquivalencias(tx: Transaccion, o: string, hoy: string, fincaIds: readonly string[]): Promise<Equivalencia[]> {
     const r = await clienteDe(tx).query(
       `SELECT c.id, c.finca_id, f.nombre AS finca, uo.codigo AS origen, ud.codigo AS destino, c.factor, lower(c.vigencia)::text AS desde,
               upper(c.vigencia)::text AS hasta, c.es_demo, (c.vigencia @> $2::date) AS vigente
          FROM conversion_unidad c JOIN unidad uo ON uo.id = c.unidad_origen_id JOIN unidad ud ON ud.id = c.unidad_destino_id LEFT JOIN finca f ON f.id = c.finca_id
-        WHERE c.organizacion_id = $1 ORDER BY uo.codigo, ud.codigo, lower(c.vigencia) DESC`,
-      [o, hoy],
+        WHERE c.organizacion_id = $1 AND (c.finca_id IS NULL OR c.finca_id = ANY($3::uuid[]))
+        ORDER BY f.nombre NULLS FIRST, uo.codigo, ud.codigo, lower(c.vigencia) DESC`,
+      [o, hoy, fincaIds],
     );
     return r.rows.map((x) => ({ id: x.id, fincaId: x.finca_id, fincaNombre: x.finca, origen: x.origen, destino: x.destino, factor: x.factor, desde: x.desde, hasta: x.hasta, esDemo: x.es_demo, vigente: x.vigente }));
   }
@@ -54,20 +66,7 @@ export class RepositorioAjustesPg implements RepositorioAjustes {
       );
       return r.rows[0].id as string;
     } catch (error) {
-      if ((error as { code?: string }).code === "23P01") throw new ErrorRegla("La vigencia se solapa con otra equivalencia del mismo ámbito", "vigencia_solapada");
-      throw error;
-    }
-  }
-  async listarTemporadas(tx: Transaccion, o: string): Promise<Temporada[]> {
-    const r = await clienteDe(tx).query("SELECT id, nombre, lower(vigencia)::text AS desde, (upper(vigencia) - 1)::text AS hasta FROM temporada WHERE organizacion_id = $1 ORDER BY lower(vigencia) DESC", [o]);
-    return r.rows;
-  }
-  async insertarTemporada(tx: Transaccion, t: { organizacionId: string; nombre: string; desde: string; hasta: string }): Promise<string> {
-    try {
-      const r = await clienteDe(tx).query("INSERT INTO temporada (organizacion_id, nombre, vigencia) VALUES ($1,$2, daterange($3::date, $4::date, '[]')) RETURNING id", [t.organizacionId, t.nombre, t.desde, t.hasta]);
-      return r.rows[0].id as string;
-    } catch (error) {
-      if ((error as { code?: string }).code === "23P01") throw new ErrorRegla("La temporada se solapa con otra existente", "temporada_solapada");
+      if ((error as { code?: string }).code === "23P01") throw new ErrorRegla("La vigencia se solapa con otra equivalencia de la misma finca", "vigencia_solapada");
       throw error;
     }
   }

@@ -184,8 +184,8 @@ export type {
   FilaActividad, FilaAgroquimico, FilaAplicacion, FilaEquipo, FilaInspeccion, FilaMantenimiento, FilaProyeccion, FilaRegistroAmbiental, FilaStockAgroquimico,
 } from "@/modules/agricola/domain/puertos";
 export {
-  obtenerAjustes, crearValorCatalogo, cambiarEstadoValorCatalogo, crearEquivalencia, crearTemporada, guardarParametro,
-  type Equivalencia, type ParametroConfigurado, type Temporada, type ValorCatalogo,
+  obtenerAjustes, opcionesDeCatalogo, crearValorCatalogo, cambiarEstadoValorCatalogo, crearEquivalencia, guardarParametro, CATALOGOS, PARAMETROS,
+  type Catalogo, type Equivalencia, type ParametroConfigurado, type ValorCatalogo,
 } from "@/modules/configuracion/application/ajustes";
 export { listarUsuarios, crearUsuario, asignarRolesYFincas, agregarFincaAPropietario, correoEnUso, cambiarEstadoUsuario, restablecerContrasena, cambiarPermisoExtra, type FilaPermiso, type FilaRol, type FilaUsuario } from "@/modules/identidad/application/usuarios";
 export { consultarAuditoria, type FilaAuditoria, type FiltroAuditoria } from "@/modules/auditoria/application/consultarAuditoria";

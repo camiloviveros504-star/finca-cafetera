@@ -4,12 +4,14 @@ import { FormularioGenerico } from "../../_componentes/FormularioGenerico";
 import { moneda } from "../../_servidor/formatos";
 import { exigirContexto } from "../../_servidor/sesion";
 import { accionLiquidar, accionPagarTrabajador } from "../trabajadores/acciones";
+import { opcionesCatalogo } from "../../_servidor/catalogos";
 
 export const metadata = { title: "Liquidaciones · Gestión de Finca Cafetera" };
 const hoy = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
 
 export default async function Liquidaciones() {
   const ctx = await exigirContexto();
+  const METODOS = await opcionesCatalogo(ctx, "metodo_pago");
   let lista;
   try {
     lista = await listarLiquidaciones(servicios().talento, ctx);
@@ -59,7 +61,7 @@ export default async function Liquidaciones() {
                   ocultos={{ liquidacionId: l.id }}
                   campos={[
                     { nombre: "monto", etiqueta: "Monto", tipo: "number", requerido: true, valorInicial: l.saldo },
-                    { nombre: "metodo", etiqueta: "Método", tipo: "select", opciones: [{ valor: "efectivo", texto: "Efectivo" }, { valor: "transferencia", texto: "Transferencia" }] },
+                    { nombre: "metodo", etiqueta: "Método", tipo: "select", opciones: METODOS },
                     { nombre: "fecha", etiqueta: "Fecha", tipo: "date", requerido: true, valorInicial: hoy() },
                   ]}
                 />

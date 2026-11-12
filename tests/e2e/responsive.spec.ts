@@ -20,7 +20,7 @@ const RUTAS = [
   { nombre: "planificacion", ruta: "/planificacion", rol: "admin@demo.local" },
   { nombre: "usuarios", ruta: "/usuarios", rol: "admin@demo.local" },
   { nombre: "fincas", ruta: "/fincas", rol: "admin@demo.local" },
-  { nombre: "configuracion-general", ruta: "/configuracion/general", rol: "admin@demo.local" },
+  { nombre: "configuracion-general", ruta: "/configuracion/general", rol: "propietario@demo.local" },
   { nombre: "auditoria", ruta: "/auditoria", rol: "admin@demo.local" },
 ];
 

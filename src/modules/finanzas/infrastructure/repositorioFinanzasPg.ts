@@ -83,14 +83,15 @@ export class RepositorioFinanzasPg implements RepositorioFinanzas {
     return r.rows[0].id as string;
   }
 
-  async metodoExiste(tx: Transaccion, organizacionId: string, codigo: string): Promise<boolean> {
-    const r = await clienteDe(tx).query("SELECT 1 FROM catalogo_valor WHERE organizacion_id = $1 AND catalogo = 'metodo_pago' AND codigo = $2 AND activo", [organizacionId, codigo]);
-    return r.rowCount === 1;
+  // Métodos de pago y tipos de gasto: valen los de la base del sistema y los propios de las fincas de la persona.
+  async metodoExiste(tx: Transaccion, organizacionId: string, codigo: string, fincaIds: readonly string[]): Promise<boolean> {
+    const r = await clienteDe(tx).query("SELECT 1 FROM catalogo_valor WHERE organizacion_id = $1 AND catalogo = 'metodo_pago' AND codigo = $2 AND activo AND (finca_id IS NULL OR finca_id = ANY($3::uuid[]))", [organizacionId, codigo, fincaIds]);
+    return (r.rowCount ?? 0) > 0;
   }
 
-  async tipoGastoExiste(tx: Transaccion, organizacionId: string, codigo: string): Promise<boolean> {
-    const r = await clienteDe(tx).query("SELECT 1 FROM catalogo_valor WHERE organizacion_id = $1 AND catalogo = 'tipo_gasto' AND codigo = $2 AND activo", [organizacionId, codigo]);
-    return r.rowCount === 1;
+  async tipoGastoExiste(tx: Transaccion, organizacionId: string, codigo: string, fincaIds: readonly string[]): Promise<boolean> {
+    const r = await clienteDe(tx).query("SELECT 1 FROM catalogo_valor WHERE organizacion_id = $1 AND catalogo = 'tipo_gasto' AND codigo = $2 AND activo AND (finca_id IS NULL OR finca_id = ANY($3::uuid[]))", [organizacionId, codigo, fincaIds]);
+    return (r.rowCount ?? 0) > 0;
   }
 
   async loteEsDeFinca(tx: Transaccion, organizacionId: string, loteId: string, fincaId: string): Promise<boolean> {

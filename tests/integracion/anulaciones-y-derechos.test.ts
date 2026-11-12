@@ -39,7 +39,7 @@ describe("descuentos autorizados", () => {
   it("sin máximo configurado no hay descuentos; con máximo, solo hasta ese tope y exacto al centavo", async () => {
     await expect(vender([{ productoId: e.ids.PSE, cantidad: "1", loteId: e.ids.lote1_01 }], { descuentoPct: "5" })).rejects.toThrow(/máximo autorizado/);
     const admin = await e.contexto("propietario.ambas@demo.local");
-    await guardarParametro(e.servicios.ajustes, admin, { clave: "descuento_maximo_pct", valor: "10" });
+    await guardarParametro(e.servicios.ajustes, admin, { fincaId: e.ids.finca1, clave: "descuento_maximo_pct", valor: "10" }); // el tope es de cada finca
     await expect(vender([{ productoId: e.ids.PSE, cantidad: "1", loteId: e.ids.lote1_01 }], { descuentoPct: "10.01" })).rejects.toThrow(/máximo autorizado/);
     const v = await vender([{ productoId: e.ids.PSE, cantidad: "10", loteId: e.ids.lote1_01 }], { descuentoPct: "10" });
     expect(v.venta.total).toBe("126000.00"); // 10 kg × 14.000 = 140.000 − 10 %

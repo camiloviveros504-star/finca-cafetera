@@ -93,6 +93,6 @@ export interface RepositorioTalento {
   bloquearLiquidacion(tx: Transaccion, organizacionId: string, id: string): Promise<{ neto: string; pagado: string } | null>;
   buscarPagoPorClave(tx: Transaccion, organizacionId: string, clave: string): Promise<string | null>;
   insertarPago(tx: Transaccion, p: { organizacionId: string; liquidacionId: string; monto: string; metodo: string; fecha: string; clave?: string; registradoPor: string }): Promise<string>;
-  metodoDePagoExiste(tx: Transaccion, organizacionId: string, codigo: string): Promise<boolean>;
+  metodoDePagoExiste(tx: Transaccion, organizacionId: string, codigo: string, fincaIds: readonly string[]): Promise<boolean>;
   listarLiquidaciones(tx: Transaccion, organizacionId: string, fincaIds: readonly string[], soloTrabajadorId?: string): Promise<FilaLiquidacion[]>;
 }

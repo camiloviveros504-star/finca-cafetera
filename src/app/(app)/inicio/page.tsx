@@ -35,7 +35,7 @@ function Indicador({ titulo, valor, nota, icono, tono = "normal" }: { titulo: st
 
 function Panel({ titulo, children, className = "" }: { titulo: string; children: React.ReactNode; className?: string }) {
   return (
-    <section className={`rounded-xl border border-borde bg-white p-5 shadow-sm ${className}`}>
+    <section className={`min-w-0 rounded-xl border border-borde bg-white p-5 shadow-sm ${className}`}>
       <h2 className="mb-4 text-sm font-semibold">{titulo}</h2>
       {children}
     </section>
@@ -49,7 +49,7 @@ function BarrasHorizontales({ datos, etiqueta }: { datos: { clave: string; texto
     <ul className="space-y-3" aria-label={etiqueta}>
       {datos.map((d) => (
         <li key={d.clave}>
-          <div className="flex justify-between gap-3 text-sm"><span className="min-w-0 truncate text-tinta/85">{d.texto}</span><span className="font-semibold tabular-nums">{cantidad(d.valor)} kg</span></div>
+          <div className="flex justify-between gap-3 text-sm"><span className="min-w-0 truncate text-tinta/85">{d.texto}</span><span className="shrink-0 whitespace-nowrap font-semibold tabular-nums">{cantidad(d.valor)} kg</span></div>
           <div className="mt-1.5 h-2 rounded-full bg-fondo" role="img" aria-label={`${d.texto}: ${cantidad(d.valor)} kg`}>
             <div className="h-2 rounded-full bg-bosque" style={{ width: `${d.valor > 0 ? Math.max((d.valor / maximo) * 100, 2) : 0}%` }} />
           </div>

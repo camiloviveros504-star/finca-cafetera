@@ -37,7 +37,7 @@ export async function registrarPagoCliente(deps: DependenciasPagos, ctx: Context
   return deps.uow.ejecutar(async (tx) => {
     const previo = await deps.repo.buscarPagoPorClave(tx, ctx.organizacionId, e.claveIdempotencia);
     if (previo) return { id: previo, repetido: true };
-    if (!(await deps.repo.metodoExiste(tx, ctx.organizacionId, e.metodo))) throw new ErrorRegla("Método de pago no configurado", "metodo_pago_invalido");
+    if (!(await deps.repo.metodoExiste(tx, ctx.organizacionId, e.metodo, ctx.fincaIds))) throw new ErrorRegla("Método de pago no configurado", "metodo_pago_invalido");
     const venta = await deps.repo.bloquearVenta(tx, ctx.organizacionId, e.ventaId);
     if (!venta || !ctx.fincaIds.includes(venta.fincaId)) throw new ErrorNoEncontrado("Venta");
     if (venta.estado !== "confirmada") throw new ErrorRegla("No se registran pagos sobre una venta anulada", "venta_anulada");

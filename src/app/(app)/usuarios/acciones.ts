@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import {
   emitirEnlace, invitarUsuario, vincularUsuarioATrabajador, listarTrabajadores,
-  asignarRolesYFincas, cambiarEstadoUsuario, cambiarEstadoValorCatalogo, cambiarPermisoExtra, crearEquivalencia, crearTemporada, crearUsuario, crearValorCatalogo,
+  asignarRolesYFincas, cambiarEstadoUsuario, cambiarEstadoValorCatalogo, cambiarPermisoExtra, crearEquivalencia, crearUsuario, crearValorCatalogo,
   guardarParametro, restablecerContrasena, servicios,
 } from "@/composicion";
 import { aEstadoError, type EstadoFormulario } from "../../_servidor/errores";
@@ -55,7 +55,7 @@ export async function accionPermisoExtra(_p: EstadoFormulario, d: FormData) {
 
 export async function accionValorCatalogo(_p: EstadoFormulario, d: FormData) {
   const ctx = await exigirContexto();
-  return ejecutar(["/configuracion/general"], "Valor creado.", () => crearValorCatalogo(servicios().ajustes, ctx, { catalogo: t(d, "catalogo"), codigo: t(d, "codigo"), nombre: t(d, "nombre") }));
+  return ejecutar(["/configuracion/general"], "Valor creado.", () => crearValorCatalogo(servicios().ajustes, ctx, { fincaId: t(d, "fincaId"), catalogo: t(d, "catalogo"), nombre: t(d, "nombre") }));
 }
 
 export async function accionEstadoValor(_p: EstadoFormulario, d: FormData) {
@@ -66,13 +66,8 @@ export async function accionEstadoValor(_p: EstadoFormulario, d: FormData) {
 export async function accionEquivalencia(_p: EstadoFormulario, d: FormData) {
   const ctx = await exigirContexto();
   return ejecutar(["/configuracion/general"], "Equivalencia creada con su vigencia.", () =>
-    crearEquivalencia(servicios().ajustes, ctx, { fincaId: t(d, "fincaId"), origen: t(d, "origen"), destino: t(d, "destino"), factor: dec(d, "factor"), desde: t(d, "desde") }),
+    crearEquivalencia(servicios().ajustes, ctx, { fincaId: t(d, "fincaId"), origen: t(d, "origen"), destino: t(d, "destino") || "kg", factor: dec(d, "factor"), desde: t(d, "desde") }),
   );
-}
-
-export async function accionTemporada(_p: EstadoFormulario, d: FormData) {
-  const ctx = await exigirContexto();
-  return ejecutar(["/configuracion/general"], "Temporada creada.", () => crearTemporada(servicios().ajustes, ctx, { nombre: t(d, "nombre"), desde: t(d, "desde"), hasta: t(d, "hasta") }));
 }
 
 export async function accionParametro(_p: EstadoFormulario, d: FormData) {

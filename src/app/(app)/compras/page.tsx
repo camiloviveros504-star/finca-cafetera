@@ -8,10 +8,10 @@ import { cantidad, moneda } from "../../_servidor/formatos";
 import { exigirContexto } from "../../_servidor/sesion";
 import { accionPagarCompra, accionRecibirCompra } from "../finanzas/acciones";
 import { accionCompraInsumos } from "./acciones";
+import { opcionesCatalogo } from "../../_servidor/catalogos";
 
 export const metadata = { title: "Compra de insumos · Gestión de Finca Cafetera" };
 const hoy = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
-const METODOS = [{ valor: "efectivo", texto: "Efectivo" }, { valor: "transferencia", texto: "Transferencia" }];
 
 export default async function Compras() {
   const ctx = await exigirContexto();
@@ -24,6 +24,7 @@ export default async function Compras() {
     if (error instanceof ErrorProhibido) return <p role="alert" className="font-semibold text-alerta">No tiene permiso para consultar compras.</p>;
     throw error;
   }
+  const METODOS = await opcionesCatalogo(ctx, "metodo_pago");
   const insumos = ctx.permisos.has("agroquimico:ver") ? await listarAgroquimicos(servicios().agricola, ctx).then((d) => d.catalogo).catch(() => []) : [];
   const fincas = await listarFincasYLotes(servicios().fincasLotes, ctx).then((d) => d.fincas).catch(() => []);
   const p = (x: string) => ctx.permisos.has(x);

@@ -376,7 +376,7 @@ export async function registrarPagoTrabajador(deps: DependenciasTalento, ctx: Co
       const previo = await deps.repo.buscarPagoPorClave(tx, ctx.organizacionId, e.claveIdempotencia);
       if (previo) return { id: previo, repetido: true };
     }
-    if (!(await deps.repo.metodoDePagoExiste(tx, ctx.organizacionId, e.metodo))) throw new ErrorRegla("Método de pago no configurado", "metodo_pago_invalido");
+    if (!(await deps.repo.metodoDePagoExiste(tx, ctx.organizacionId, e.metodo, ctx.fincaIds))) throw new ErrorRegla("Método de pago no configurado", "metodo_pago_invalido");
     const liq = await deps.repo.bloquearLiquidacion(tx, ctx.organizacionId, e.liquidacionId);
     if (!liq) throw new ErrorNoEncontrado("Liquidación");
     const saldo = restar(liq.neto, liq.pagado);

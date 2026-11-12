@@ -4,15 +4,16 @@ import { FormularioGenerico, type CampoFormulario } from "../../../_componentes/
 import { cantidad } from "../../../_servidor/formatos";
 import { exigirContexto } from "../../../_servidor/sesion";
 import { accionRegistrarVenta } from "../acciones";
+import { opcionesCatalogo } from "../../../_servidor/catalogos";
 
 export const metadata = { title: "Registrar venta · Gestión de Finca Cafetera" };
 
-const METODOS = [{ valor: "efectivo", texto: "Efectivo" }, { valor: "transferencia", texto: "Transferencia" }];
 
 export default async function NuevaVenta() {
   const ctx = await exigirContexto();
   try {
     const o = await obtenerOpcionesVenta(servicios().comercial, ctx);
+    const METODOS = await opcionesCatalogo(ctx, "metodo_pago");
     const nombreFinca = new Map(o.fincas.map((f) => [f.id, f.nombre]));
     const nombreTipo = new Map(o.productos.map((p) => [p.id, p.nombre]));
     const tipos = o.productos.map((p) => ({ valor: p.id, texto: p.nombre }));

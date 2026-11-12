@@ -108,8 +108,8 @@ export interface RepositorioFinanzas {
   marcarRecibida(tx: Transaccion, compraId: string, fecha: string, usuarioId: string): Promise<void>;
   buscarPagoProveedorPorClave(tx: Transaccion, organizacionId: string, clave: string): Promise<string | null>;
   insertarPagoProveedor(tx: Transaccion, p: { organizacionId: string; compraId: string; monto: string; metodo: string; fecha: string; clave: string; registradoPor: string }): Promise<string>;
-  metodoExiste(tx: Transaccion, organizacionId: string, codigo: string): Promise<boolean>;
-  tipoGastoExiste(tx: Transaccion, organizacionId: string, codigo: string): Promise<boolean>;
+  metodoExiste(tx: Transaccion, organizacionId: string, codigo: string, fincaIds: readonly string[]): Promise<boolean>;
+  tipoGastoExiste(tx: Transaccion, organizacionId: string, codigo: string, fincaIds: readonly string[]): Promise<boolean>;
   loteEsDeFinca(tx: Transaccion, organizacionId: string, loteId: string, fincaId: string): Promise<boolean>;
   listarCompras(tx: Transaccion, organizacionId: string, fincaIds: readonly string[]): Promise<FilaCompra[]>;
   buscarGastoPorClave(tx: Transaccion, organizacionId: string, clave: string): Promise<string | null>;

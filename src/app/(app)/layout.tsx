@@ -41,7 +41,7 @@ const MENU: Array<EnlaceNav & { permiso?: string }> = [
 
 /** El administrador de la plataforma ve lo suyo y, en solo lectura, los datos globales; nada operativo de una finca. */
 const MENU_ADMINISTRADOR: Record<string, string> = {
-  "/fincas": "Plataforma", "/usuarios": "Plataforma", "/configuracion/general": "Plataforma", "/auditoria": "Plataforma",
+  "/fincas": "Plataforma", "/usuarios": "Plataforma", "/auditoria": "Plataforma",
   "/lotes": "Datos globales", "/cosechas": "Datos globales", "/inventario": "Datos globales", "/ventas": "Datos globales", "/finanzas": "Datos globales", "/reportes": "Datos globales",
 };
 
