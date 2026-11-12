@@ -61,6 +61,35 @@ test.describe("flujos con roles", () => {
     await expect(page.getByRole("button", { name: "Crear finca" })).toHaveCount(0);
   });
 
+  test("activar una cuenta en el mismo navegador del administrador entra con la cuenta nueva, no con la del administrador", async ({ page }) => {
+    await entrar(page, "admin@demo.local");
+    await page.goto("/usuarios");
+    const correo = `activa.${Date.now()}@e2e.test`;
+    const nueva = page.locator("section", { hasText: "Nueva cuenta" });
+    await nueva.locator('input[name="nombre"]').fill("Propietaria Recién Creada");
+    await nueva.locator('input[name="correo"]').fill(correo);
+    await nueva.locator('select[name="roles"]').selectOption("propietario");
+    await nueva.getByRole("button", { name: "Crear y generar enlace" }).click();
+    const enlace = await nueva.locator('input[aria-label="Enlace de activación"]').inputValue({ timeout: 15000 });
+
+    // Se abre el enlace sin cerrar la sesión del administrador.
+    await page.goto(new URL(enlace).pathname);
+    const clave = "Cosecha-Nueva-2026";
+    await page.locator('input[name="contrasena"]').fill(clave);
+    await page.locator('input[name="confirmacion"]').fill(clave);
+    await page.locator('input[name="acepta"]').check();
+    await page.getByRole("button", { name: /Activar|Guardar|Crear/ }).click();
+    await page.waitForURL("**/login**");
+
+    await page.getByLabel("Correo").fill(correo);
+    await page.getByLabel("Contraseña", { exact: true }).fill(clave);
+    await page.getByRole("button", { name: "Iniciar sesión" }).click();
+    await page.waitForURL("**/inicio");
+    const menu = page.getByRole("navigation", { name: "Principal" }).first();
+    await expect(menu.getByRole("link", { name: "Mis fincas" })).toBeVisible();
+    await expect(menu.getByRole("link", { name: "Auditoría" })).toHaveCount(0);
+  });
+
   test("propietario: registra una finca suya en Mis fincas y el administrador la ve a su nombre", async ({ browser }) => {
     const dueno = await (await browser.newContext()).newPage();
     await entrar(dueno, "propietario@demo.local");
